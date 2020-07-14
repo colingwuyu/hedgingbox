@@ -1,0 +1,9 @@
+.idea
+.vscode
+environment_loop/
+env/
+build/
+dist/
+__pycache__/
+*.py[cod]
+*$py.class
