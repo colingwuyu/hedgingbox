@@ -20,8 +20,8 @@ class BSEuroHedgeEnv(dm_env.Environment):
                  stock_drift: float = 0.05,
                  stock_dividend: float = 0.,
                  stock_sigma: float = 0.2,
-                 max_buy_action: int = 5,
-                 max_sell_action: int = -5,
+                 max_buy_action: float = 5.,
+                 max_sell_action: float = -5.,
                  seed: int = 1):
         """Initializes a new BSEuroHedgeEnv.
 
@@ -46,7 +46,8 @@ class BSEuroHedgeEnv(dm_env.Environment):
         # self._stock_holding = 0.
 
         # action space
-        self._actions = np.arange(max_sell_action, max_buy_action+1)
+        self._max_sell = max_sell_action
+        self._max_buy = max_buy_action
         # state space
         self._state_values = {}
         self._state_values['remaining_time'] = option_maturity
@@ -88,7 +89,7 @@ class BSEuroHedgeEnv(dm_env.Environment):
     def step(self, action):
         """Updates the environment according to the action
         """
-        buy_sell_action = action
+        buy_sell_action = action[0]
         self._prev_state_values = self._state_values.copy()
         self._state_values['stock_price'] += self._state_values['stock_price'] * \
             ((self._state_values['stock_drift'] - self._state_values['stock_dividend']) *
@@ -135,7 +136,7 @@ class BSEuroHedgeEnv(dm_env.Environment):
         """Returns the observation spec.
         """
         return specs.Array(
-            shape=(10,), dtype=np.float,
+            shape=(11,), dtype=np.float,
             name="market_observations"
         )
 
@@ -143,8 +144,8 @@ class BSEuroHedgeEnv(dm_env.Environment):
         """Returns the action spec.
         """
         return specs.BoundedArray(
-            shape=(1,), dtype=int,
-            minimum=[self._actions[0]], maximum=[self._actions[-1]],
+            shape=(1,), dtype=float,
+            minimum=[self._max_sell], maximum=[self._max_buy],
             name="buy_sell_action"
         )
 

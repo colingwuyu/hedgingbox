@@ -30,7 +30,7 @@ class DeltaHedgeActor(core.Actor):
         delta = blackscholes.delta(
             call=True, s0=s, r=r, q=q, strike=k, sigma=sigma, tau_e=t, tau_d=t
         )
-        action = np.clip(int(-delta*n_call) - cur_holding, self._min_action, self._max_action)
+        action = [np.clip(-delta*n_call - cur_holding, self._min_action, self._max_action)]
 
         return action
 
