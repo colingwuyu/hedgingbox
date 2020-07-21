@@ -79,7 +79,12 @@ class QTableLearner(acme.Learner):
         print(r_t)
         print(d_t)
         print(o_t)
-        for o_tm1_i, a_tm1_i, r_t_i, d_t_i, o_t_i in zip(o_tm1, a_tm1, r_t, d_t, o_t):
+        for i in range(o_tm1.shape[0]):
+            o_tm1_i = o_tm1[i]
+            a_tm1_i = a_tm1[i]
+            r_t_i = r_t[i]
+            d_t_i = d_t[i]
+            o_t_i = o_t[i]
             cur_q = self._qtable.getQ(o_tm1_i.numpy(), a_tm1_i.numpy())
             target_q = r_t_i + d_t_i * \
                 self._target_qtable.select_maxQ(o_t_i.numpy())
