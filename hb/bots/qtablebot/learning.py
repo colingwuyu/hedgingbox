@@ -1,7 +1,6 @@
 """QTable Q-learning learner implementation."""
 
 from hb.bots.qtablebot import qtable
-from hb.bots import DEBUG_PRINT
 import time
 from typing import Dict, List
 
@@ -87,8 +86,7 @@ class QTableLearner(acme.Learner):
             avg_td_error += td_error
             inc = self._learning_rate * td_error
             self._qtable.update(o_tm1_i.numpy(), a_tm1_i.numpy(), inc)
-            if DEBUG_PRINT:
-                print(f"action = {a_tm1_i.numpy()[0]}; observation = {o_tm1_i.numpy()}; cur_Q = {cur_q}; target_Q = {target_q}; inc = {inc}")
+            print(f"action = {a_tm1_i.numpy()[0]}; observation = {o_tm1_i.numpy()}; cur_Q = {cur_q}; target_Q = {target_q}; inc = {inc}")
         avg_td_error = avg_td_error/o_tm1.shape[0]
 
         # Periodically update the target network.
