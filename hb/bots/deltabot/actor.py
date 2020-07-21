@@ -1,8 +1,8 @@
 from hb.pricing import blackscholes
+from hb.market_env import market_specs
 from acme import core
 from acme import types
 import dm_env
-from dm_env import specs
 import numpy as np
 
 
@@ -14,9 +14,10 @@ class DeltaHedgeActor(core.Actor):
     """
 
     def __init__(self,
-                 action_spec: specs.BoundedArray):
+                 action_spec: market_specs.DiscretizedBoundedArray):
         self._min_action = action_spec.minimum[0]
         self._max_action = action_spec.maximum[0]
+        self._action_lot = action_spec.discretize_step[0]
 
     def select_action(self, observations: types.NestedArray) -> types.NestedArray:
         t = observations[0]
@@ -30,8 +31,11 @@ class DeltaHedgeActor(core.Actor):
         delta = blackscholes.delta(
             call=True, s0=s, r=r, q=q, strike=k, sigma=sigma, tau_e=t, tau_d=t
         )
-        action = [np.clip(-delta*n_call - cur_holding, self._min_action, self._max_action)]
-
+        action = np.clip(-delta*n_call - cur_holding, self._min_action, self._max_action)
+        if self._action_lot != 0.:
+            action = [round(action/self._action_lot)*self._action_lot]
+        else:
+            action = [action]
         return action
 
     def observe_first(self, timestep: dm_env.TimeStep):
