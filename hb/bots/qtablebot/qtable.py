@@ -48,7 +48,7 @@ class QTable:
         select_ind = np.array([True]*self._flattened_mesh.shape[1])
         for obs_i, obs in enumerate(observation):
             select_ind = select_ind & (self._flattened_mesh[obs_i] == round(obs*self._int_multipliers[obs_i]))
-        return np.where(select_ind)[0]
+        return np.where(select_ind)[0][0]
 
     def select_maxQ_action(self, observation: np.ndarray):
         obs_ind = self._coding_observation(observation)
