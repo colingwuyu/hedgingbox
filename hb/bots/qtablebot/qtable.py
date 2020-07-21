@@ -9,10 +9,11 @@ class QTable:
                  action_spec: market_specs.DiscretizedBoundedArray):
         self._obs_spec = observation_spec
         self._action_spec = action_spec
-        mesh = np.meshgrid(*(np.arange(mi, ma, ma+st) for mi, ma, st in zip(observation_spec.minimum,
+
+        mesh = np.meshgrid(*(np.arange(mi, ma+st, st) for mi, ma, st in zip(observation_spec.minimum,
                                                                             observation_spec.maximum,
                                                                             observation_spec.discretize_step)))
-        flattened_mesh = [m.flatten() for m in mesh]
+        flattened_mesh = np.array([m.flatten() for m in mesh])
         self._qtable = {}
         self._int_multipliers = [int_multiplier(
             disc) for disc in observation_spec.discretize_step]
@@ -20,10 +21,10 @@ class QTable:
             flattened_mesh[i] = (flattened_mesh[i] *
                                  self._int_multipliers[i]).astype(np.int64)
 
-        action_num = round((action_spec.maximum - action_spec.minimum) /
-                           action_spec.discretize_step) + 1
-        self._action_space = np.arange(action_spec.minimum, action_spec.maximum+action_spec.discretize_step,
-                                       action_spec.discretize_step)
+        action_num = round((action_spec.maximum - action_spec.minimum)[0] /
+                           action_spec.discretize_step[0]) + 1
+        self._action_space = np.arange(action_spec.minimum[0], action_spec.maximum[0]+action_spec.discretize_step[0],
+                                       action_spec.discretize_step[0])
         for j in range(flattened_mesh.shape[1]):
             self._qtable[hash(tuple(flattened_mesh[:, j]))
                          ] = np.zeros(action_num)

@@ -157,17 +157,21 @@ class HedgingMarketEnv(dm_env.Environment):
         shape = len(self._obs_attr)
         stock_price_ind = self._obs_attr.index('stock_price')
         holding_ind = self._obs_attr.index('stock_holding')
+        t_ind = self._obs_attr.index('remaining_time')
         minimum = [-np.infty]*shape
         maximum = [np.infty]*shape
         discretize_step = np.zeros(shape)
         discretize_step[stock_price_ind] = self._market_param.stock_ticker_size
         discretize_step[holding_ind] = self._market_param.lot_size
+        discretize_step[t_ind] = self._step_size*365
         minimum[stock_price_ind] = self._market_param.stock_price_lower_bound
         maximum[stock_price_ind] = self._market_param.stock_price_upper_bound
         minimum[holding_ind] = -self._market_param.holding_lots_bound * \
             self._market_param.lot_size
         maximum[holding_ind] = self._market_param.holding_lots_bound * \
             self._market_param.lot_size
+        minimum[t_ind] = (self._option_maturity - self._num_step*self._step_size)*365.
+        maximum[t_ind] = self._option_maturity*365.
         return market_specs.DiscretizedBoundedArray(
             shape=(shape,), dtype=float,
             minimum=minimum, maximum=maximum, discretize_step=discretize_step,
@@ -220,5 +224,9 @@ class HedgingMarketEnv(dm_env.Environment):
         for ai, obs_attr in enumerate(self._obs_attr):
             market_observations[ai] = self._state_values[obs_attr]
             if obs_attr == 'stock_price':
+                # clip to bounds
                 market_observations[ai] = max(self._market_param.stock_price_lower_bound, min(self._market_param.stock_price_upper_bound, market_observations[ai]))
+            if obs_attr == 'remaining_time':
+                # convert to days
+                market_observations[ai] = market_observations[ai]*365.
         return market_observations

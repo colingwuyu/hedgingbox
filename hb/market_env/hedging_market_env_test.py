@@ -87,3 +87,4 @@ class HedgeEnvTest(unittest.TestCase):
         # we care about is that the agent runs without raising any errors.
         loop = acme.EnvironmentLoop(environment, bot)
         loop.run(num_episodes=100)
+
