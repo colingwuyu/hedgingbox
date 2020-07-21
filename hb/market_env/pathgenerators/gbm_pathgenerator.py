@@ -21,37 +21,37 @@ class GBMGenerator(pathgenerator.PathGenerator):
     def gen_path(self, num_paths: int) -> Tuple[types.NestedArray, types.NestedArray]:
         path_samples = np.zeros((num_paths, self._num_step+1))
         path_samples[:, 0] = self._initial_price
-        rnds = self._rng.normal(0, 1, (num_paths, self._num_step))
-        for si in range(1, self._num_step):
-            path_samples[:, si] += path_samples[:, si-1] * \
-                ((self._drift - self._div) * self._step_size + self._sigma *
-                    np.sqrt(self._step_size) * rnds[:, si])
-        stock_attr = [[{'drift': self._drift,
-                        'div': self._div,
-                        'sigma': self._sigma}]*(self._num_step+1)]*num_paths
+        rnds = self._rng.lognormal((self._drift - self._div - self._sigma**2/2) * self._step_size,
+                                   self._sigma*np.sqrt(self._step_size),
+                                   (num_paths, self._num_step))
+        for si in range(1, self._num_step+1):
+            path_samples[:, si] = path_samples[:, si-1] * rnds[:, si-1]
+        stock_attr = [[{'stock_drift': self._drift,
+                        'stock_dividend': self._div,
+                        'stock_sigma': self._sigma}]*(self._num_step+1)]*num_paths
         if num_paths == 1:
             path_samples = path_samples[0]
             stock_attr = stock_attr[0]
         return path_samples, stock_attr
 
     def reset_step(self):
-        return self._initial_price, {'drift': self._drift,
-                                     'div': self._div,
-                                     'sigma': self._sigma}
+        return self._initial_price, {'stock_drift': self._drift,
+                                     'stock_dividend': self._div,
+                                     'stock_sigma': self._sigma}
 
     def gen_step(self, num_step: int,
                  observation: types.NestedArray, action) -> Tuple[types.NestedArray, types.NestedArray]:
         step_samples = np.zeros(num_step + 1)
         step_samples[0] = observation['stock_price']
-        rnds = self._rng.normal(0, 1, self._num_step)
-        for si in range(1, num_step):
-            step_samples[si] += step_samples[si-1] * \
-                ((self._drift - self._div) * self._step_size + self._sigma *
-                    np.sqrt(self._step_size) * rnds[si])
+        rnds =  self._rng.lognormal((self._drift - self._div - self._sigma**2/2) * self._step_size,
+                                    self._sigma*np.sqrt(self._step_size),
+                                    self._num_step)
+        for si in range(1, num_step+1):
+            step_samples[si] += step_samples[si-1] * rnds[si-1]
         step_samples = step_samples[1:]
-        stock_attr = [{'drift': self._drift,
-                       'div': self._div,
-                       'sigma': self._sigma}]*num_step
+        stock_attr = [{'stock_drift': self._drift,
+                       'stock_dividend': self._div,
+                       'stock_sigma': self._sigma}]*num_step
         if num_step == 1:
             stock_attr = stock_attr[0]
         return step_samples, stock_attr

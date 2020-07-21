@@ -20,13 +20,13 @@ class DeltaHedgeActor(core.Actor):
 
     def select_action(self, observations: types.NestedArray) -> types.NestedArray:
         t = observations[0]
-        n_call = observations[2]
-        k = observations[3]
-        r = observations[4]
-        s = observations[6]
-        q = observations[8]
-        sigma = observations[9]
-        cur_holding = observations[10]
+        n_call = observations[1]
+        k = observations[2]
+        r = observations[3]
+        s = observations[4]
+        q = observations[5]
+        sigma = observations[6]
+        cur_holding = observations[7]
         delta = blackscholes.delta(
             call=True, s0=s, r=r, q=q, strike=k, sigma=sigma, tau_e=t, tau_d=t
         )

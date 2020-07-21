@@ -116,7 +116,7 @@ class HedgingMarketEnv(dm_env.Environment):
         """
         buy_sell_action = action[0]
         self._stock_step += 1
-        if self._stock_price_path:
+        if self._stock_price_path is not None:
             # grab data from path
             stock_price = self._stock_price_path[self._stock_step]
             stock_attr = self._stock_attr_path[self._stock_step]
