@@ -20,7 +20,7 @@ class QTableActor(core.Actor):
         self,
         qtable: qtable.QTable,
         epsilon: float,
-        adder: adders.Adder
+        adder: adders.Adder = None
     ):
         """Initializes the actor.
 

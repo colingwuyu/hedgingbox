@@ -19,45 +19,50 @@ class QTable:
             disc) for disc in observation_spec.discretize_step]
         for i in range(flattened_mesh.shape[0]):
             flattened_mesh[i] = (flattened_mesh[i] *
-                                 self._int_multipliers[i]).astype(np.int64)
-
+                                 self._int_multipliers[i])
+        self._flattened_mesh = flattened_mesh.astype(np.int64)
         action_num = round((action_spec.maximum - action_spec.minimum)[0] /
                            action_spec.discretize_step[0]) + 1
         self._action_space = np.arange(action_spec.minimum[0], action_spec.maximum[0]+action_spec.discretize_step[0],
                                        action_spec.discretize_step[0])
-        for j in range(flattened_mesh.shape[1]):
-            self._qtable[hash(tuple(flattened_mesh[:, j]))
-                         ] = np.zeros(action_num)
+        self._qtable = np.zeros((self._flattened_mesh.shape[1], action_num))
 
     @property
     def qtable(self):
         return self._qtable
 
+    @qtable.setter
+    def qtable(self, other_qtable):
+        self._qtable = other_qtable
+
     def copy(self):
         ret_Qtable = QTable(self._obs_spec, self._action_spec)
-        for k, v in self._qtable.items():
-            ret_Qtable.qtable[k] = v.copy()
+        ret_Qtable.qtable = self.qtable.copy()
+        return ret_Qtable
 
     @property
     def action_space(self):
         return self._action_space
 
     def _coding_observation(self, observation: np.ndarray):
-        return hash((int(o*m) for o, m in zip(observation, self._int_multipliers)))
+        select_ind = np.array([True]*self._flattened_mesh.shape[1])
+        for obs_i, obs in enumerate(observation):
+            select_ind = select_ind & (self._flattened_mesh[obs_i] == round(obs*self._int_multipliers[obs_i]))
+        return np.where(select_ind)[0]
 
     def select_maxQ_action(self, observation: np.ndarray):
-        obs_hash = self._coding_observation(observation)
-        argmaxQ_action = self._action_space[np.argmax(self._qtable[obs_hash])]
+        obs_ind = self._coding_observation(observation)
+        argmaxQ_action = self._action_space[np.argmax(self._qtable[obs_ind])]
         return [argmaxQ_action]
 
     def select_maxQ(self, observation: np.ndarray):
-        obs_hash = self._coding_observation(observation)
-        return np.max(self._qtable[obs_hash])
+        obs_ind = self._coding_observation(observation)
+        return np.max(self._qtable[obs_ind])
 
     def getQ(self, observation: np.ndarray, action: np.ndarray):
-        obs_hash = self._coding_observation(observation)
+        obs_ind = self._coding_observation(observation)
         action_ind = np.where(self._action_space == action[0])[0]
-        return self._qtable[obs_hash][action_ind]
+        return self._qtable[obs_ind][action_ind]
 
     def update(self, observation: np.ndarray, action: np.ndarray, inc: float):
         obs_hash = hash(observation)
