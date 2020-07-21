@@ -25,7 +25,7 @@ class QTableTest(unittest.TestCase):
             stock_price_upper_bound=60.,
             lot_size=1,
             buy_sell_lots_bound=4,
-            holding_lots_bound=12)
+            holding_lots_bound=14)
         environment = hedging_market_env.HedgingMarketEnv(
             stock_generator=gbm,
             reward_rule=pnl_reward,
@@ -35,7 +35,8 @@ class QTableTest(unittest.TestCase):
             discount_rate=0.,
             option_maturity=30. / 365.,
             option_strike=50.,
-            option_holding=4,
+            option_holding=-4,
+            initial_stock_holding=2,
             obs_attr=['remaining_time',
                       'stock_price',
                       'stock_holding']
@@ -44,7 +45,7 @@ class QTableTest(unittest.TestCase):
         qtable = QTable(spec.observations, spec.actions)
         actor = QTableActor(qtable, 0.5)
 
-        num_episode = 10
+        num_episode = 100
         for episode in range(num_episode):
             timestep = environment.reset()
 
