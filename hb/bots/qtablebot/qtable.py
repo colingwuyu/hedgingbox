@@ -65,6 +65,6 @@ class QTable:
         return self._qtable[obs_ind][action_ind]
 
     def update(self, observation: np.ndarray, action: np.ndarray, inc: float):
-        obs_hash = hash(observation)
+        obs_ind = self._coding_observation(observation)
         action_ind = np.where(self._action_space == action[0])[0]
-        self._qtable[obs_hash][action_ind] += inc
+        self._qtable[obs_ind][action_ind] += inc

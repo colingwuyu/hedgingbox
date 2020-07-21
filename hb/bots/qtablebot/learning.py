@@ -74,24 +74,19 @@ class QTableLearner(acme.Learner):
         inputs = next(self._iterator)
         o_tm1, a_tm1, r_t, d_t, o_t = inputs.data
         avg_td_error = 0.
-        print(o_tm1)
-        print(a_tm1)
-        print(r_t)
-        print(d_t)
-        print(o_t)
         for i in range(o_tm1.shape[0]):
             o_tm1_i = o_tm1[i]
             a_tm1_i = a_tm1[i]
             r_t_i = r_t[i]
             d_t_i = d_t[i]
             o_t_i = o_t[i]
-            cur_q = self._qtable.getQ(tf.make_ndarray(o_tm1_i), tf.make_ndarray(a_tm1_i))
+            cur_q = self._qtable.getQ(o_tm1_i.numpy(), a_tm1_i.numpy())
             target_q = r_t_i + d_t_i * \
-                self._target_qtable.select_maxQ(tf.make_ndarray(o_t_i))
+                self._target_qtable.select_maxQ(o_t_i.numpy())
             td_error = target_q - cur_q
             avg_td_error += td_error
             inc = self._learning_rate * td_error
-            self._qtable.update(tf.make_ndarray(o_tm1_i), tf.make_ndarray(a_tm1_i), inc)
+            self._qtable.update(o_tm1_i.numpy(), a_tm1_i.numpy(), inc)
             print(f"cur_Q = {cur_q}; target_Q = {target_q}; inc = {inc}")
         avg_td_error = avg_td_error/o_tm1.shape[0]
 
