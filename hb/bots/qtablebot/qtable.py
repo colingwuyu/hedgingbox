@@ -62,7 +62,7 @@ class QTable:
     def getQ(self, observation: np.ndarray, action: np.ndarray):
         obs_ind = self._coding_observation(observation)
         action_ind = np.where(self._action_space == action[0])[0]
-        return self._qtable[obs_ind][action_ind]
+        return self._qtable[obs_ind][action_ind][0]
 
     def update(self, observation: np.ndarray, action: np.ndarray, inc: float):
         obs_ind = self._coding_observation(observation)
