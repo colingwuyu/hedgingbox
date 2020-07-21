@@ -110,14 +110,14 @@ class QTableBot(agent.Agent):
             logger=logger,
         )
 
-        if checkpoint:
-            self._checkpointer = tf2_savers.Checkpointer(
-                directory=checkpoint_subpath,
-                objects_to_save=learner.state,
-                subdirectory='qtable_bot',
-                time_delta_minutes=60.)
-        else:
-            self._checkpointer = None
+        # if checkpoint:
+        #     self._checkpointer = tf2_savers.Checkpointer(
+        #         directory=checkpoint_subpath,
+        #         objects_to_save=learner.state,
+        #         subdirectory='qtable_bot',
+        #         time_delta_minutes=60.)
+        # else:
+        #     self._checkpointer = None
 
         super().__init__(
             actor=actor,
@@ -127,5 +127,5 @@ class QTableBot(agent.Agent):
 
     def update(self):
         super().update()
-        if self._checkpointer is not None:
-            self._checkpointer.save()
+        # if self._checkpointer is not None:
+        #     self._checkpointer.save()
