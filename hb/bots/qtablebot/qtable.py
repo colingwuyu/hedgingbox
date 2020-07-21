@@ -25,7 +25,7 @@ class QTable:
                            action_spec.discretize_step[0]) + 1
         self._action_space = np.arange(action_spec.minimum[0], action_spec.maximum[0]+action_spec.discretize_step[0],
                                        action_spec.discretize_step[0])
-        self._qtable = np.zeros((self._flattened_mesh.shape[1], action_num))
+        self._qtable = np.zeros((self._flattened_mesh.shape[1], int(action_num)))
 
     @property
     def qtable(self):
