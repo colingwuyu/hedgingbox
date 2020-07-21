@@ -1,6 +1,5 @@
 import dm_env
 import math
-from dm_env import specs
 from hb.pricing import blackscholes
 from typing import List
 import numpy as np
@@ -56,12 +55,9 @@ class HedgingMarketEnv(dm_env.Environment):
         # stock generator
         self._stock_generator = stock_generator
         self._step_size = self._stock_generator.step_size
-        self._num_step = self._stock_generator._num_step
+        self._num_step = self._stock_generator.num_step
         assert self._num_step * \
             self._step_size <= self._option_maturity, "Stock path longer than option maturity."
-        # reward generator
-        self._reward_rule = reward_rule
-        self._reward_rule.reset()
         # state space
         self._state_values = {}
         self._state_values['remaining_time'] = option_maturity
@@ -74,11 +70,14 @@ class HedgingMarketEnv(dm_env.Environment):
         stock_init_price, stock_attr = self._stock_generator.reset_step()
         self._state_values['stock_price'] = stock_init_price
         self._state_values.update(stock_attr)
+        # reward generator
+        self._reward_rule = reward_rule
+        self._reward_rule.reset(self._state_values)
         # gen stock path
         self._stock_path = None
         self._stock_step = None
         if not self._stock_generator.has_env_interaction():
-            self._stock_path, self._stock_path_attr = \
+            self._stock_price_path, self._stock_attr_path = \
                 self._stock_generator.gen_path(1)
             self._stock_step = 1
 
@@ -161,7 +160,7 @@ class HedgingMarketEnv(dm_env.Environment):
         minimum = [-np.infty]*shape
         maximum = [np.infty]*shape
         discretize_step = np.zeros(shape)
-        discretize_step[stock_price_ind] = self._market_param.ticker_size
+        discretize_step[stock_price_ind] = self._market_param.stock_ticker_size
         discretize_step[holding_ind] = self._market_param.lot_size
         minimum[stock_price_ind] = self._market_param.stock_price_lower_bound
         maximum[stock_price_ind] = self._market_param.stock_price_upper_bound

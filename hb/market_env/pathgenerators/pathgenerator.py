@@ -22,6 +22,10 @@ class PathGenerator(abc.ABC):
         return self._num_step
 
     @property
+    def num_step(self):
+        return self._num_step
+
+    @property
     def step_size(self):
         return self._step_size
 
