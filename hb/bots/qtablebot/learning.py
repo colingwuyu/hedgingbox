@@ -67,7 +67,6 @@ class QTableLearner(acme.Learner):
         # fill the replay buffer.
         self._timestamp = None
 
-    @tf.function
     def _step(self) -> Dict[str, tf.Tensor]:
         """Do a step of qtable update with Q-learning TD error."""
         # Pull out the data needed for updates/priorities.
