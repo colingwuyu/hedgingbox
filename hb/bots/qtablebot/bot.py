@@ -125,6 +125,9 @@ class QTableBot(agent.Agent):
             min_observations=max(batch_size, min_replay_size),
             observations_per_step=float(batch_size) / samples_per_insert)
 
+    def get_qtable(self):
+        return self._learner.get_qtable()
+
     def update(self):
         super().update()
         # if self._checkpointer is not None:
