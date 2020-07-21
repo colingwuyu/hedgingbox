@@ -20,7 +20,7 @@ class DeltaHedgeActor(core.Actor):
         self._action_lot = action_spec.discretize_step[0]
 
     def select_action(self, observations: types.NestedArray) -> types.NestedArray:
-        t = observations[0]
+        t = observations[0]/365.
         n_call = observations[1]
         k = observations[2]
         r = observations[3]
