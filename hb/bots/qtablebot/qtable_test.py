@@ -42,13 +42,13 @@ class QTableTest(unittest.TestCase):
         )
         spec = specs.make_environment_spec(environment)
         qtable = QTable(spec.observations, spec.actions)
-        actor = QTableActor(qtable, 0.)
+        actor = QTableActor(qtable, 0.5)
 
-        num_episode = 1
+        num_episode = 10
         for episode in range(num_episode):
             timestep = environment.reset()
 
             while not timestep.last():
-                action = qtable.select_maxQ_action(timestep.observation)
+                action = actor.select_action(timestep.observation)
                 timestep = environment.step(action)
 

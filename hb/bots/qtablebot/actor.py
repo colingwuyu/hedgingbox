@@ -39,7 +39,7 @@ class QTableActor(core.Actor):
     def select_action(self, observation: types.NestedArray) -> types.NestedArray:
         rnd_tmp = np.random.random(1)
         if rnd_tmp < self._epsilon:
-            return np.random.choice(self._qtable.action_space)
+            return np.random.choice(self._qtable.action_space, 1)
         else:
             return self._qtable.select_maxQ_action(observation)
 
