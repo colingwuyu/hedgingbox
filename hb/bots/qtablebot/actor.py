@@ -55,5 +55,13 @@ class QTableActor(core.Actor):
         if self._adder:
             self._adder.add(action, next_timestep)
 
+    @property
+    def exploration_epsilon(self):
+        return self._epsilon
+
+    @exploration_epsilon.setter
+    def exploration_epsilon(self, epsilon):
+        self._epsilon = epsilon
+
     def update(self):
         pass
