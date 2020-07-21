@@ -53,7 +53,7 @@ class QTable:
     def select_maxQ_action(self, observation: np.ndarray):
         obs_ind = self._coding_observation(observation)
         argmaxQ_action = self._action_space[np.argmax(self._qtable[obs_ind])]
-        return [argmaxQ_action]
+        return np.array([argmaxQ_action]).astype(np.float32)
 
     def select_maxQ(self, observation: np.ndarray):
         obs_ind = self._coding_observation(observation)
