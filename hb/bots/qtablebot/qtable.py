@@ -54,11 +54,11 @@ class QTable:
     def action_space(self):
         return self._action_space
 
-    def _coding_observation(self, observation: np.ndarray):
-        select_ind = np.array([True]*self._flattened_mesh.shape[1])
-        for obs_i, obs in enumerate(observation):
-            select_ind = select_ind & (self._flattened_mesh[obs_i] == round(obs*self._int_multipliers[obs_i]))
-        return np.where(select_ind)[0][0]
+    # def _coding_observation(self, observation: np.ndarray):
+    #     select_ind = np.array([True]*self._flattened_mesh.shape[1])
+    #     for obs_i, obs in enumerate(observation):
+    #         select_ind = select_ind & (self._flattened_mesh[obs_i] == round(obs*self._int_multipliers[obs_i]))
+    #     return np.where(select_ind)[0][0]
 
     def select_maxQ_action(self, observation: np.ndarray):
         obs_ind = self._encoding_obs(observation)
@@ -81,6 +81,8 @@ class QTable:
         return self._qtable[obs_ind][action_ind][0]
 
     def update(self, observation: np.ndarray, action: np.ndarray, inc: float):
-        obs_ind = self._coding_observation(observation)
+        obs_ind = self._encoding_obs(observation)
+        if obs_ind not in self._qtable:
+            self._qtable[obs_ind] = self._action_space / 10
         action_ind = np.where(self._action_space == action[0])[0]
         self._qtable[obs_ind][action_ind] += inc
