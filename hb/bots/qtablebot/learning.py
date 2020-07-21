@@ -74,6 +74,11 @@ class QTableLearner(acme.Learner):
         inputs = next(self._iterator)
         o_tm1, a_tm1, r_t, d_t, o_t = inputs.data
         avg_td_error = 0.
+        print(o_tm1)
+        print(a_tm1)
+        print(r_t)
+        print(d_t)
+        print(o_t)
         for o_tm1_i, a_tm1_i, r_t_i, d_t_i, o_t_i in zip(o_tm1, a_tm1, r_t, d_t, o_t):
             cur_q = self._qtable.getQ(o_tm1_i.numpy(), a_tm1_i.numpy())
             target_q = r_t_i + d_t_i * \
