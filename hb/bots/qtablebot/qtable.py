@@ -21,11 +21,11 @@ class QTable:
             flattened_mesh[i] = (flattened_mesh[i] *
                                  self._int_multipliers[i])
         self._flattened_mesh = flattened_mesh.astype(np.int64)
-        action_num = round((action_spec.maximum - action_spec.minimum)[0] /
-                           action_spec.discretize_step[0]) + 1
+        # action_num = round((action_spec.maximum - action_spec.minimum)[0] /
+        #                    action_spec.discretize_step[0]) + 1
         self._action_space = np.arange(action_spec.minimum[0], action_spec.maximum[0]+action_spec.discretize_step[0],
                                        action_spec.discretize_step[0])
-        self._qtable = np.zeros((self._flattened_mesh.shape[1], int(action_num)))
+        self._qtable = np.tile(self._action_space/10, (self._flattened_mesh.shape[1], 1))
 
     @property
     def qtable(self):
