@@ -63,26 +63,26 @@ class QTable:
     def select_maxQ_action(self, observation: np.ndarray):
         obs_ind = self._encoding_obs(observation)
         if obs_ind not in self._qtable:
-            self._qtable[obs_ind] = self._action_space / 10
+            self._qtable[obs_ind] = self._action_space.copy() / 10
         argmaxQ_action = self._action_space[np.argmax(self._qtable[obs_ind])]
         return np.array([argmaxQ_action]).astype(np.float32)
 
     def select_maxQ(self, observation: np.ndarray):
         obs_ind = self._encoding_obs(observation)
         if obs_ind not in self._qtable:
-            self._qtable[obs_ind] = self._action_space / 10
+            self._qtable[obs_ind] = self._action_space.copy() / 10
         return np.max(self._qtable[obs_ind])
 
     def getQ(self, observation: np.ndarray, action: np.ndarray):
         obs_ind = self._encoding_obs(observation)
         if obs_ind not in self._qtable:
-            self._qtable[obs_ind] = self._action_space / 10
+            self._qtable[obs_ind] = self._action_space.copy() / 10
         action_ind = np.where(self._action_space == action[0])[0]
         return self._qtable[obs_ind][action_ind][0]
 
     def update(self, observation: np.ndarray, action: np.ndarray, inc: float):
         obs_ind = self._encoding_obs(observation)
         if obs_ind not in self._qtable:
-            self._qtable[obs_ind] = self._action_space / 10
+            self._qtable[obs_ind] = self._action_space.copy() / 10
         action_ind = np.where(self._action_space == action[0])[0]
         self._qtable[obs_ind][action_ind] += inc
