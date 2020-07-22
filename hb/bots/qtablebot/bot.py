@@ -4,7 +4,6 @@ from acme import datasets
 from acme import specs
 from acme.adders import reverb as adders
 from acme.agents import agent
-from acme.tf import savers as tf2_savers
 from acme.utils import loggers
 
 from hb.bots.qtablebot import actor as qtable_actor
@@ -12,6 +11,7 @@ from hb.bots.qtablebot import learning
 from hb.bots.qtablebot import qtable
 
 import reverb
+import pickle
 
 
 class QTableBot(agent.Agent):
@@ -127,6 +127,20 @@ class QTableBot(agent.Agent):
 
     def get_qtable(self):
         return self._learner.get_qtable()
+
+    def save(self, location='../ACME Models/QTable.pickle'):
+        with open(location, 'wb') as pf:
+            pickle.dump(self.get_qtable(), pf)
+
+    def restore(self, location='../ACME Models/QTable.pickle'):
+        with open(location, 'rb') as pf:
+            qtable = pickle.load(pf)
+        self._learner._qtable = qtable
+        self._actor._qtable = qtable
+        if self._learner._target_update_period > 1:
+            self._learner._target_qtable = qtable.copy()
+        else:
+            self._learner._target_qtable = qtable
 
     def update(self):
         super().update()
