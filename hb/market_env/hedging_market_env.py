@@ -89,6 +89,9 @@ class HedgingMarketEnv(dm_env.Environment):
         # reset state
         self._state_values['stock_holding'] = self._initial_stock_holding
         self._state_values['remaining_time'] = self._option_maturity
+        stock_init_price, stock_attr = self._stock_generator.reset_step()
+        self._state_values['stock_price'] = stock_init_price
+        self._state_values.update(stock_attr)
         # TODO create a derivative module for pricing
         self._state_values['option_price'] = blackscholes.price(
             call=True, s0=self._state_values['stock_price'],
@@ -99,9 +102,6 @@ class HedgingMarketEnv(dm_env.Environment):
             tau_e=self._state_values['remaining_time'],
             tau_d=self._state_values['remaining_time']
         )
-        stock_init_price, stock_attr = self._stock_generator.reset_step()
-        self._state_values['stock_price'] = stock_init_price
-        self._state_values.update(stock_attr)
         # gen stock path
         self._stock_price_path = None
         self._stock_attr_path = None

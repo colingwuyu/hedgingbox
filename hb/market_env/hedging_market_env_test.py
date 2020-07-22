@@ -73,6 +73,7 @@ class HedgeEnvTest(unittest.TestCase):
             option_maturity=455. / 365.,
             option_strike=50.,
             option_holding=-10,
+            initial_stock_holding=5
         ))
         delta_bot_env_attr = ['remaining_time', 'option_holding', 'option_strike',
                               'interest_rate', 'stock_price', 'stock_dividend',
