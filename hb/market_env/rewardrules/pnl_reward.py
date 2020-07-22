@@ -36,4 +36,4 @@ class PnLReward(reward_rule.RewardRule):
         return pnl
 
     def reset(self, reset_observation):
-        self._prev_state = reset_observation
+        self._prev_state = reset_observation.copy()
