@@ -6,7 +6,7 @@ In `Environment` **⬄** `Actor` loop, it starts with a state observation <img s
 
 ## Transition Tuple
 
-For each step, denote a transition tuple <img src="https://render.githubusercontent.com/render/math?math=(O_t, A_t, R_t,\gamma_t, O_{t%2B1})">. This tuple is a unit of data that is inserted into the replay buffer for `Learner`. Therefore `Learner` can construct learn from the data.
+For each step, denote a transition tuple <img src="https://render.githubusercontent.com/render/math?math=(O_t, A_t, R_t,\gamma_t, O_{t%2B1})">. This tuple is a unit of data that is inserted into the replay buffer for `Learner`. 
 
 The following diagram demonstrates the `Environment` **⬄** `Actor` interaction and the transition tuple per actor step:
 
