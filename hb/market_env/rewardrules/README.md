@@ -34,14 +34,16 @@ Considering an hedging action $A_t$ at time $t$, its effect includes:
 
 1. The hedging position change from $H_t$ to $H_{t+1}=H_t+A_t$. It causes an immediate trading cost $C_t$. Simply formulate $C_t$ as a proportion of the traded value $\kappa|S_tA_t|$.
 
-2. The portfolio (option + hedging) P&L incurred at time $t+1$ due to the rebalance at time $t$.
+2. The portfolio (option + hedging) P&L incurred between $t$ and $t+1$ due to the hedging rebalance at time $t$.
 
-The former cost happens at time $t$, whereas the P&L effect happens at time $t+1$. We can apply a discount factor on portfolio P&L in order to mitigate the time difference. For now we assume that no discounting, and formulate the reward for $A_t$ as:
+The former cost happens at time $t$, whereas the portfolio P&L effect is revealed at time $t+1$. We can apply a discount factor on portfolio P&L in order to mitigate the time difference. For now we assume that no discounting, and formulate the reward for $A_t$ as:
 
-$$R_t=-\kappa|S_tA_t| + (V_{t+1}-V_t) + H_t(S_{t+1}-S_t)\tag1$$
+<img src="../../../docs/diagrams/pnl_formula_1.png" style="max-width:100%;">
 
 when $t<N$. Here $N$ is the last timestep before terminal state $T$ (see [Diagram](#Transition-Data-Diagram)).
 
-$$R_N=-\kappa|S_NA_N| - \kappa|S_TH_T| + (V_T-V_N) + H_N(S_T-S_N) \tag2$$
+For $t=N$:
+
+<img src="../../../docs/diagrams/pnl_formula_2.png" style="max-width:100%;">
 
 The terminal state $T$ happens at the option expiry time. The term $\kappa|S_TH_T|$ is the trading cost of liquidating the hedging position at last.
