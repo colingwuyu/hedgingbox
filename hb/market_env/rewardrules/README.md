@@ -12,7 +12,7 @@ The following diagram demonstrates the `Environment` **⬄** `Actor` interaction
 
 ### Transition Data Diagram
 
-<img src="../../../docs/diagrams/ACME_Dataset.png" style="max-width:100%;">
+<img src="../../../docs/diagrams/ACME_DataSet.png" style="max-width:100%;">
 
 ---
 
