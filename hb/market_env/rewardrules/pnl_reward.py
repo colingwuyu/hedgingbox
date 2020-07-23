@@ -19,14 +19,14 @@ class PnLReward(reward_rule.RewardRule):
         #             observation['stock_price']*abs(buy_sell_action)
         #     else:
         # Mid reward
-        # r_i = V_i - V_{i-1} + H_{i-1}(S_i - S_{i-1}) - k|S_i*(H_i-H_{i-1})|
-        # A_i = H_i - H_{i-1}
+        # r_i = V_{i+1} - V_i + H_i(S_{i+1} - S_i) - k|S_i*(H_{i+1}-H_i)|
+        # A_i = H_{i+1} - H_i
         pnl = (observation['option_price'] - self._prev_state['option_price']) * \
             observation['option_holding'] \
             + self._prev_state['stock_holding'] * \
             (observation['stock_price'] - self._prev_state['stock_price']) \
             - observation['stock_trading_cost_pct'] * \
-            observation['stock_price']*abs(buy_sell_action)
+            self._prev_state['stock_price']*abs(buy_sell_action)
         self._prev_state = observation.copy()
         # elif step_type == dm_env.StepType.LAST:
         #     # Last reward
