@@ -15,6 +15,7 @@ class PathGenerator(abc.ABC):
         self._initial_price = initial_price
         self._num_step = num_step
         self._step_size = step_size
+        self._rnd_seed = seed
         self._rng = np.random.RandomState(seed)
 
     @property
@@ -65,3 +66,8 @@ class PathGenerator(abc.ABC):
         environment calls gen_step instead of gen_path function
         """
         return False
+
+    def restart(self):
+        """Restart the Path Generator by setting the seed
+        """
+        self._rng = np.random.RandomState(self._rnd_seed)

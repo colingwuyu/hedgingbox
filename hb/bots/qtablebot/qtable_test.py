@@ -44,8 +44,9 @@ class QTableTest(unittest.TestCase):
                     option_maturity=455./365.,
                     option_strike=50.,
                     option_holding=-10,
-                    initial_stock_holding=5,
+                    initial_stock_holding=5
                 ))
+        environment.set_repeat_path(1)
         qtable_bot_env_attr = ['remaining_time', 'stock_holding', 'stock_price']
         environment.set_obs_attr(qtable_bot_env_attr)
 

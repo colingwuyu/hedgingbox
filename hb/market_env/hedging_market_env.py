@@ -30,7 +30,8 @@ class HedgingMarketEnv(dm_env.Environment):
                  option_strike: float = 100.,
                  option_holding: int = -10,
                  initial_stock_holding: int = 5,
-                 obs_attr: List[str] = None):
+                 obs_attr: List[str] = None,
+                 repeat_path: np.int  = None):
         """Initializes a new HedgingMarketEnv.
 
         Args:
@@ -43,12 +44,15 @@ class HedgingMarketEnv(dm_env.Environment):
             option_maturity (float, optional): Option maturity. Defaults to 1..
             option_strike (float, optional): Option Strike. Defaults to 100..
             option_holding (int, optional): Option Holding. Defaults to -10.
-            obs_attr List[str]: A list of observation attributes that env feeds back to actor.
+            obs_attr (List[str], optional): A list of observation attributes that env feeds back to actor.
+            repeat_path (np.int, optional): Use certain number of stock paths and repeat in the environment loop. If None pass in, no repeat. 
         """
         # intial values for reset
         self._option_maturity = option_maturity
         self._initial_stock_holding = initial_stock_holding
         self._gen_stock_by_step = stock_generator.has_env_interaction()
+        self._repeat_path = repeat_path
+        self._path_counter = 0
         # response obs attr
         self._obs_attr = obs_attr
         # market parameters
@@ -86,6 +90,10 @@ class HedgingMarketEnv(dm_env.Environment):
     def reset(self):
         """Returns the first `TimeStep` of a new episode.
         """
+        self._path_counter += 1
+        if (self._repeat_path is not None) and (self._path_counter == self._repeat_path):
+            self._path_counter = 0
+            self._stock_generator.restart()
         # reset state
         self._state_values['stock_holding'] = self._initial_stock_holding
         self._state_values['remaining_time'] = self._option_maturity
@@ -232,3 +240,15 @@ class HedgingMarketEnv(dm_env.Environment):
                 # convert to days
                 market_observations[ai] = market_observations[ai]*365.
         return market_observations
+
+    def get_stock_generator(self):
+        return self._stock_generator
+
+    def set_stock_generator(self, stock_generator: pathgenerator.PathGenerator):
+        self._stock_generator = stock_generator
+    
+    def get_repeat_path(self):
+        return self._repeat_path
+
+    def set_repeat_path(self, repeat_path: int=None):
+        self._repeat_path = repeat_path
