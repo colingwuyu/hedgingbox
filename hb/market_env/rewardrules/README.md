@@ -1,4 +1,4 @@
-# Hedging Market Reward
+# Hedging Market Reward Rules
 
 ## Environment Loop
 

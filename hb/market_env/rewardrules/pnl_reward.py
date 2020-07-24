@@ -6,34 +6,26 @@ from typing import Dict
 
 class PnLReward(reward_rule.RewardRule):
     def __init__(self):
-        self._prev_state = None
+        self._this_step_obs = None
 
     def step_reward(self, step_type: dm_env.StepType,
-                    observation: Dict, action: types.NestedArray) -> types.NestedArray:
+                    next_step_obs: Dict, action: types.NestedArray,
+                    ) -> types.NestedArray:
         buy_sell_action = action[0]
-        # if step_type == dm_env.StepType.MID:
-        #     if self._prev_state is None:
-        #         # First reward
-        #         # r_0 = -k|S_0*H_0|
-        #         pnl = -observation['stock_trading_cost_pct'] * \
-        #             observation['stock_price']*abs(buy_sell_action)
-        #     else:
-        # Mid reward
-        # r_i = V_{i+1} - V_i + H_i(S_{i+1} - S_i) - k|S_i*(H_{i+1}-H_i)|
+        # R_i = V_{i+1} - V_i + H_i(S_{i+1} - S_i) - k|S_i*(H_{i+1}-H_i)|
         # A_i = H_{i+1} - H_i
-        pnl = (observation['option_price'] - self._prev_state['option_price']) * \
-            observation['option_holding'] \
-            + self._prev_state['stock_holding'] * \
-            (observation['stock_price'] - self._prev_state['stock_price']) \
-            - observation['stock_trading_cost_pct'] * \
-            self._prev_state['stock_price']*abs(buy_sell_action)
-        self._prev_state = observation.copy()
-        # elif step_type == dm_env.StepType.LAST:
-        #     # Last reward
-        #     pnl = -observation['stock_trading_cost_pct'] * \
-        #         observation['stock_price'] * \
-        #         observation['stock_holding']
+        pnl = (next_step_obs['option_price'] - self._this_step_obs['option_price']) * \
+            next_step_obs['option_holding'] \
+            + self._this_step_obs['stock_holding'] * \
+            (next_step_obs['stock_price'] - self._this_step_obs['stock_price']) \
+            - next_step_obs['stock_trading_cost_pct'] * \
+            self._this_step_obs['stock_price']*abs(buy_sell_action)
+        if next_step_obs['remaining_time'] == 0:
+            # Option expires
+            # add liquidation cost
+            pnl += abs(next_step_obs['stock_holding'])*next_step_obs['stock_price']
+        self._this_step_obs = next_step_obs.copy()
         return pnl
 
-    def reset(self, reset_observation):
-        self._prev_state = reset_observation.copy()
+    def reset(self, reset_obs):
+        self._this_step_obs = reset_obs.copy()
