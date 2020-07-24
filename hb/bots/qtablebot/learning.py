@@ -97,6 +97,10 @@ class QTableLearner(acme.Learner):
         # Report loss & statistics for logging.
         results = {
             'avg_td_error': avg_td_error,
+            'state': self._qtable._encoding_obs(o_tm1_i.numpy()),
+            'action': a_tm1_i.numpy()[0],
+            'reward': r_t_i.numpy(),
+            'q': cur_q 
         }
 
         return results
