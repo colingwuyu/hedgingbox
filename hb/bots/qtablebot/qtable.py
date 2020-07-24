@@ -20,12 +20,12 @@ class QTable:
         #     flattened_mesh[i] = (flattened_mesh[i] *
         #                          self._int_multipliers[i])
         # self._flattened_mesh = flattened_mesh.astype(np.int64)
-        self._action_space = np.arange(action_spec.minimum[0], action_spec.maximum[0]+action_spec.discretize_step[0],
-                                       action_spec.discretize_step[0])
-        # bias to sell action
-        # action_num = round((action_spec.maximum - action_spec.minimum)[0] /
-        #                    action_spec.discretize_step[0]) + 1
-        # self._qtable = np.zeros((self._flattened_mesh.shape[1], int(action_num)))
+        # self._action_space = np.arange(action_spec.minimum[0], action_spec.maximum[0]+action_spec.discretize_step[0],
+        #                                action_spec.discretize_step[0])
+        # Uniform initialization
+        action_num = round((action_spec.maximum - action_spec.minimum)[0] /
+                           action_spec.discretize_step[0]) + 1
+        self._action_spec = np.zeros(int(action_num))
         # bias to buy action for initialization
         self.qtable = {}
         # self._qtable = np.tile(self._action_space / 10, (self._flattened_mesh.shape[1], 1))
@@ -33,7 +33,7 @@ class QTable:
     def _encoding_obs(self, observation: np.ndarray):
         encoded_obs = observation.copy().astype(str)
         for obs_i, obs in enumerate(observation):
-            encoded_obs[obs_i] = str(round(obs * self._int_multipliers[obs_i]))
+            encoded_obs[obs_i] = str(int(round(obs * self._int_multipliers[obs_i])))
         return "|".join(encoded_obs)
 
     @property
