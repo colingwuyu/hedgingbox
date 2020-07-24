@@ -1,6 +1,7 @@
 from hb.market_env import market_specs
 from hb.utils.discretization import int_multiplier
 import numpy as np
+import secrets
 
 
 class QTable:
@@ -25,7 +26,9 @@ class QTable:
         # Uniform initialization
         action_num = round((action_spec.maximum - action_spec.minimum)[0] /
                            action_spec.discretize_step[0]) + 1
-        self._action_space = np.zeros(int(action_num))
+        self._action_space = np.arange(action_spec.minimum[0], action_spec.maximum[0]+action_spec.discretize_step[0],
+                                       action_spec.discretize_step[0])
+        self._action_init = np.zeros(action_num)
         # bias to buy action for initialization
         self.qtable = {}
         # self._qtable = np.tile(self._action_space / 10, (self._flattened_mesh.shape[1], 1))
@@ -63,29 +66,29 @@ class QTable:
     def select_maxQ_action(self, observation: np.ndarray):
         obs_ind = self._encoding_obs(observation)
         if obs_ind not in self._qtable:
-            self._qtable[obs_ind] = self._action_space.copy() / 10
+            self._qtable[obs_ind] = self._action_init.copy()
         action_arr = self._qtable[obs_ind]
         action_maxQ_ind = np.where(action_arr==np.max(action_arr))
-        action_ind = np.random.choice(action_maxQ_ind[0],1)
+        action_ind = secrets.choice(action_maxQ_ind[0])
         argmaxQ_action = self._action_space[action_ind]
-        return argmaxQ_action.astype(np.float32)
+        return np.array([argmaxQ_action.astype(np.float32)])
 
     def select_maxQ(self, observation: np.ndarray):
         obs_ind = self._encoding_obs(observation)
         if obs_ind not in self._qtable:
-            self._qtable[obs_ind] = self._action_space.copy() / 10
+            self._qtable[obs_ind] = self._action_init.copy()
         return np.max(self._qtable[obs_ind])
 
     def getQ(self, observation: np.ndarray, action: np.ndarray):
         obs_ind = self._encoding_obs(observation)
         if obs_ind not in self._qtable:
-            self._qtable[obs_ind] = self._action_space.copy() / 10
+            self._qtable[obs_ind] = self._action_init.copy()
         action_ind = np.where(self._action_space == action[0])[0]
         return self._qtable[obs_ind][action_ind][0]
 
     def update(self, observation: np.ndarray, action: np.ndarray, inc: float):
         obs_ind = self._encoding_obs(observation)
         if obs_ind not in self._qtable:
-            self._qtable[obs_ind] = self._action_space.copy() / 10
+            self._qtable[obs_ind] = self._action_init.copy()
         action_ind = np.where(self._action_space == action[0])[0]
         self._qtable[obs_ind][action_ind] += inc
