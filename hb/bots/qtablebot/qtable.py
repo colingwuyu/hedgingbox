@@ -25,7 +25,7 @@ class QTable:
         # Uniform initialization
         action_num = round((action_spec.maximum - action_spec.minimum)[0] /
                            action_spec.discretize_step[0]) + 1
-        self._action_spec = np.zeros(int(action_num))
+        self._action_space = np.zeros(int(action_num))
         # bias to buy action for initialization
         self.qtable = {}
         # self._qtable = np.tile(self._action_space / 10, (self._flattened_mesh.shape[1], 1))
