@@ -35,6 +35,7 @@ class QTable:
 
     def _encoding_obs(self, observation: np.ndarray):
         encoded_obs = observation.copy().astype(str)
+        print(observation)
         for obs_i, obs in enumerate(observation):
             encoded_obs[obs_i] = str(int(round(obs * self._int_multipliers[obs_i])))
         return "|".join(encoded_obs)
