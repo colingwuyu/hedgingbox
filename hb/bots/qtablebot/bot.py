@@ -106,7 +106,7 @@ class QTableBot(bot.Bot):
             adder=adder
         )
         # Create the predictor which assess performance
-        predictor = qtable_predictor(actor=actor)
+        predictor = qtable_predictor.QTablePredictor(actor=actor)
 
         # The learner updates the parameters (and initializes them).
         learner = learning.QTableLearner(
