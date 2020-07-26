@@ -15,7 +15,7 @@ class ActorAdapter(core.Actor):
         self._actor = actor
 
     def select_action(self, observation: types.NestedArray) -> types.NestedArray:
-        return self._actor.select_action(observation)
+        return self._actor.select_action(observation[:-1])
 
     def observe_first(self, timestep: dm_env.TimeStep):
         new_timestep = dm_env.TimeStep(
