@@ -25,7 +25,12 @@ class ActorAdapter(core.Actor):
         action: types.NestedArray,
         next_timestep: dm_env.TimeStep,
     ):
-        next_timestep.observation = next_timestep.observation[:-1]
+        new_next_timestep = dm_env.TimeStep(
+            step_type = next_timestep.step_type,
+            reward = next_timestep.reward,
+            discount = next_timestep.discount,
+            observation = next_timestep.observation[:-1]
+        )
         self._actor.observe(action, next_timestep)
 
     def update(self):
