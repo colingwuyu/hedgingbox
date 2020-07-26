@@ -1,6 +1,7 @@
 import acme
 from acme import specs
 from acme import wrappers
+from acme import environment_loop
 import numpy as np
 
 from hb.market_env import hedging_market_env
@@ -23,7 +24,7 @@ class QTableTest(unittest.TestCase):
         trading_cost_pct = 0. #@param {type:"number"}
         gbm = gbm_pathgenerator.GBMGenerator(
                     initial_price=50., drift=0.05,
-                    div=0.0, sigma=0.15, num_step=3, step_size=30./365.,
+                    div=0.0, sigma=0.15, num_step=3, step_size=30./360.,
                 )
         pnl_penalty_reward = PnLSquarePenaltyReward(scale_k=1e-3)
         pnl_reward = PnLReward()
@@ -41,7 +42,7 @@ class QTableTest(unittest.TestCase):
                     trading_cost_pct=trading_cost_pct,
                     risk_free_rate=0.,
                     discount_rate=0.,
-                    option_maturity=455./365.,
+                    option_maturity=450./360.,
                     option_strike=50.,
                     option_holding=-10,
                     initial_stock_holding=5
@@ -129,3 +130,61 @@ class QTableTest(unittest.TestCase):
         plt.title('Total Reward Distribution')
         plt.legend(loc='upper right')
         plt.show()
+
+    def test_qtable_predictor(self):
+        from hb.bots.qtablebot.predictor import QTablePredictor
+        from hb.bots.qtablebot.actor import QTableActor
+        trading_cost_pct = 0. #@param {type:"number"}
+        gbm = gbm_pathgenerator.GBMGenerator(
+                    initial_price=50., drift=0.05,
+                    div=0.0, sigma=0.15, num_step=3, step_size=30./360.,
+                )
+        pnl_penalty_reward = PnLSquarePenaltyReward(scale_k=1e-3)
+        market_param = market_specs.MarketEnvParam(
+            stock_ticker_size=1.,
+            stock_price_lower_bound=45.,
+            stock_price_upper_bound=55.,
+            lot_size=1,
+            buy_sell_lots_bound=4,
+            holding_lots_bound=17)
+        environment = wrappers.SinglePrecisionWrapper(hedging_market_env.HedgingMarketEnv(
+                    stock_generator=gbm,
+                    reward_rule=pnl_penalty_reward,
+                    market_param=market_param,
+                    trading_cost_pct=trading_cost_pct,
+                    risk_free_rate=0.,
+                    discount_rate=0.,
+                    option_maturity=450./360.,
+                    option_strike=50.,
+                    option_holding=-10,
+                    initial_stock_holding=5
+                ))
+        qtable_bot_env_attr = ['remaining_time', 'stock_holding', 'stock_price']
+        environment.set_obs_attr(qtable_bot_env_attr)
+
+        import pickle
+        with open("zerotradingcost_qtable.pickle", 'rb') as pf:
+            qtable = pickle.load(pf)            
+        pred_num_episodes = 1000 #@param {type:"integer"}
+        actor = QTableActor(qtable, epsilon=0.8)
+        predictor = QTablePredictor(actor)
+        
+        for episode in range(pred_num_episodes):
+            timestep = environment.reset()
+            predictor.observe_first(timestep)
+            while not timestep.last():
+                action = predictor.select_action(timestep.observation)
+                timestep = environment.step(action)
+                predictor.observe(action, timestep)
+        predictor.log_pred_perf()
+                
+        delta_bot_env_attr = ['remaining_time', 'option_holding', 'option_strike',
+                      'interest_rate', 'stock_price', 'stock_dividend',
+                      'stock_sigma', 'stock_holding']
+        environment.set_obs_attr(delta_bot_env_attr)
+        spec = specs.make_environment_spec(environment)
+        delta_bot = DeltaHedgeBot(environment_spec=spec, 
+                                  pred_episode=pred_num_episodes)
+
+        loop = acme.EnvironmentLoop(environment, delta_bot)
+        loop.run(num_episodes=pred_num_episodes)

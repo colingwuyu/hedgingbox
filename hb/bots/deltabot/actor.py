@@ -20,7 +20,7 @@ class DeltaHedgeActor(core.Actor):
         self._action_lot = action_spec.discretize_step[0]
 
     def select_action(self, observations: types.NestedArray) -> types.NestedArray:
-        t = observations[0]/365.
+        t = observations[0]/360.
         n_call = observations[1]
         k = observations[2]
         r = observations[3]
@@ -50,3 +50,8 @@ class DeltaHedgeActor(core.Actor):
 
     def update(self):
         pass
+
+    def obs_attr_requirement(self):
+        return ['remaining_time', 'option_holding', 'option_strike',
+                'interest_rate', 'stock_price', 'stock_dividend',
+                'stock_sigma', 'stock_holding']

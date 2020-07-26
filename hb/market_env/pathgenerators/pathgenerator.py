@@ -10,7 +10,7 @@ class PathGenerator(abc.ABC):
 
     def __init__(self, initial_price: float,
                  num_step: int,
-                 step_size: float = 1./365.,
+                 step_size: float = 1./360.,
                  seed: int = 1234):
         self._initial_price = initial_price
         self._num_step = num_step

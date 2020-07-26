@@ -10,7 +10,7 @@ class BSEuroHedgeEnv(dm_env.Environment):
     """
 
     def __init__(self,
-                 episode_steps: int = 365,
+                 episode_steps: int = 360,
                  trading_cost_pct: float = 0.01,
                  interest_rate: float = 0.,
                  option_maturity: float = 1.,

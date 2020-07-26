@@ -10,7 +10,7 @@ class GBMGenerator(pathgenerator.PathGenerator):
                  div: float,
                  sigma: float,
                  num_step: int,
-                 step_size: float = 1./365.,
+                 step_size: float = 1./360.,
                  seed: int = 1234):
         self._drift = drift
         self._div = div

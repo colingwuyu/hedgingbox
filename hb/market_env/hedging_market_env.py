@@ -6,7 +6,7 @@ import numpy as np
 from hb.market_env.pathgenerators import pathgenerator
 from hb.market_env.rewardrules import reward_rule
 from hb.market_env import market_specs
-
+from hb.market_env.rewardrules.pnl_reward import PnLReward
 
 class HedgingMarketEnv(dm_env.Environment):
     """A hedge environment contains European option hedging portfolio.
@@ -53,6 +53,7 @@ class HedgingMarketEnv(dm_env.Environment):
         self._gen_stock_by_step = stock_generator.has_env_interaction()
         self._repeat_path = repeat_path
         self._path_counter = 0
+        self._pnl_reward = PnLReward()
         # response obs attr
         self._obs_attr = obs_attr
         # market parameters
@@ -79,6 +80,7 @@ class HedgingMarketEnv(dm_env.Environment):
         # reward generator
         self._reward_rule = reward_rule
         self._reward_rule.reset(self._state_values)
+        self._pnl_reward.reset(self._state_values)
         # gen stock path
         self._stock_path = None
         self._stock_step = None
@@ -118,8 +120,9 @@ class HedgingMarketEnv(dm_env.Environment):
             self._stock_price_path, self._stock_attr_path = \
                 self._stock_generator.gen_path(1)
         # reset reward rule
+        self._pnl_reward.reset(self._state_values)
         self._reward_rule.reset(self._state_values)
-        return dm_env.restart(self._observation())
+        return dm_env.restart(np.append(self._observation(), 0.))
 
     def step(self, action):
         """Updates the environment according to the action
@@ -153,13 +156,21 @@ class HedgingMarketEnv(dm_env.Environment):
                 dm_env.StepType.MID,
                 self._state_values,
                 action),
-                observation=self._observation(),
+                observation=np.append(self._observation(),
+                                      self._pnl_reward.step_reward(
+                                        dm_env.StepType.MID,
+                                        self._state_values,
+                                        action)),
                 discount=math.exp(-self._step_size*self._discount_rate))
         else:
             return dm_env.termination(reward=self._reward_rule.step_reward(
                 dm_env.StepType.LAST,
                 self._state_values, action),
-                observation=self._observation())
+                observation=np.append(self._observation(),
+                                      self._pnl_reward.step_reward(
+                                        dm_env.StepType.LAST,
+                                        self._state_values, action)
+                                        ))
 
     def observation_spec(self):
         """Returns the observation spec.
@@ -173,15 +184,15 @@ class HedgingMarketEnv(dm_env.Environment):
         discretize_step = np.zeros(shape)
         discretize_step[stock_price_ind] = self._market_param.stock_ticker_size
         discretize_step[holding_ind] = self._market_param.lot_size
-        discretize_step[t_ind] = self._step_size*365
+        discretize_step[t_ind] = self._step_size*360
         minimum[stock_price_ind] = self._market_param.stock_price_lower_bound
         maximum[stock_price_ind] = self._market_param.stock_price_upper_bound
         minimum[holding_ind] = -self._market_param.holding_lots_bound * \
             self._market_param.lot_size
         maximum[holding_ind] = self._market_param.holding_lots_bound * \
             self._market_param.lot_size
-        minimum[t_ind] = (self._option_maturity - self._num_step*self._step_size)*365.
-        maximum[t_ind] = self._option_maturity*365.
+        minimum[t_ind] = (self._option_maturity - self._num_step*self._step_size)*360.
+        maximum[t_ind] = self._option_maturity*360.
         return market_specs.DiscretizedBoundedArray(
             shape=(shape,), dtype=float,
             minimum=minimum, maximum=maximum, discretize_step=discretize_step,
@@ -238,7 +249,7 @@ class HedgingMarketEnv(dm_env.Environment):
                 market_observations[ai] = max(self._market_param.stock_price_lower_bound, min(self._market_param.stock_price_upper_bound, market_observations[ai]))
             if obs_attr == 'remaining_time':
                 # convert to days
-                market_observations[ai] = market_observations[ai]*365.
+                market_observations[ai] = market_observations[ai]*360.
         return market_observations
 
     def get_stock_generator(self):

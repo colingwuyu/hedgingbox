@@ -65,3 +65,6 @@ class QTableActor(core.Actor):
 
     def update(self):
         pass
+
+    def obs_attr_requirement(self):
+        return ['remaining_time', 'stock_holding', 'stock_price']

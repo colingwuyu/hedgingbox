@@ -14,7 +14,7 @@ class DeltaBotTest(unittest.TestCase):
     def test_deltaactor(self):
         environment = bs_euro_hedge_env.BSEuroHedgeEnv(
             episode_steps=10_000,
-            option_maturity=30./365.,
+            option_maturity=30./360.,
             option_holding=-1_000,
             stock_drift=0.0,
             max_sell_action=-1_000,
@@ -50,7 +50,7 @@ class DeltaBotTest(unittest.TestCase):
         # Create a fake environment to test with.
         environment = bs_euro_hedge_env.BSEuroHedgeEnv(
             episode_steps=30,
-            option_maturity=30./365.
+            option_maturity=30./360.
         )
         spec = specs.make_environment_spec(environment)
 

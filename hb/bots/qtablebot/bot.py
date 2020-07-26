@@ -6,7 +6,9 @@ from acme.adders import reverb as adders
 from acme.agents import agent
 from acme.utils import loggers
 
+from hb.bots import bot
 from hb.bots.qtablebot import actor as qtable_actor
+from hb.bots.qtablebot import predictor as qtable_predictor
 from hb.bots.qtablebot import learning
 from hb.bots.qtablebot import qtable
 
@@ -14,7 +16,7 @@ import reverb
 import pickle
 
 
-class QTableBot(agent.Agent):
+class QTableBot(bot.Bot):
     """QTable bot.
 
     This implements a single-process QTable bot. This is a simple Q-learning
@@ -35,6 +37,9 @@ class QTableBot(agent.Agent):
         epsilon: float = 0.1,
         learning_rate: float = 1e-3,
         discount: float = 1.0,
+        pred_episode: int = 1_000,
+        observation_per_pred: int = 10_000,
+        pred_only: bool = False,
         logger: loggers.Logger = None,
         checkpoint: bool = True,
         checkpoint_subpath: str = '~/acme/',
@@ -100,6 +105,8 @@ class QTableBot(agent.Agent):
             epsilon=epsilon,
             adder=adder
         )
+        # Create the predictor which assess performance
+        predictor = qtable_predictor(actor=actor)
 
         # The learner updates the parameters (and initializes them).
         learner = learning.QTableLearner(
@@ -122,8 +129,12 @@ class QTableBot(agent.Agent):
         super().__init__(
             actor=actor,
             learner=learner,
+            predictor=predictor,
             min_observations=max(batch_size, min_replay_size),
-            observations_per_step=float(batch_size) / samples_per_insert)
+            observations_per_step=float(batch_size) / samples_per_insert,
+            pred_episods=pred_episode,
+            observations_per_pred=observation_per_pred,
+            pred_only=pred_only)
 
     def get_qtable(self):
         return self._learner.get_qtable()

@@ -17,7 +17,7 @@ class HedgeEnvTest(unittest.TestCase):
         # Create Environment
         gbm = gbm_pathgenerator.GBMGenerator(
             initial_price=50., drift=0.05,
-            div=0.02, sigma=0.15, num_step=3, step_size=1./365.
+            div=0.02, sigma=0.15, num_step=3, step_size=1./360.
         )
         pnl_reward = pnl_sqrpenalty_reward.PnLSquarePenaltyReward(scale_k=0.2)
         market_param = market_specs.MarketEnvParam(
@@ -34,7 +34,7 @@ class HedgeEnvTest(unittest.TestCase):
             trading_cost_pct=0.01,
             risk_free_rate=0.,
             discount_rate=0.,
-            option_maturity=30./365.,
+            option_maturity=30./360.,
             option_strike=50.,
             option_holding=4,
             obs_attr=['remaining_time',
@@ -53,7 +53,7 @@ class HedgeEnvTest(unittest.TestCase):
         # Create Environment
         gbm = gbm_pathgenerator.GBMGenerator(
             initial_price=50., drift=0.05,
-            div=0.02, sigma=0.15, num_step=3, step_size=30. / 365.,
+            div=0.02, sigma=0.15, num_step=3, step_size=30. / 360.,
         )
         pnl_penalty_reward = pnl_sqrpenalty_reward.PnLSquarePenaltyReward(scale_k=1e-3)
         market_param = market_specs.MarketEnvParam(
@@ -70,7 +70,7 @@ class HedgeEnvTest(unittest.TestCase):
             trading_cost_pct=0.01,
             risk_free_rate=0.,
             discount_rate=0.,
-            option_maturity=455. / 365.,
+            option_maturity=455. / 360.,
             option_strike=50.,
             option_holding=-10,
             initial_stock_holding=5
