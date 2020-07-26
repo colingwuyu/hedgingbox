@@ -18,7 +18,13 @@ class ActorAdapter(core.Actor):
         return self._actor.select_action(observation)
 
     def observe_first(self, timestep: dm_env.TimeStep):
-        self._actor.observe_first(timestep)
+        new_timestep = dm_env.TimeStep(
+            step_type = timestep.step_type,
+            reward = timestep.reward,
+            discount = timestep.discount,
+            observation = timestep.observation[:-1]
+        )
+        self._actor.observe_first(new_timestep)
 
     def observe(
         self,
