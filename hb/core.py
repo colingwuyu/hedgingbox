@@ -31,7 +31,7 @@ class ActorAdapter(core.Actor):
             discount = next_timestep.discount,
             observation = next_timestep.observation[:-1]
         )
-        self._actor.observe(action, next_timestep)
+        self._actor.observe(action, new_next_timestep)
 
     def update(self):
         self._actor.update()
