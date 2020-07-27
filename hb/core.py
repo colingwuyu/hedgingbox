@@ -77,7 +77,7 @@ class Predictor(core.Actor):
     def get_pred_rewards(self):
         return self._last_pred_rewards
 
-    def get_pred_pnls(self):
+    def get_pred_actions(self):
         return self._last_pred_actions
 
     def observe(
