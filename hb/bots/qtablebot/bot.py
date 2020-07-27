@@ -107,7 +107,7 @@ class QTableBot(bot.Bot):
         )
         # Create the predictor which assess performance
         predictor = qtable_predictor.QTablePredictor(
-            actor=actor,
+            qtable=q_table,
             num_train_per_pred=observation_per_pred
         )
 
