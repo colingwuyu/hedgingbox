@@ -13,5 +13,5 @@ class DeltaHedgePredictor(core.Predictor):
         logger: loggers.Logger = None,
         lable: str = 'delta_hedge_predictor'
     ):
-        super().__init__(actor, logger, lable)
+        super().__init__(actor, 0, logger, lable)
 
