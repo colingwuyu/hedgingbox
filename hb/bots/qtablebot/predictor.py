@@ -3,6 +3,7 @@ from acme import types
 import dm_env
 from hb import core
 from hb.bots.qtablebot.qtable import QTable
+from hb.bots.qtablebot.actor import QTableActor
 
 
 class QTablePredictor(core.Predictor):
