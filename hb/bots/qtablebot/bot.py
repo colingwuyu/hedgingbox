@@ -151,6 +151,7 @@ class QTableBot(bot.Bot):
             qtable = pickle.load(pf)
         self._learner._qtable = qtable
         self._actor._qtable = qtable
+        self._predictor._actor._qtable = qtable
         if self._learner._target_update_period > 1:
             self._learner._target_qtable = qtable.copy()
         else:
