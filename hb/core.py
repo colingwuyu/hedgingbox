@@ -49,6 +49,7 @@ class Predictor(core.Actor):
     """
     def __init__(self,
                 actor: core.Actor, 
+                num_train_per_pred: int,
                 logger: loggers.Logger = None,
                 label: str = 'predictor'):
         self._actor = actor
@@ -57,6 +58,7 @@ class Predictor(core.Actor):
         self._pred_rewards = np.array([])
         self._pred_pnls = np.array([])
         self._pred_actions = np.array([], dtype=np.int32)
+        self._num_train_per_pred = num_train_per_pred
         self._logger = logger or loggers.make_default_logger(label)
         self._counter = 0
 
@@ -106,7 +108,7 @@ class Predictor(core.Actor):
         measures['buy-4'] = np.count_nonzero(self._pred_actions == 4) / action_count
         measures['buy-5'] = np.count_nonzero(self._pred_actions == 5) / action_count
         self._counter += 1
-        measures['pred_count'] = self._counter
+        measures['train_episodes'] = self._counter * self._num_train_per_pred
         self._logger.write(measures)
         self._pred_pnls = np.array([])
         self._pred_rewards = np.array([])

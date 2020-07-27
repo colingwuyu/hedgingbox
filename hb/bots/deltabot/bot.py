@@ -22,7 +22,7 @@ class DeltaHedgeBot(bot.Bot):
         """
         # Create the actor
         actor = delta_hedge_actor.DeltaHedgeActor(environment_spec.actions)
-        predictor = delta_hedge_predictor.DeltaHedgePredictor(actor)
+        predictor = delta_hedge_predictor.DeltaHedgePredictor(actor, 0)
         learner = fake_learner.FakeLeaner()
 
         super().__init__(
