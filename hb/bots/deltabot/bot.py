@@ -1,4 +1,5 @@
 from acme import specs
+from acme.utils import loggers
 from hb.bots import bot
 from hb.bots.deltabot import actor as delta_hedge_actor
 from hb.bots.deltabot import predictor as delta_hedge_predictor
@@ -13,6 +14,7 @@ class DeltaHedgeBot(bot.Bot):
 
     def __init__(self,
                  environment_spec: specs.EnvironmentSpec,
+                 logger: loggers.Logger = None,
                  pred_episode: int = 1_000 
                  ):
         """Initialize the delta hedging bot
@@ -22,7 +24,7 @@ class DeltaHedgeBot(bot.Bot):
         """
         # Create the actor
         actor = delta_hedge_actor.DeltaHedgeActor(environment_spec.actions)
-        predictor = delta_hedge_predictor.DeltaHedgePredictor(actor)
+        predictor = delta_hedge_predictor.DeltaHedgePredictor(actor, logger=logger)
         learner = fake_learner.FakeLeaner()
 
         super().__init__(
