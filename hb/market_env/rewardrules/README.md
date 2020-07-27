@@ -30,13 +30,13 @@ In the accounting P&L formulation, there are three components contributing to P&
 
 Let's denote <img src="https://render.githubusercontent.com/render/math?math=H_t"> as the holding of hedging position between time <img src="https://render.githubusercontent.com/render/math?math=t"> to <img src="https://render.githubusercontent.com/render/math?math=t%2B1">; <img src="https://render.githubusercontent.com/render/math?math=S_t"> as the underlying price at time <img src="https://render.githubusercontent.com/render/math?math=t">.
 
-Considering an hedging action <img src="https://render.githubusercontent.com/render/math?math=A_t=H_{t%2B1}-H_t">, which is the buy/sell shares at time at time <img src="https://render.githubusercontent.com/render/math?math=t%2B1">. its effect includes:
+Considering a hedging action <img src="https://render.githubusercontent.com/render/math?math=A_t=H_{t%2B1}-H_t">, which is the buy/sell shares at time at time <img src="https://render.githubusercontent.com/render/math?math=t%2B1">. its effect includes:
 
-1. The hedging position change from <img src="https://render.githubusercontent.com/render/math?math=H_t"> to <img src="https://render.githubusercontent.com/render/math?math=H_{t%2B1}=H_t%2BA_t">. It causes an immediate trading cost <img src="https://render.githubusercontent.com/render/math?math=C_t">. Simply formulate <img src="https://render.githubusercontent.com/render/math?math=C_t"> as a proportion of the traded value <img src="https://render.githubusercontent.com/render/math?math=\kappa|S_{t%2B1}A_t|">.
+1. The hedging position change from <img src="https://render.githubusercontent.com/render/math?math=H_t"> to <img src="https://render.githubusercontent.com/render/math?math=H_{t%2B1}=H_t%2BA_t">. It causes a trading cost <img src="https://render.githubusercontent.com/render/math?math=C_t">. Simply formulate <img src="https://render.githubusercontent.com/render/math?math=C_t"> as a proportion of the traded value <img src="https://render.githubusercontent.com/render/math?math=\kappa|S_{t%2B1}A_t|">.
 
-2. The portfolio (option + hedging) P&L incurred between <img src="https://render.githubusercontent.com/render/math?math=t"> and <img src="https://render.githubusercontent.com/render/math?math=t%2B1"> due to the hedging rebalance at time <img src="https://render.githubusercontent.com/render/math?math=t">.
+2. The portfolio (option + hedging) P&L incurred between <img src="https://render.githubusercontent.com/render/math?math=t"> and <img src="https://render.githubusercontent.com/render/math?math=t%2B1">.
 
-The former cost happens at time <img src="https://render.githubusercontent.com/render/math?math=t">, whereas the portfolio P&L effect is revealed at time <img src="https://render.githubusercontent.com/render/math?math=t%2B1">. We can apply a discount factor on portfolio P&L in order to mitigate the time difference. For now we assume that no discounting, and formulate the reward for <img src="https://render.githubusercontent.com/render/math?math=A_t"> as:
+By combining the two parts together, we can formulate the reward <img src="https://render.githubusercontent.com/render/math?math=R_t"> for <img src="https://render.githubusercontent.com/render/math?math=A_t"> as:
 
 <img src="../../../docs/diagrams/pnl_formula_1.png" style="max-width:100%;">
 
