@@ -66,7 +66,18 @@ class Predictor(core.Actor):
         return self._actor.select_action(observation[:-1])
 
     def observe_first(self, timestep: dm_env.TimeStep):
-        pass
+        self._pred_pnls = np.array([])
+        self._pred_rewards = np.array([])
+        self._pred_actions = np.array([])
+
+    def get_pred_pnls(self):
+        return self._pred_pnls
+
+    def get_pred_rewards(self):
+        return self._pred_rewards
+
+    def get_pred_pnls(self):
+        return self._pred_actions
 
     def observe(
         self,
@@ -110,9 +121,6 @@ class Predictor(core.Actor):
         self._counter += 1
         measures['train_episodes'] = self._counter * self._num_train_per_pred
         self._logger.write(measures)
-        self._pred_pnls = np.array([])
-        self._pred_rewards = np.array([])
-        self._pred_actions = np.array([])
 
     def update(self):
         pass
