@@ -8,7 +8,6 @@ where $\kappa=0.08$.
 
 ---
 ## Test Scenarios
-=================
 
 <!--ts-->
    * [Scenario 1 - No Trading Cost with neutral delta at initial state](#scenario-1)
