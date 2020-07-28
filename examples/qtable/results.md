@@ -2,9 +2,7 @@
 
 The environment reward setup:
 
-$$Reward=P\&L-\frac{\kappa}{2}P\&L^2$$
-
-where $\kappa=0.08$.
+<p style="text-align: center"><image src="reward_formula.png"></p>
 
 ---
 ## Test Scenarios
