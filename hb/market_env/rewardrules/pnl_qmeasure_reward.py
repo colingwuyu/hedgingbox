@@ -20,5 +20,6 @@ class PnLQMeasureReward(pnl_reward.PnLReward):
         pnl = super().step_reward(step_type, next_step_obs, action)
         pnl_qmeasure = - \
             abs(pnl - next_step_obs['interest_rate'] *
-                self._this_step_obs['stock_holding'] * self._this_step_obs['stock_price']) - self._scale_k*pnl**2
+                (self._this_step_obs['stock_holding'] * self._this_step_obs['stock_price']
+                 + self._this_step_obs['option_price']*self._this_step_obs['option_holding'])) - self._scale_k*pnl**2
         return pnl_qmeasure
