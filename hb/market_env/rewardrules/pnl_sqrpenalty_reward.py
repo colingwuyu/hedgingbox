@@ -16,7 +16,7 @@ class PnLSquarePenaltyReward(pnl_reward.PnLReward):
         super().__init__()
 
     def step_reward(self, step_type: dm_env.StepType,
-                    observation: Dict, action: types.NestedArray) -> types.NestedArray:
-        pnl = super().step_reward(step_type, observation, action)
+                    next_step_obs: Dict, action: types.NestedArray) -> types.NestedArray:
+        pnl = super().step_reward(step_type, next_step_obs, action)
         pnl_square_penalty = pnl - 0.5*self._scale_k*pnl**2
         return pnl_square_penalty

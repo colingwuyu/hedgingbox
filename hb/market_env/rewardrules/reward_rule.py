@@ -10,7 +10,7 @@ class RewardRule(abc.ABC):
 
     @abc.abstractmethod
     def step_reward(self, step_type: dm_env.StepType,
-                    observatioin: Dict, action: types.NestedArray) -> types.NestedArray:
+                    next_step_obs: Dict, action: types.NestedArray) -> types.NestedArray:
         """Generate reward for the step
         """
 
