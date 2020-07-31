@@ -17,7 +17,7 @@ from hb.bots.dqnbot import predictor as dqn_predictor
 import tensorflow as tf
 import trfl
 import reverb
-import sonnet as sn
+import sonnet as snt
 
 
 class DQNBot(bot.Bot):
