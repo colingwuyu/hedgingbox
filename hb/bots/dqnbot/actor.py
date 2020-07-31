@@ -5,6 +5,7 @@ from acme.agents.tf import actors
 
 import sonnet as snt
 import dm_env
+import secrets
 
 import numpy as np
 from hb.market_env import market_specs
@@ -28,8 +29,11 @@ class DQNActor(actors.FeedForwardActor):
         super().__init__(policy_network, adder, variable_client)
 
     def select_action(self, observation: types.NestedArray) -> types.NestedArray:
-        action_ind = super().select_action(observation)
-        return np.array([self._action_space[action_ind].astype(np.float32)])
+        action_q = super().select_action(observation)
+        action_maxQ_ind = np.where(action_q == np.max(action_q))
+        action_ind = secrets.choice(action_maxQ_ind[0])
+        argmaxQ_action = self._action_space[action_ind]
+        return np.array([argmaxQ_action.astype(np.float32)])
 
     def observe(self,
                 action: types.NestedArray,
