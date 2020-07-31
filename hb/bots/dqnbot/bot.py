@@ -53,6 +53,7 @@ class DQNBot(bot.Bot):
         # order to allow the Agent interface to handle it.
         # dqn requires action as scalar
         environment_spec.actions._shape = ()
+        environment_spec.actions._dtype = np.int32
         replay_table = reverb.Table(
             name=adders.DEFAULT_PRIORITY_TABLE,
             sampler=reverb.selectors.Prioritized(priority_exponent),
