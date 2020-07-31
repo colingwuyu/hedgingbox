@@ -28,4 +28,4 @@ class DQNActor(actors.FeedForwardActor):
 
     def select_action(self, observation: types.NestedArray) -> types.NestedArray:
         action_ind = super().select_action(observation)
-        return self._action_space[[action_ind]]
+        return np.array([self._action_space[action_ind].astype(np.float32)])
