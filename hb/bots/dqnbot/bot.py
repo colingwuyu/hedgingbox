@@ -128,4 +128,4 @@ class DQNBot(bot.Bot):
     def update(self):
         super().update()
         if self._checkpointer is not None:
-        self._checkpointer.save()
+            self._checkpointer.save()
