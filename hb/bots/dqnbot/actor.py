@@ -4,6 +4,7 @@ from acme.tf import variable_utils as tf2_variable_utils
 from acme.agents.tf import actors
 
 import sonnet as snt
+import dm_env
 
 import numpy as np
 from hb.market_env import market_specs
@@ -29,3 +30,10 @@ class DQNActor(actors.FeedForwardActor):
     def select_action(self, observation: types.NestedArray) -> types.NestedArray:
         action_ind = super().select_action(observation)
         return np.array([self._action_space[action_ind].astype(np.float32)])
+
+    def observe(self,
+                action: types.NestedArray,
+                next_timestep: dm_env.TimeStep,
+                ):
+        action = action[0]
+        super().observe(action, next_timestep)
