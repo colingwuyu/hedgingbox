@@ -36,4 +36,4 @@ class DQNActor(actors.FeedForwardActor):
                 next_timestep: dm_env.TimeStep,
                 ):
         action = np.where(self._action_space == action[0])[0][0]
-        super().observe(np.float32(action), next_timestep)
+        super().observe(np.int32(action), next_timestep)
