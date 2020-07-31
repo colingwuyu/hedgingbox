@@ -5,6 +5,7 @@ import dm_env
 from hb import core
 from hb.market_env import market_specs
 from hb.bots.dqnbot.actor import DQNActor
+import trfl
 
 
 class DQNPredictor(core.Predictor):
@@ -16,6 +17,10 @@ class DQNPredictor(core.Predictor):
         logger: loggers.Logger = None,
         lable: str = 'dqn_predictor'
     ):
-        pred_actor = DQNActor(policy_network=network,
+        policy_network = snt.Sequential([
+            network,
+            lambda q: trfl.epsilon_greedy(q, epsilon=0.).sample(),
+        ])
+        pred_actor = DQNActor(policy_network=policy_network,
                               action_spec=action_spec,)
         super().__init__(pred_actor, num_train_per_pred, logger, lable)
