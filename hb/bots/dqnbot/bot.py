@@ -101,7 +101,7 @@ class DQNBot(bot.Bot):
             policy_network, environment_spec.actions, adder)
         # Create the predictor which assess performance
         predictor = dqn_predictor.DQNPredictor(
-            network, environment_spec.actions, observation_per_pred
+            network, environment_spec.actions, observation_per_pred, pred_logger
         )
 
         # The learner updates the parameters (and initializes them).
