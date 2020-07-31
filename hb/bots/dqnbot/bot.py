@@ -94,10 +94,10 @@ class DQNBot(bot.Bot):
 
         # Create the actor which defines how we take actions.
         actor = dqn_actor.DQNActor(
-            policy_network, environment_spec.action_spec, adder)
+            policy_network, environment_spec.actions, adder)
         # Create the predictor which assess performance
         predictor = dqn_predictor.DQNPredictor(
-            network, environment_spec.action_spec
+            network, environment_spec.actions, observation_per_pred
         )
 
         # The learner updates the parameters (and initializes them).
