@@ -1,16 +1,23 @@
 """DQN bot implementation."""
 
+import copy
+
 from acme import datasets
 from acme import specs
 from acme.adders import reverb as adders
 from acme.utils import loggers
 from acme.agents.tf.dqn import learning
+from acme.tf import savers as tf2_savers
+from acme.tf import utils as tf2_utils
 
 from hb.bots import bot
 from hb.bots.dqnbot import actor as dqn_actor
 from hb.bots.dqnbot import predictor as dqn_predictor
 
+import tensorflow as tf
+import trfl
 import reverb
+import sonnet as sn
 
 
 class DQNBot(bot.Bot):
