@@ -122,7 +122,7 @@ class DQNBot(bot.Bot):
                 directory=checkpoint_subpath,
                 objects_to_save=learner.state,
                 subdirectory='dqn_learner',
-                time_delta_minutes=60.)
+                time_delta_minutes=10.)
         else:
             self._checkpointer = None
 
