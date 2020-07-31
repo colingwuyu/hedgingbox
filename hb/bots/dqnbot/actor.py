@@ -28,6 +28,11 @@ class DQNActor(actors.FeedForwardActor):
                                        action_spec.discretize_step[0])
         super().__init__(policy_network, adder, variable_client)
 
+    def select_action(self, observation: types.NestedArray) -> types.NestedArray:
+        action_ind = super().select_action(observation)
+        argmaxQ_action = self._action_space[action_ind]
+        return np.array([argmaxQ_action.astype(np.float32)])
+
     def observe(self,
                 action: types.NestedArray,
                 next_timestep: dm_env.TimeStep,
