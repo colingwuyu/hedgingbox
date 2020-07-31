@@ -18,6 +18,7 @@ import tensorflow as tf
 import trfl
 import reverb
 import sonnet as snt
+import numpy as np
 
 
 class DQNBot(bot.Bot):
