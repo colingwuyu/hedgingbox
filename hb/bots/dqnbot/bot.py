@@ -51,6 +51,8 @@ class DQNBot(bot.Bot):
     ):
         # Create a replay server to add data to. This uses no limiter behavior in
         # order to allow the Agent interface to handle it.
+        # dqn requires action as scalar
+        environment_spec.actions._shape = ()
         replay_table = reverb.Table(
             name=adders.DEFAULT_PRIORITY_TABLE,
             sampler=reverb.selectors.Prioritized(priority_exponent),
