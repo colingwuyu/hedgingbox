@@ -65,6 +65,8 @@ class Predictor(core.Actor):
         self._last_pred_rewards = self._pred_rewards
         self._last_pred_pnls = self._pred_pnls
         self._last_pred_actions = self._pred_actions
+        self._last_episode_stock_price = self._episode_stock_price
+        self._last_episode_action = self._episode_action
         self._num_train_per_pred = num_train_per_pred
         self._logger = logger or loggers.make_default_logger(label)
         self._counter = 0
@@ -107,6 +109,10 @@ class Predictor(core.Actor):
                 self._pred_rewards, int(round(self._episode_reward)))
             self._episode_pnl = 0.
             self._episode_reward = 0.
+            self._last_episode_stock_price = self._episode_stock_price
+            self._last_episode_action = self._episode_action
+            self._episode_stock_price = np.array([])
+            self._episode_action = np.array([])
 
     def log_pred_perf(self):
         measures = dict()

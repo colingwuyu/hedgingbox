@@ -18,7 +18,7 @@ class Bot(agent.Agent):
     def __init__(self, actor: core.Actor, learner: core.Learner, predictor: Predictor,
                  min_observations: int, observations_per_step: float,
                  pred_episods: int, observations_per_pred: int,
-                 pred_only: bool=False):
+                 pred_only: bool = False):
         self._predictor = predictor
         self._observations_per_pred = observations_per_pred
         self._pred_episods = pred_episods
@@ -27,8 +27,9 @@ class Bot(agent.Agent):
         self._pred_only = pred_only
         if self._pred_only:
             self._pred = True
-            self._cur_episods = -pred_episods
-        super().__init__(ActorAdapter(actor), learner, min_observations, observations_per_step)
+            self._cur_episods = -self._pred_episods
+        super().__init__(ActorAdapter(actor), learner,
+                         min_observations, observations_per_step)
 
     def select_action(self, observation: types.NestedArray) -> types.NestedArray:
         if self._pred:
@@ -70,4 +71,6 @@ class Bot(agent.Agent):
                 self._predictor.update()
 
     def set_pred_only(self, pred_only: bool):
-        self._pred_only = pred_only
+        if self._pred_only:
+            self._pred = True
+            self._cur_episods = -self._pred_episods
