@@ -49,6 +49,7 @@ class DQNBot(bot.Bot):
         pred_logger: loggers.Logger = None,
         checkpoint: bool = True,
         checkpoint_subpath: str = '~/acme/',
+        checkpoint_per_min: float = 30.
     ):
         # Create a replay server to add data to. This uses no limiter behavior in
         # order to allow the Agent interface to handle it.
@@ -122,7 +123,7 @@ class DQNBot(bot.Bot):
                 directory=checkpoint_subpath,
                 objects_to_save=learner.state,
                 subdirectory='dqn_learner',
-                time_delta_minutes=10.)
+                time_delta_minutes=checkpoint_per_min)
         else:
             self._checkpointer = None
 
