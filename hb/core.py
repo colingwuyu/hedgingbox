@@ -87,10 +87,10 @@ class Predictor(core.Actor):
         return self._last_pred_actions
 
     def get_episode_stock_price(self):
-        return self._episode_stock_price
+        return self._last_episode_stock_price
 
     def get_episode_action(self):
-        return self._episode_action
+        return self._last_episode_action
 
     def observe(
         self,
