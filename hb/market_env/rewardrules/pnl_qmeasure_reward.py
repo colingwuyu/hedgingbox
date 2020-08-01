@@ -20,7 +20,7 @@ class PnLQMeasureReward(pnl_reward.PnLReward):
         buy_sell_action = action[0]
         # PnL
         pnl = (next_step_obs['option_price'] - self._this_step_obs['option_price']) * \
-            next_step_obs['option_holding'] \
+            self._this_step_obs['option_holding'] \
             + self._this_step_obs['stock_holding'] * \
             (next_step_obs['stock_price'] - self._this_step_obs['stock_price'])
         if next_step_obs['remaining_time'] == 0:
