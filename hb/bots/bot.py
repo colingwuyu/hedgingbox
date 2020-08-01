@@ -71,6 +71,7 @@ class Bot(agent.Agent):
                 self._predictor.update()
 
     def set_pred_only(self, pred_only: bool):
+        self._pred_only = pred_only
         if self._pred_only:
             self._pred = True
             self._cur_episods = -self._pred_episods
