@@ -17,11 +17,26 @@ class PnLQMeasureReward(pnl_reward.PnLReward):
 
     def step_reward(self, step_type: dm_env.StepType,
                     next_step_obs: Dict, action: types.NestedArray) -> types.NestedArray:
-        pnl = super().step_reward(step_type, next_step_obs, action)
+        buy_sell_action = action[0]
+        # PnL
+        pnl = (next_step_obs['option_price'] - self._this_step_obs['option_price']) * \
+            next_step_obs['option_holding'] \
+            + self._this_step_obs['stock_holding'] * \
+            (next_step_obs['stock_price'] - self._this_step_obs['stock_price'])
+        if next_step_obs['remaining_time'] == 0:
+            # Option expires
+            # add liquidation cost
+            pnl -= next_step_obs['stock_trading_cost_pct'] * \
+                abs(next_step_obs['stock_holding']) * \
+                next_step_obs['stock_price']
+        else:
+            pnl -= next_step_obs['stock_trading_cost_pct'] * \
+                abs(buy_sell_action)*next_step_obs['stock_price']
         pnl_qmeasure = - abs(pnl -
                              next_step_obs['interest_rate'] *
                              (self._this_step_obs['remaining_time']-next_step_obs['remaining_time']) *
                              (self._this_step_obs['stock_holding'] * self._this_step_obs['stock_price']
                                  + self._this_step_obs['option_holding']*self._this_step_obs['option_price'])) \
             - self._scale_k*pnl**2
+        self._this_step_obs = next_step_obs.copy()
         return pnl_qmeasure

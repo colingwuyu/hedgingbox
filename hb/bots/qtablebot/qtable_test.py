@@ -9,6 +9,7 @@ from hb.market_env.pathgenerators import gbm_pathgenerator
 from hb.market_env import market_specs
 from hb.market_env.rewardrules.pnl_reward import PnLReward
 from hb.market_env.rewardrules.pnl_sqrpenalty_reward import PnLSquarePenaltyReward
+from hb.market_env.rewardrules.pnl_qmeasure_reward import PnLQMeasureReward
 from hb.bots.qtablebot.qtable import  QTable
 from hb.bots.deltabot.bot import DeltaHedgeBot
 import matplotlib.pyplot as plt
@@ -139,7 +140,7 @@ class QTableTest(unittest.TestCase):
                     initial_price=50., drift=0.05,
                     div=0.0, sigma=0.15, num_step=3, step_size=30./360.,
                 )
-        pnl_penalty_reward = PnLSquarePenaltyReward(scale_k=1e-3)
+        pnl_penalty_reward = PnLQMeasureReward(scale_k=1e-3)
         market_param = market_specs.MarketEnvParam(
             stock_ticker_size=1.,
             stock_price_lower_bound=45.,
@@ -167,7 +168,7 @@ class QTableTest(unittest.TestCase):
             qtable = pickle.load(pf)            
         pred_num_episodes = 1000 #@param {type:"integer"}
         actor = QTableActor(qtable, epsilon=0.8)
-        predictor = QTablePredictor(actor)
+        predictor = QTablePredictor(qtable, num_train_per_pred=1)
         
         for episode in range(pred_num_episodes):
             timestep = environment.reset()
