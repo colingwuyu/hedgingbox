@@ -97,7 +97,7 @@ class Predictor(core.Actor):
         action: types.NestedArray,
         next_timestep: dm_env.TimeStep,
     ):
-        self._episode_stock_price = np.array(
+        self._episode_stock_price = np.append(
             self._episode_stock_price, next_timestep.observation[2])
         self._episode_action = np.append(self._episode_action, action[0])
         self._episode_pnl += next_timestep.observation[-1]
