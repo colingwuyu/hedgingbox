@@ -19,7 +19,7 @@ class PnLQMeasureReward(pnl_reward.PnLReward):
                     next_step_obs: Dict, action: types.NestedArray) -> types.NestedArray:
         pnl = super().step_reward(step_type, next_step_obs, action)
         pnl_qmeasure = - \
-            abs(pnl - next_step_obs['interest_rate'] * (next_step_obs['remaining_time']-self._this_step_obs['remaining_time'])
+            abs(pnl - next_step_obs['interest_rate'] * (next_step_obs['remaining_time']-self._this_step_obs['remaining_time']) *
                 (self._this_step_obs['stock_holding'] * self._this_step_obs['stock_price']
                  + self._this_step_obs['option_price']*self._this_step_obs['option_holding'])) - self._scale_k*pnl**2
         return pnl_qmeasure
