@@ -22,7 +22,7 @@ class Bot(agent.Agent):
         self._predictor = predictor
         self._observations_per_pred = observations_per_pred
         self._pred_episods = pred_episods
-        self._cur_episods = -observations_per_pred
+        self._cur_episods = -self._observations_per_pred
         self._pred = False
         self._pred_only = pred_only
         if self._pred_only:
@@ -75,3 +75,6 @@ class Bot(agent.Agent):
         if self._pred_only:
             self._pred = True
             self._cur_episods = -self._pred_episods
+        else:
+            self._pred = False
+            self._cur_episods = -self._observations_per_pred

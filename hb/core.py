@@ -61,10 +61,12 @@ class Predictor(core.Actor):
         self._pred_pnls = np.array([])
         self._pred_actions = np.array([], dtype=np.int32)
         self._episode_stock_price = np.array([])
+        self._episode_option_price = np.array([])
         self._episode_action = np.array([])
         self._last_pred_rewards = self._pred_rewards
         self._last_pred_pnls = self._pred_pnls
         self._last_pred_actions = self._pred_actions
+        self._last_episode_option_price = self._episode_option_price
         self._last_episode_stock_price = self._episode_stock_price
         self._last_episode_action = self._episode_action
         self._num_train_per_pred = num_train_per_pred
@@ -89,6 +91,9 @@ class Predictor(core.Actor):
     def get_episode_stock_price(self):
         return self._last_episode_stock_price
 
+    def get_episode_option_price(self):
+        return self._last_episode_option_price
+
     def get_episode_action(self):
         return self._last_episode_action
 
@@ -97,8 +102,13 @@ class Predictor(core.Actor):
         action: types.NestedArray,
         next_timestep: dm_env.TimeStep,
     ):
+        # TODO observation[2] = stock price
+        #      observation[8]
         self._episode_stock_price = np.append(
             self._episode_stock_price, next_timestep.observation[2])
+        if len(next_timestep.observation) >= 9:
+            self._episode_option_price = np.append(
+                self._episode_option_price, next_timestep.observation[8])
         self._episode_action = np.append(self._episode_action, action[0])
         self._episode_pnl += next_timestep.observation[-1]
         self._episode_reward += next_timestep.reward
@@ -111,8 +121,10 @@ class Predictor(core.Actor):
             self._episode_reward = 0.
             self._last_episode_stock_price = self._episode_stock_price
             self._last_episode_action = self._episode_action
+            self._last_episode_option_price = self._episode_option_price
             self._episode_stock_price = np.array([])
             self._episode_action = np.array([])
+            self._episode_option_price = np.array([])
 
     def log_pred_perf(self):
         measures = dict()
