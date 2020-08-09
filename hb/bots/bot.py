@@ -25,9 +25,7 @@ class Bot(agent.Agent):
         self._cur_episods = -self._observations_per_pred
         self._pred = False
         self._pred_only = pred_only
-        if self._pred_only:
-            self._pred = True
-            self._cur_episods = -self._pred_episods
+        self.set_pred_only(pred_only)
         super().__init__(ActorAdapter(actor), learner,
                          min_observations, observations_per_step)
 
@@ -56,7 +54,7 @@ class Bot(agent.Agent):
             self._cur_episods += 1
             if self._cur_episods == 0:
                 if self._pred:
-                    self._predictor.log_pred_perf()
+                    self._predictor.log_progress()
                 if self._pred_only:
                     self._cur_episods = -self._pred_episods
                 else:
@@ -75,6 +73,8 @@ class Bot(agent.Agent):
         if self._pred_only:
             self._pred = True
             self._cur_episods = -self._pred_episods
+            self._predictor.start_log_perf()
         else:
             self._pred = False
             self._cur_episods = -self._observations_per_pred
+            self._predictor.end_log_perf()

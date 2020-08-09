@@ -3,8 +3,12 @@ from acme import types
 from acme.utils import loggers
 import dm_env
 from hb.market_env.rewardrules import reward_rule
+from hb.utils import loggers as hb_loggers
 import abc
 import numpy as np
+import pandas as pd
+
+import os
 
 
 class ActorAdapter(core.Actor):
@@ -52,8 +56,9 @@ class Predictor(core.Actor):
     def __init__(self,
                  actor: core.Actor,
                  num_train_per_pred: int,
-                 logger: loggers.Logger = None,
-                 label: str = 'predictor'):
+                 logger_dir: str = 'predictor/',
+                 label: str = 'predictor',
+                 log_perf: bool = False):
         self._actor = actor
         self._episode_reward = 0.
         self._episode_pnl = 0.
@@ -72,8 +77,27 @@ class Predictor(core.Actor):
         self._last_episode_stock_price = self._episode_stock_price
         self._last_episode_action = self._episode_action
         self._num_train_per_pred = num_train_per_pred
-        self._logger = logger or loggers.make_default_logger(label)
-        self._counter = 0
+        self._progress_logger = hb_loggers.CSVLogger(logger_dir, label + '/progress')
+        self._performance_logger = hb_loggers.CSVLogger(logger_dir, label + '/performance')
+        self._log_perf = log_perf
+        self._perf_path_cnt = 0
+        if self._log_perf:
+            self._performance_logger.clear()
+        self._progress_measures = dict()
+        if os.path.exists(self._progress_logger.file_path):
+            self._counter = pd.read_csv(self._progress_logger.file_path,
+                                    header=0, 
+                                    usecols=["train_episodes"]).max().values[0]
+        else:
+            self._counter = 0
+    
+    def start_log_perf(self):
+        self._log_perf = True
+        self._perf_path_cnt = 0
+        self._performance_logger.clear()
+    
+    def end_log_perf(self):
+        self._log_perf = False
 
     def select_action(self, observation: types.NestedArray) -> types.NestedArray:
         return self._actor.select_action(observation[:-1])
@@ -126,6 +150,18 @@ class Predictor(core.Actor):
                 self._pred_rewards, int(round(self._episode_reward)))
             self._episode_pnl = 0.
             self._episode_reward = 0.
+            if self._log_perf:
+                perf_log_measures = {'pnl': self._episode_pnl_path,
+                                    'stock_price': self._episode_stock_price,
+                                    'option_price': self._episode_option_price,
+                                    'action': self._episode_action}
+                for measure_name, measure in perf_log_measures.items():
+                    perf_path = {'path_num': self._perf_path_cnt,
+                                 'type': measure_name}
+                    for i, step_measure in enumerate(measure):
+                        perf_path[i] = step_measure 
+                    self._performance_logger.write(perf_path)
+                self._perf_path_cnt += 1
             self._last_episode_pnl_path = self._episode_pnl_path
             self._last_episode_stock_price = self._episode_stock_price
             self._last_episode_action = self._episode_action
@@ -135,7 +171,7 @@ class Predictor(core.Actor):
             self._episode_action = np.array([])
             self._episode_option_price = np.array([])
 
-    def log_pred_perf(self):
+    def _update_progress_figures(self):
         measures = dict()
         # pnl
         measures['pnl_quantile_5'] = np.quantile(self._pred_pnls, 0.05)
@@ -171,15 +207,22 @@ class Predictor(core.Actor):
             self._pred_actions == 4) / action_count
         measures['buy-5'] = np.count_nonzero(
             self._pred_actions == 5) / action_count
-        self._counter += 1
-        measures['train_episodes'] = self._counter * self._num_train_per_pred
-        self._logger.write(measures)
+        self._counter += self._num_train_per_pred
+        measures['train_episodes'] = self._counter
+        self._progress_measures.update(measures)
+
+    def _write_progress_figures(self):
+        self._progress_logger.write(self._progress_measures)
         self._last_pred_pnls = self._pred_pnls
         self._last_pred_rewards = self._pred_rewards
         self._last_pred_actions = self._pred_actions
         self._pred_pnls = np.array([])
         self._pred_rewards = np.array([])
         self._pred_actions = np.array([])
+
+    def log_progress(self):
+        self._update_progress_figures()
+        self._write_progress_figures()
 
     def update(self):
         pass

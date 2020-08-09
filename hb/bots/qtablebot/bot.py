@@ -41,7 +41,7 @@ class QTableBot(bot.Bot):
         observation_per_pred: int = 10_000,
         pred_only: bool = False,
         logger: loggers.Logger = None,
-        pred_logger: loggers.Logger = None,
+        pred_dir: str = '~/acme/',
         checkpoint: bool = True,
         checkpoint_subpath: str = '~/acme/',
     ):
@@ -110,7 +110,7 @@ class QTableBot(bot.Bot):
         predictor = qtable_predictor.QTablePredictor(
             qtable=q_table,
             num_train_per_pred=observation_per_pred,
-            logger=pred_logger
+            logger_dir=pred_dir
         )
 
         # The learner updates the parameters (and initializes them).

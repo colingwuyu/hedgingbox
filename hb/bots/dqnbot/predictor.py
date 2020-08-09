@@ -14,7 +14,7 @@ class DQNPredictor(core.Predictor):
         network: snt.Module,
         action_spec: market_specs.DiscretizedBoundedArray,
         num_train_per_pred: int,
-        logger: loggers.Logger = None,
+        logger_dir: str = '~/acme/dqn_predictor',
         lable: str = 'dqn_predictor'
     ):
         policy_network = snt.Sequential([
@@ -23,4 +23,4 @@ class DQNPredictor(core.Predictor):
         ])
         pred_actor = DQNActor(policy_network=policy_network,
                               action_spec=action_spec,)
-        super().__init__(pred_actor, num_train_per_pred, logger, lable)
+        super().__init__(pred_actor, num_train_per_pred, logger_dir, lable)

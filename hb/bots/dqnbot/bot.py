@@ -46,7 +46,7 @@ class DQNBot(bot.Bot):
         observation_per_pred: int = 10_000,
         pred_only: bool = False,
         logger: loggers.Logger = None,
-        pred_logger: loggers.Logger = None,
+        pred_dir: str = '~/acme/',
         checkpoint: bool = True,
         checkpoint_subpath: str = '~/acme/',
         checkpoint_per_min: float = 30.
@@ -102,7 +102,7 @@ class DQNBot(bot.Bot):
             policy_network, environment_spec.actions, adder)
         # Create the predictor which assess performance
         predictor = dqn_predictor.DQNPredictor(
-            network, environment_spec.actions, observation_per_pred, pred_logger
+            network, environment_spec.actions, observation_per_pred, pred_dir
         )
 
         # The learner updates the parameters (and initializes them).

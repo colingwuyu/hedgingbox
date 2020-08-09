@@ -137,7 +137,7 @@ class QTableTest(unittest.TestCase):
         from hb.bots.qtablebot.actor import QTableActor
         trading_cost_pct = 0. #@param {type:"number"}
         gbm = gbm_pathgenerator.GBMGenerator(
-                    initial_price=50., drift=0.05,
+                    initial_price=50., drift=0.1,
                     div=0.0, sigma=0.15, num_step=3, step_size=30./360.,
                 )
         pnl_penalty_reward = PnLQMeasureReward(scale_k=1e-3)
@@ -153,7 +153,7 @@ class QTableTest(unittest.TestCase):
                     reward_rule=pnl_penalty_reward,
                     market_param=market_param,
                     trading_cost_pct=trading_cost_pct,
-                    risk_free_rate=0.,
+                    risk_free_rate=0.02,
                     discount_rate=0.,
                     option_maturity=450./360.,
                     option_strike=50.,

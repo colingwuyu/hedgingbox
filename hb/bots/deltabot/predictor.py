@@ -10,8 +10,8 @@ class DeltaHedgePredictor(core.Predictor):
     def __init__(
         self,
         actor: actor.DeltaHedgeActor,
-        logger: loggers.Logger = None,
+        logger_dir: str = '~/acme/delta_hedge_predictor',
         lable: str = 'delta_hedge_predictor'
     ):
-        super().__init__(actor, 0, logger, lable)
+        super().__init__(actor, 0, logger_dir, lable)
 

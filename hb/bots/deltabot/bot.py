@@ -14,7 +14,7 @@ class DeltaHedgeBot(bot.Bot):
 
     def __init__(self,
                  environment_spec: specs.EnvironmentSpec,
-                 logger: loggers.Logger = None,
+                 pred_dir: str = '~/acme/',
                  pred_episode: int = 1_000 
                  ):
         """Initialize the delta hedging bot
@@ -24,7 +24,7 @@ class DeltaHedgeBot(bot.Bot):
         """
         # Create the actor
         actor = delta_hedge_actor.DeltaHedgeActor(environment_spec.actions)
-        predictor = delta_hedge_predictor.DeltaHedgePredictor(actor, logger=logger)
+        predictor = delta_hedge_predictor.DeltaHedgePredictor(actor, logger_dir=pred_dir)
         learner = fake_learner.FakeLeaner()
 
         super().__init__(
