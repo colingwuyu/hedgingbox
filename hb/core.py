@@ -159,7 +159,7 @@ class Predictor(core.Actor):
                     perf_path = {'path_num': self._perf_path_cnt,
                                  'type': measure_name}
                     for i, step_measure in enumerate(measure):
-                        perf_path[i] = step_measure 
+                        perf_path[str(i)] = step_measure 
                     self._performance_logger.write(perf_path)
                 self._perf_path_cnt += 1
             self._last_episode_pnl_path = self._episode_pnl_path
