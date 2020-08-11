@@ -90,6 +90,9 @@ class Predictor(core.Actor):
             self._counter = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
                                     usecols=["train_episodes"]).max().values[0]
+            self._best_reward = pd.read_csv(self._progress_logger.file_path,
+                                    header=0, 
+                                    usecols=["reward_mean"]).max().values[0]
         else:
             self._counter = 0
     
