@@ -140,5 +140,5 @@ class DQNBot(bot.Bot):
 
     def update(self):
         super().update()
-        if self._checkpointer is not None:
-            self._checkpointer.save()
+        if (self._checkpointer is not None) and self._predictor.is_best_perf():
+            self._checkpointer.save(force=True)

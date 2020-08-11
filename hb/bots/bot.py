@@ -53,7 +53,7 @@ class Bot(agent.Agent):
         if next_timestep.last():
             self._cur_episods += 1
             if self._cur_episods == 0:
-                if self._pred:
+                if self._pred and (not self._pred_only):
                     self._predictor.log_progress()
                 if self._pred_only:
                     self._cur_episods = -self._pred_episods

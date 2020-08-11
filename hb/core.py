@@ -81,6 +81,8 @@ class Predictor(core.Actor):
         self._performance_logger = hb_loggers.CSVLogger(logger_dir, label + '/performance')
         self._log_perf = log_perf
         self._perf_path_cnt = 0
+        self._best_reward = None
+        self._is_best_perf = False
         if self._log_perf:
             self._performance_logger.clear()
         self._progress_measures = dict()
@@ -91,6 +93,13 @@ class Predictor(core.Actor):
         else:
             self._counter = 0
     
+    def is_best_perf(self):
+        if self._is_best_perf:
+            self._is_best_perf = False
+            return True
+        else:
+            return False
+
     def start_log_perf(self):
         self._log_perf = True
         self._perf_path_cnt = 0
@@ -210,6 +219,9 @@ class Predictor(core.Actor):
         self._counter += self._num_train_per_pred
         measures['train_episodes'] = self._counter
         self._progress_measures.update(measures)
+        if (self._best_reward is None) or (self._best_reward <= measures['reward_mean']):
+            self._best_reward = measures['reward_mean'] 
+            self._is_best_perf = True
 
     def _write_progress_figures(self):
         self._progress_logger.write(self._progress_measures)
