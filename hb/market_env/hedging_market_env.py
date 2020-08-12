@@ -76,6 +76,8 @@ class HedgingMarketEnv(dm_env.Environment):
         self._state_values['stock_holding'] = initial_stock_holding
         stock_init_price, stock_attr = self._stock_generator.reset_step()
         self._state_values['stock_price'] = stock_init_price
+        self._state_values['forward_price'] = self._state_values['stock_price']*np.exp(self._state_values['interest_rate']*self._state_values['remaining_time'])
+        self._state_values['moneyness'] = self._state_values['forward_price']/self._state_values['option_strike'] 
         self._state_values.update(stock_attr)
         # reward generator
         self._reward_rule = reward_rule
@@ -112,6 +114,8 @@ class HedgingMarketEnv(dm_env.Environment):
             tau_e=self._state_values['remaining_time'],
             tau_d=self._state_values['remaining_time']
         )
+        self._state_values['forward_price'] = self._state_values['stock_price']*np.exp(self._state_values['interest_rate']*self._state_values['remaining_time'])
+        self._state_values['moneyness'] = self._state_values['forward_price']/self._state_values['option_strike']
         # gen stock path
         self._stock_price_path = None
         self._stock_attr_path = None
@@ -150,6 +154,8 @@ class HedgingMarketEnv(dm_env.Environment):
             tau_e=self._state_values['remaining_time'],
             tau_d=self._state_values['remaining_time']
         )
+        self._state_values['forward_price'] = self._state_values['stock_price']*np.exp(self._state_values['interest_rate']*self._state_values['remaining_time'])
+        self._state_values['moneyness'] = self._state_values['forward_price']/self._state_values['option_strike']
         self._state_values['stock_holding'] += buy_sell_action
         if self._stock_step < self._num_step:
             return dm_env.transition(reward=self._reward_rule.step_reward(
