@@ -81,7 +81,7 @@ class Predictor(core.Actor):
         self._performance_logger = hb_loggers.CSVLogger(logger_dir, label + '/performance')
         self._log_perf = log_perf
         self._perf_path_cnt = 0
-        self._best_std = None
+        self._best_reward = None
         self._is_best_perf = False
         if self._log_perf:
             self._performance_logger.clear()
@@ -90,9 +90,9 @@ class Predictor(core.Actor):
             self._counter = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
                                     usecols=["train_episodes"]).max().values[0]
-            self._best_std = pd.read_csv(self._progress_logger.file_path,
+            self._best_reward = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
-                                    usecols=["pnl_std"]).max().values[0]
+                                    usecols=["reward_mean"]).max().values[0]
         else:
             self._counter = 0
     
@@ -222,8 +222,8 @@ class Predictor(core.Actor):
         self._counter += self._num_train_per_pred
         measures['train_episodes'] = self._counter
         self._progress_measures.update(measures)
-        if (self._best_std is None) or (self._best_std > measures['pnl_std']):
-            self._best_std = measures['pnl_std'] 
+        if (self._best_reward is None) or (self._best_reward < measures['reward_mean']):
+            self._best_reward = measures['reward_mean'] 
             self._is_best_perf = True
 
     def _write_progress_figures(self):
