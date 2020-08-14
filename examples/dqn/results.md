@@ -21,10 +21,11 @@ First to discover performance comparison between the DQN hedging bot (model-free
 |:--:|:--:|:--:|:--|
 |DQN Hedging Bot 1| ForwardFeed NN|1.0|Stock price, Stock holding, Expiry time|
 |DQN Hedging Bot 2| Duelling DNN|1.0|Stock price, Stock holding, Expiry time, Option price|
-|DQN Hedging Bot 3| Duelling DNN|0.6|Stock price, Stock holding, Expiry time, Option price, Moneyness|
+|DQN Hedging Bot 3| Duelling DNN|0.6|Stock price, Stock holding, Expiry time, Option price, Moneyness*|
 |DQN Hedging Bot 4| Dueling DNN|1.0|Stock price, Stock holding, Expiry time, Option price, Moneyness|
 
-*The training process uses exploration epsilon decay (0.8->0.5->0.2) every 50k episodes (400k learning). Learning rate is 1e-3.*
+* *The training process uses exploration epsilon decay (0.8->0.5->0.2) every 50k episodes (400k learning). Learning rate is 1e-3.*
+* **Moneyness=Forward Price/Option Strike*
 
 ## Experiment Results
 
