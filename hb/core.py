@@ -92,7 +92,7 @@ class Predictor(core.Actor):
                                     usecols=["train_episodes"]).max().values[0]
             self._best_std = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
-                                    usecols=["pnl_std"]).min().values[0]
+                                    usecols=["pnl_std"]).max().values[0]
         else:
             self._counter = 0
     
