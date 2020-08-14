@@ -178,6 +178,25 @@ Duelling DNN; Reward kappa=1.0; State includes moneyness; Transaction cost=0.1%
 <p style="text-align: center;"><mark>5th Worst case</mark></p>
 <p style="text-align: center"><image src="0tc_5h_10drift_2r_30sig_10kappa_moneyness/price_action_prediction_sample5.png" styl="max-width:100%"></p>
 
+### DQN Hedging Bot with Transaction cost
+
+<p style="text-align: center;"><mark>1st Worst case</mark></p>
+<p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/price_action_prediction_sample0.png" styl="max-width:100%"></p>
+
+
+<p style="text-align: center;"><mark>2nd Worst case</mark></p>
+<p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/price_action_prediction_sample1.png" styl="max-width:100%"></p>
+
+<p style="text-align: center;"><mark>3rd Worst case</mark></p>
+<p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/price_action_prediction_sample2.png" styl="max-width:100%"></p>
+
+<p style="text-align: center;"><mark>4th Worst case</mark></p>
+<p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/price_action_prediction_sample4.png" styl="max-width:100%"></p>
+
+<p style="text-align: center;"><mark>5th Worst case</mark></p>
+<p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/price_action_prediction_sample5.png" styl="max-width:100%"></p>
+
+
 ## Apply trained transaction cost DQN Bot to a 30d call option
 
 Let's use DQN Bot to hedge call options with 30-day maturity.
