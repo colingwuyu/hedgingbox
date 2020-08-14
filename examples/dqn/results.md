@@ -187,3 +187,5 @@ Let's use DQN Bot to hedge call options with 30-day maturity.
 
 <p style="text-align: center;"><mark>Terminal P&L Disctribution</mark></p>
 <p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/30d_dist.png" styl="max-width:100%"></p>
+ 
+If we emphasize the training on hedging 30-day calls, the trained policy will be quickly distorted. The agent cannot hedge 90-day calls efficiently anymore.
