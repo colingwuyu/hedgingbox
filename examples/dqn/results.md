@@ -38,7 +38,8 @@ All hedging bots contest with same 1000 simulated paths. For each path, the accu
 |DQN Hedging Bot 3| 1.685 | 5.478 | -5.155 | -8.181 | -15.384|
 |DQN Hedging Bot 4| 1.543 | 5.534 | -5.071 | -7.508 | -13.552 |
 
-**Mean Reward is the mean of 1000 paths' rewards*
+* **Mean Reward is the mean of 1000 paths' rewards*
+* *DQN Hedging Bot 4 has achieved best P&L std = 5.257, in which case P&L mean = 1.261, 5% Quantile = -7.394, 10% Quantile = -5.138 and Mean Reward = -14.03*
 
 ## Trading Cost
 
