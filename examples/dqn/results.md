@@ -173,3 +173,17 @@ Duelling DNN; Reward kappa=1.0; State includes moneyness; Transaction cost=0.1%
 
 <p style="text-align: center;"><mark>5th Worst case</mark></p>
 <p style="text-align: center"><image src="0tc_5h_10drift_2r_30sig_10kappa_moneyness/price_action_prediction_sample5.png" styl="max-width:100%"></p>
+
+## Apply trained transaction cost DQN Bot to a 30d call option
+
+Let's use DQN Bot to hedge call options with 30-day maturity.
+
+### table 4 P&L distributional statistics comparison
+
+| Agent | Mean Total P&L | S.D. Total P&L | 5% Quantile | 10% Quantile | Mean Reward (kappa=1.0)* |
+|:-----|:--------------:|:--------------:|:-----------:|:-----------:|:-----------:|
+|Delta Hedging Bot| -0.169 | 4.612 | -7.470 | -5.709 | -11.135 |
+|DQN Hedging Bot| -0.09 | 5.601 | -9.948 | -6.939 | -15.829 |
+
+<p style="text-align: center;"><mark>Terminal P&L Disctribution</mark></p>
+<p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/30d_dist.png" styl="max-width:100%"></p>
