@@ -1,12 +1,12 @@
 from acme import specs
 from acme.utils import loggers
 from hb.bots import bot
-from hb.bots.deltabot import actor as delta_hedge_actor
-from hb.bots.deltabot import predictor as delta_hedge_predictor
+from hb.bots.bsdeltabot import actor as delta_hedge_actor
+from hb.bots.bsdeltabot import predictor as delta_hedge_predictor
 from hb.bots import fake_learner
 
 
-class DeltaHedgeBot(bot.Bot):
+class BSDeltaHedgeBot(bot.Bot):
     """Delta Hedging Bot.
 
 

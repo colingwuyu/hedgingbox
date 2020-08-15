@@ -76,6 +76,7 @@ class HedgingMarketEnv(dm_env.Environment):
         self._state_values['stock_holding'] = initial_stock_holding
         stock_init_price, stock_attr = self._stock_generator.reset_step()
         self._state_values['stock_price'] = stock_init_price
+        self._state_values['option_intrinsic_value'] = np.max([0., self._state_values['stock_price']-self._state_values['option_strike']])
         self._state_values['forward_price'] = self._state_values['stock_price']*np.exp(self._state_values['interest_rate']*self._state_values['remaining_time'])
         self._state_values['moneyness'] = self._state_values['forward_price']/self._state_values['option_strike'] 
         self._state_values.update(stock_attr)
@@ -103,6 +104,7 @@ class HedgingMarketEnv(dm_env.Environment):
         self._state_values['remaining_time'] = self._option_maturity
         stock_init_price, stock_attr = self._stock_generator.reset_step()
         self._state_values['stock_price'] = stock_init_price
+        self._state_values['option_intrinsic_value'] = np.max([0., self._state_values['stock_price']-self._state_values['option_strike']])
         self._state_values.update(stock_attr)
         # TODO create a derivative module for pricing
         self._state_values['option_price'] = blackscholes.price(
@@ -154,6 +156,7 @@ class HedgingMarketEnv(dm_env.Environment):
             tau_e=self._state_values['remaining_time'],
             tau_d=self._state_values['remaining_time']
         )
+        self._state_values['option_intrinsic_value'] = np.max([0., self._state_values['stock_price']-self._state_values['option_strike']])
         self._state_values['forward_price'] = self._state_values['stock_price']*np.exp(self._state_values['interest_rate']*self._state_values['remaining_time'])
         self._state_values['moneyness'] = self._state_values['forward_price']/self._state_values['option_strike']
         self._state_values['stock_holding'] += buy_sell_action
