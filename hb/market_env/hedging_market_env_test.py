@@ -4,7 +4,9 @@ from acme import  wrappers
 
 from hb.market_env import hedging_market_env
 from hb.market_env.pathgenerators import gbm_pathgenerator
-from hb.market_env.rewardrules import pnl_sqrpenalty_reward
+from hb.market_env.rewardrules import sqrpenalty_reward
+from hb.market_env.rewardrules import pnl_intrinsic_reward
+from hb.market_env.rewardrules import cash_flow_reward
 from hb.market_env import market_specs
 
 import unittest
@@ -55,7 +57,8 @@ class HedgeEnvTest(unittest.TestCase):
             initial_price=50., drift=0.05,
             div=0.02, sigma=0.15, num_step=3, step_size=30. / 360.,
         )
-        pnl_penalty_reward = pnl_sqrpenalty_reward.PnLSquarePenaltyReward(scale_k=1e-3)
+        intrinsic_reward = pnl_intrinsic_reward.PnLIntrinsicReward()
+        cf_reward = cash_flow_reward.CashFlowReward()
         market_param = market_specs.MarketEnvParam(
             stock_ticker_size=1.,
             stock_price_lower_bound=45.,
@@ -65,12 +68,12 @@ class HedgeEnvTest(unittest.TestCase):
             holding_lots_bound=12)
         environment = wrappers.SinglePrecisionWrapper(hedging_market_env.HedgingMarketEnv(
             stock_generator=gbm,
-            reward_rule=pnl_penalty_reward,
+            reward_rule=intrinsic_reward,
             market_param=market_param,
             trading_cost_pct=0.01,
             risk_free_rate=0.,
             discount_rate=0.,
-            option_maturity=455. / 360.,
+            option_maturity=90. / 360.,
             option_strike=50.,
             option_holding=-10,
             initial_stock_holding=5

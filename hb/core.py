@@ -66,6 +66,7 @@ class Predictor(core.Actor):
         self._pred_pnls = np.array([])
         self._pred_actions = np.array([], dtype=np.int32)
         self._episode_pnl_path = np.array([])
+        self._episode_reward_path = np.array([])
         self._episode_stock_price = np.array([])
         self._episode_option_price = np.array([])
         self._episode_action = np.array([])
@@ -73,6 +74,7 @@ class Predictor(core.Actor):
         self._last_pred_pnls = self._pred_pnls
         self._last_pred_actions = self._pred_actions
         self._last_episode_pnl_path = self._episode_pnl_path
+        self._last_episode_reward_path = self._episode_reward_path
         self._last_episode_option_price = self._episode_option_price
         self._last_episode_stock_price = self._episode_stock_price
         self._last_episode_action = self._episode_action
@@ -153,6 +155,8 @@ class Predictor(core.Actor):
         self._episode_action = np.append(self._episode_action, action[0])
         self._episode_pnl_path = np.append(
             self._episode_pnl_path, next_timestep.observation[-1])
+        self._episode_reward_path = np.append(
+            self._episode_reward_path, next_timestep.reward)
         self._episode_pnl += next_timestep.observation[-1]
         self._episode_reward += next_timestep.reward
         self._pred_actions = np.append(self._pred_actions, action[0])
@@ -164,6 +168,7 @@ class Predictor(core.Actor):
             self._episode_reward = 0.
             if self._log_perf:
                 perf_log_measures = {'pnl': self._episode_pnl_path,
+                                    'reward': self._episode_reward_path,
                                     'stock_price': self._episode_stock_price,
                                     'option_price': self._episode_option_price,
                                     'action': self._episode_action}
@@ -175,10 +180,12 @@ class Predictor(core.Actor):
                     self._performance_logger.write(perf_path)
                 self._perf_path_cnt += 1
             self._last_episode_pnl_path = self._episode_pnl_path
+            self._last_episode_reward_path = self._episode_reward_path
             self._last_episode_stock_price = self._episode_stock_price
             self._last_episode_action = self._episode_action
             self._last_episode_option_price = self._episode_option_price
             self._episode_pnl_path = np.array([])
+            self._episode_reward_path = np.array([])
             self._episode_stock_price = np.array([])
             self._episode_action = np.array([])
             self._episode_option_price = np.array([])

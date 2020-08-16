@@ -23,11 +23,11 @@ class PnLQMeasureReward(pnl_reward.PnLReward):
             self._this_step_obs['option_holding'] \
             + self._this_step_obs['stock_holding'] * \
             (next_step_obs['stock_price'] - self._this_step_obs['stock_price'])
-        if next_step_obs['remaining_time'] == 0:
+        if abs(next_step_obs['remaining_time'] - 0) < 1e-6:
             # Option expires
             # add liquidation cost
             pnl -= next_step_obs['stock_trading_cost_pct'] * \
-                abs(next_step_obs['stock_holding']) * \
+                abs(self._this_step_obs['stock_holding']) * \
                 next_step_obs['stock_price']
         else:
             pnl -= next_step_obs['stock_trading_cost_pct'] * \
