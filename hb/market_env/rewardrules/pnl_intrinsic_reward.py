@@ -5,9 +5,8 @@ from typing import Dict
 
 
 class PnLIntrinsicReward(reward_rule.RewardRule):
-    def __init__(self, scale_k: float = 1e-4):
+    def __init__(self):
         self._this_step_obs = None
-        self._scale_k = scale_k
 
     def step_reward(self, step_type: dm_env.StepType,
                     next_step_obs: Dict, action: types.NestedArray,
