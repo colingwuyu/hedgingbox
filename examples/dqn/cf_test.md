@@ -26,6 +26,24 @@ Environment specifictions:
     </thead>
     <tbody>
         <tr>
+            <td rowspan=3>BS Option Price SQPenalty P&L</td>
+            <td>Mean Total P&L</td>
+            <td>1.60</td>
+            <td>1.54</td>
+            <td rowspan=3><p style="text-align: center"><image src="0tc_5h_10drift_2r_30sig_10kappa_moneyness/action.png" styl="max-width:100%"></td>
+            <td rowspan=3><p style="text-align: center"><image src="0tc_5h_10drift_2r_30sig_10kappa_moneyness/dist.png" styl="max-width:100%"></td>
+        </tr>
+        <tr>
+            <td>Mean Total Reward</td>
+            <td>-11.08</td>
+            <td>-13.55</td>
+        </tr>
+        <tr>
+            <td>S.D. Total P&L</td>
+            <td>5.01</td>
+            <td>5.53</td>
+        </tr>
+        <tr>
             <td rowspan=3>Option Intrinsic Value P&L</td>
             <td>Mean Total P&L</td>
             <td>1.60</td>
