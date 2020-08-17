@@ -12,7 +12,7 @@ Environment specifictions:
 
 * Initial stock holding is 5 shares
 
-## Table 1 distributions of Hedging P&L and Reward
+## Table Exprient Results
 <table>
     <thead>
         <tr>
@@ -101,25 +101,35 @@ Environment specifictions:
 </table>
 
 ## Hedging Behaviors
+
+### BS Option Price SQPenalty
+
 <p style="text-align: center;"><mark>BS Option Price P&L with Quadratic Penalty Reward Behavior Sample</mark></p>
 <p style="text-align: center"><image src="cf_test_images/bs_sq_sample.png" styl="max-width:100%"></p>
+
+### Option Intrinsic Value SQPenalty
 
 <p style="text-align: center;"><mark>Option Intrinsic Value P&L with Quadratic Penalty Reward Behavior Sample</mark></p>
 <p style="text-align: center"><image src="cf_test_images/intric_sq_sample.png" styl="max-width:100%"></p>
 
 ## My points
 
-* Under arbitrage free assumption, the sum of Cashflowsof a perfect hedging strategy will be zero (assume 0 risk free rate, and CF includes option premium). It is the same for P&L, which is zero under perfect hedging. <img src="https://render.githubusercontent.com/render/math?math=Total Cost = \sum(R_t)=0"> no matter <img src="https://render.githubusercontent.com/render/math?math=R_t"> is cashflow or P&L. And it is independent with option pricing model used to calculate intermediate P&L. Because <img src="https://render.githubusercontent.com/render/math?math=V_t"> is cancelled out for <img src="https://render.githubusercontent.com/render/math?math=0<t<T">. So to find out the optimal hedging strategy, is to find stragtegy so that <img src="https://render.githubusercontent.com/render/math?math=Total Cost = 0">.
+* Under arbitrage free assumption, the sum of Cashflows of a perfect hedging strategy will be zero (assume 0 risk free rate, and Cashflow includes option premium). It is the same for P&L, which is zero under perfect hedging. Actually <img src="https://render.githubusercontent.com/render/math?math=Total Cost = \sum(R_t)=0"> no matter <img src="https://render.githubusercontent.com/render/math?math=R_t"> is cashflow or P&L. It is independent on option pricing model used to calculate intermediate P&L. Because <img src="https://render.githubusercontent.com/render/math?math=V_t"> is cancelled out for <img src="https://render.githubusercontent.com/render/math?math=0<t<T"> when aggregating them together. The experimental proof is that mean total rewards under either cash flow reward or intrinsic value P&L reward equates to mean total P&L under black-scholes option price P&L in [table 1](#Table-Exprient-Results). So to find out the optimal hedging strategy, is to find a stragtegy that makes <img src="https://render.githubusercontent.com/render/math?math=Total Cost = 0">.
 
-* Transfer the perfect hedging optimization problem to MDP. John Hull uses the objective function, which maximizes total cost's mean and minimize total cost's sandard deviation.
+* Transfer the optimal hedging problem to MDP. John Hull uses an objective function, which maximizes total cost's mean and minimize total cost's standard deviation.
+
+### John Hull's Objective Function
+
 <p style="text-align: center"><image src="cf_test_images/JH_obj_func.png" styl="max-width:100%">
+    
+### Our Objective Function
 
-Our objective function
 <p style="text-align: center"><image src="cf_test_images/obj_func.png" styl="max-width:100%">
 
-The difference is that John Hull's objective function minimizes <img src="https://render.githubusercontent.com/render/math?math=Total Cost">'s standard deviation, but our objective function minimizes P&L at each step. John Hull's objective function satisfies general perfect hedging optimization problem, but our objective function only applies to P&L depending on the accuracy of intermediate option price <img src="https://render.githubusercontent.com/render/math?math=V_t">. When <img src="https://render.githubusercontent.com/render/math?math=V_t"> is accurate, a perfect hedging strategy will imply to zero P&L over all timesteps. An obvious proof that our objective function does not work is the experiment with P&L calculated by intrinsic value. RL agent's mean reward outperforms delta hedging agent's mean reward. However, the total cost (total P&l) of RL agent has a wild distribution than delta hedging agent.
-We see the behavior of RL with intrinsic value reward holds 10 shares when option is in the money (ITM) and holds 0 shares when option is out of the money (OTM). My understanding is our objective function gives incentive to agent for learning the delta (<img src="https://render.githubusercontent.com/render/math?math=\frac{\partial V}{\partial S}">) at each step. Because the P&L reward defines <img src="https://render.githubusercontent.com/render/math?math=N_o*dV %2B N_s*dS"> (assuming no transaction cost). Our reward encourages agent to make <img src="https://render.githubusercontent.com/render/math?math=PnL=0"> at each step, equvalentlly encourages agent to learn delta for stock holding. Intrinsic value's delta is 0 for OTM and 1 for ITM.
+Except maximize expected total cost, the difference comes in the second term. John Hull's second term minimizes <img src="https://render.githubusercontent.com/render/math?math=Total Cost (C_t)">'s standard deviation, but our second term minimizes each step's P&L. John Hull's objective function satisfies general perfect hedging optimization problem, but our objective function applies to a narrower optimal hedging problem, which is the P&L representation with an accurate intermediate option price <img src="https://render.githubusercontent.com/render/math?math=V_t">. Because when <img src="https://render.githubusercontent.com/render/math?math=V_t"> is accurate, a perfect hedging strategy will have zero P&L over all timesteps (as our reward incentive). An obvious proof to show the failure of our objective function is the experiment with reward (Option Intrinsic Value SQPenalty P&L) in [table 1](#Table-Exprient-Results). The experiment results show that RL agent's mean reward outperforms delta hedging agent's mean reward. However, the total cost (total P&l) of RL agent has a much wilder distribution than delta hedging agent.
 
+Some interesting results are shown in [RL hedging behavior](#hedging-behaviors). We see [RL trained with intrinsic value](#Option-Intrinsic-Value-SQPenalty-P&L) holds 10 shares when option is in the money (ITM) and holds 0 shares when option is out of the money (OTM). My understanding is our objective function gives incentive to agent for learning the delta (<img src="https://render.githubusercontent.com/render/math?math=\frac{\partial V}{\partial S}">) at each step. Because the P&L reward defines <img src="https://render.githubusercontent.com/render/math?math=N_o*dV %2B N_s*dS"> (if ignoring transaction cost). Our reward encourages agent to make <img src="https://render.githubusercontent.com/render/math?math=PnL=0"> at each step, equvalentlly encourages agent to learn delta for stock holding. Intrinsic value's delta is 0 for OTM and 1 for ITM. Similarly, we see [RL trained with BS optioon price](#BS-Option-Price-SQPenalty-P&L) holds almost BS-delta shares.
+Here is the P&L reward formula:
 <p style="text-align: center"><image src="cf_test_images/pnl_reward.png" styl="max-width:100%">
 
 But John Hull's objective function will suffer from the convergence speed of expected value of quadratic total cost.
@@ -127,4 +137,8 @@ But John Hull's objective function will suffer from the convergence speed of exp
 * For cash flow reward, there truely exists Credit Assignment Problem (CAP). An obvious proof is that use total cash flow as objective function. It is difficult for RL algo to learn the optimal strategy. 
 <p style="text-align: center"><image src="cf_test_images/cash_flow_reward.png" styl="max-width:100%">
 
-The short term incentive is to short stock to get immediate positive reward. But RL cannot infer that shorting stock will accumulate liability and a large negative reward at terminal step (credit assignment at last). Therefore RL's learns to short stocks all the time. Actual optimal strategy should long stock to exploit its 10% drift as RL trained under option intrinsic value P&L reward. This proves RL algo cannot estimate <img src="https://render.githubusercontent.com/render/math?math=E(C_t)"> accurately (not even the second moment of total cost) with cash flow reward.
+The short term incentive is to short stock to get immediate positive reward. But RL cannot infer that shorting stock will accumulate liability, and the shorting positions have to be covered at the terminal step. That will cause a large negative reward ultimately (credit assignment at last). Therefore RL's algo learns to short stocks all the time (see action distribution of DQN agent trained with Cash Flow reward in [table 1](#Table-Exprient-Results)). The optimal strategy should long stock to exploit its 10% drift as RL trained under option intrinsic value P&L reward. This proves it is hard for RL algo to estimate <img src="https://render.githubusercontent.com/render/math?math=E(C_t)"> accurately (not even the second moment of total cost) with cash flow reward.
+
+## My Summary
+
+With the [objective function](#our-objective-function), RL algo tries to learn the delta of option price w.r.t. stock price. This implies the necessary of option pricing model in the reward.
