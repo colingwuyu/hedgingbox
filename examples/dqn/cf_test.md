@@ -124,7 +124,7 @@ We see the behavior of RL with intrinsic value reward holds 10 shares when optio
 
 But John Hull's objective function will suffer from the convergence speed of expected value of quadratic total cost.
 
-* For cash flow reward, there truely exists Credit Assignment Problem (CAP). An obvious proof is that use total cash flow as objective function. It is difficult for RL algo to learn. 
+* For cash flow reward, there truely exists Credit Assignment Problem (CAP). An obvious proof is that use total cash flow as objective function. It is difficult for RL algo to learn the optimal strategy. 
 <p style="text-align: center"><image src="cf_test_images/cash_flow_reward.png" styl="max-width:100%">
 
-The short term incentive is to short stock to get immediate positive reward. But RL does not understand shorting stock will accumulate liability and a large negative reward at terminal step (credit assignment at last). This makes RL's behavior to short stocks all the time. Under cash flow reward, I expect RL learns to long stock in order to exploit its 10% drift as under option intrinsic value P&L reward. This proves RL algo cannot estimate <img src="https://render.githubusercontent.com/render/math?math=E(C_t)"> accurately (not even the second moment of total cost).
+The short term incentive is to short stock to get immediate positive reward. But RL cannot infer that shorting stock will accumulate liability and a large negative reward at terminal step (credit assignment at last). Therefore RL's learns to short stocks all the time. Actual optimal strategy should long stock to exploit its 10% drift as RL trained under option intrinsic value P&L reward. This proves RL algo cannot estimate <img src="https://render.githubusercontent.com/render/math?math=E(C_t)"> accurately (not even the second moment of total cost) with cash flow reward.
