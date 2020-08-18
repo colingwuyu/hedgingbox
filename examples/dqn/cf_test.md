@@ -118,6 +118,118 @@ Environment specifictions:
     </tbody>
 </table>
 
+## Table 2 Exprient Results with Transaction Cost
+<table>
+    <thead>
+        <tr>
+            <th>Reward Formula</th>
+            <th>Agent</th>
+            <th>Transaction Cost</th>
+            <th>Delta Hedging Bot</th>
+            <th>DQN Hedging Bot</th>
+            <th>Action Distribution</th>
+            <th>P&L Distribution</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan=3>BS Option Price SQPenalty P&L</td>
+            <td rowspan=3>0.1%</td>
+            <td>Mean Total P&L</td>
+            <td></td>
+            <td>0.53</td>
+            <td rowspan=3><p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/action.png" styl="max-width:100%"></td>
+            <td rowspan=3><p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/dist.png" styl="max-width:100%"></td>
+        </tr>
+        <tr>
+            <td>Mean Total Reward</td>
+            <td></td>
+            <td>-14.88</td>
+        </tr>
+        <tr>
+            <td>S.D. Total P&L</td>
+            <td></td>
+            <td>5.45</td>
+        </tr>
+        <tr>
+            <td rowspan=3>BS Option Price SQPenalty P&L</td>
+            <td rowspan=3>0.3%</td>
+            <td>Mean Total P&L</td>
+            <td></td>
+            <td>-0.66</td>
+            <td rowspan=3><p style="text-align: center"><image src="03tc/action.png" styl="max-width:100%"></td>
+            <td rowspan=3><p style="text-align: center"><image src="03tc/dist.png" styl="max-width:100%"></td>
+        </tr>
+        <tr>
+            <td>Mean Total Reward</td>
+            <td></td>
+            <td>-18.56</td>
+        </tr>
+        <tr>
+            <td>S.D. Total P&L</td>
+            <td></td>
+            <td>6.15</td>
+        </tr>
+        <tr>
+            <td rowspan=3>BS Option Price SQPenalty P&L</td>
+            <td rowspan=3>0.5%</td>
+            <td>Mean Total P&L</td>
+            <td></td>
+            <td>-2.10</td>
+            <td rowspan=3><p style="text-align: center"><image src="05tc/action.png" styl="max-width:100%"></td>
+            <td rowspan=3><p style="text-align: center"><image src="05tc/dist.png" styl="max-width:100%"></td>
+        </tr>
+        <tr>
+            <td>Mean Total Reward</td>
+            <td></td>
+            <td>-20.49</td>
+        </tr>
+        <tr>
+            <td>S.D. Total P&L</td>
+            <td></td>
+            <td>6.40</td>
+        </tr>
+        <tr>
+            <td rowspan=3>Option Intrinsic Value SQPenalty P&L</td>
+            <td rowspan=3>0.5%</td>
+            <td>Mean Total P&L</td>
+            <td></td>
+            <td>-11.77</td>
+            <td rowspan=3><p style="text-align: center"><image src="cf_test_images/tc_intrinc_sq_action.png" styl="max-width:100%"></td>
+            <td rowspan=3><p style="text-align: center"><image src="cf_test_images/tc_intrinc_sq_dist.png" styl="max-width:100%"></td>
+        </tr>
+        <tr>
+            <td>Mean Total Reward</td>
+            <td></td>
+            <td>-605.76</td>
+        </tr>
+        <tr>
+            <td>S.D. Total P&L</td>
+            <td></td>
+            <td>26.04</td>
+        </tr>
+        <tr>
+            <td rowspan=3>Cash Flow SQPenalty</td>
+            <td rowspan=3>0.5%</td>
+            <td>Mean Total P&L</td>
+            <td></td>
+            <td></td>
+            <td rowspan=3><p style="text-align: center"><image src="cf_test_images/tc_cf_sq_action.png" styl="max-width:100%"></td>
+            <td rowspan=3><p style="text-align: center"><image src="cf_test_images/tc_cf_sq_dist.png" styl="max-width:100%"></td>
+        </tr>
+        <tr>
+            <td>Mean Total Reward</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>S.D. Total P&L</td>
+            <td></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
 ## Hedging Behaviors
 
 ### BS Option Price SQPenalty
