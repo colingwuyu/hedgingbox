@@ -136,96 +136,96 @@ Environment specifictions:
             <td rowspan=3>BS Option Price SQPenalty P&L</td>
             <td rowspan=3>0.1%</td>
             <td>Mean Total P&L</td>
-            <td></td>
+            <td>0.093</td>
             <td>0.53</td>
             <td rowspan=3><p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/action.png" styl="max-width:100%"></td>
             <td rowspan=3><p style="text-align: center"><image src="01tc_5h_10drift_2r_30sig_10kappa_moneyness/dist.png" styl="max-width:100%"></td>
         </tr>
         <tr>
             <td>Mean Total Reward</td>
-            <td></td>
+            <td>-12.59</td>
             <td>-14.88</td>
         </tr>
         <tr>
             <td>S.D. Total P&L</td>
-            <td></td>
+            <td>5.46</td>
             <td>5.45</td>
         </tr>
         <tr>
             <td rowspan=3>BS Option Price SQPenalty P&L</td>
             <td rowspan=3>0.3%</td>
             <td>Mean Total P&L</td>
-            <td></td>
+            <td>-3.81</td>
             <td>-0.66</td>
             <td rowspan=3><p style="text-align: center"><image src="03tc/action.png" styl="max-width:100%"></td>
             <td rowspan=3><p style="text-align: center"><image src="03tc/dist.png" styl="max-width:100%"></td>
         </tr>
         <tr>
             <td>Mean Total Reward</td>
-            <td></td>
+            <td>-17.47</td>
             <td>-18.56</td>
         </tr>
         <tr>
             <td>S.D. Total P&L</td>
-            <td></td>
+            <td>5.11</td>
             <td>6.15</td>
         </tr>
         <tr>
             <td rowspan=3>BS Option Price SQPenalty P&L</td>
             <td rowspan=3>0.5%</td>
             <td>Mean Total P&L</td>
-            <td></td>
+            <td>-7.41</td>
             <td>-2.10</td>
             <td rowspan=3><p style="text-align: center"><image src="05tc/action.png" styl="max-width:100%"></td>
             <td rowspan=3><p style="text-align: center"><image src="05tc/dist.png" styl="max-width:100%"></td>
         </tr>
         <tr>
             <td>Mean Total Reward</td>
-            <td></td>
+            <td>-23.04</td>
             <td>-20.49</td>
         </tr>
         <tr>
             <td>S.D. Total P&L</td>
-            <td></td>
+            <td>5.52</td>
             <td>6.40</td>
         </tr>
         <tr>
             <td rowspan=3>Option Intrinsic Value SQPenalty P&L</td>
             <td rowspan=3>0.5%</td>
             <td>Mean Total P&L</td>
-            <td></td>
+            <td>-7.41</td>
             <td>-11.77</td>
             <td rowspan=3><p style="text-align: center"><image src="cf_test_images/tc_intrinc_sq_action.png" styl="max-width:100%"></td>
             <td rowspan=3><p style="text-align: center"><image src="cf_test_images/tc_intrinc_sq_dist.png" styl="max-width:100%"></td>
         </tr>
         <tr>
             <td>Mean Total Reward</td>
-            <td></td>
+            <td>-640.69</td>
             <td>-605.76</td>
         </tr>
         <tr>
             <td>S.D. Total P&L</td>
-            <td></td>
+            <td>5.52</td>
             <td>26.04</td>
         </tr>
         <tr>
             <td rowspan=3>Cash Flow SQPenalty</td>
             <td rowspan=3>0.5%</td>
             <td>Mean Total P&L</td>
-            <td></td>
-            <td></td>
+            <td>-7.41</td>
+            <td>-5.51</td>
             <td rowspan=3><p style="text-align: center"><image src="cf_test_images/tc_cf_sq_action.png" styl="max-width:100%"></td>
             <td rowspan=3><p style="text-align: center"><image src="cf_test_images/tc_cf_sq_dist.png" styl="max-width:100%"></td>
         </tr>
         <tr>
             <td>Mean Total Reward</td>
-            <td></td>
-            <td></td>
+            <td>-131,480.65</td>
+            <td>-5,393.39</td>
         </tr>
         <tr>
             <td>S.D. Total P&L</td>
-            <td></td>
-            <td></td>
+            <td>5.52</td>
+            <td>38.75</td>
         </tr>
     </tbody>
 </table>
