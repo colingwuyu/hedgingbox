@@ -39,6 +39,8 @@ class D4PGLearner(acme.Learner):
       target_observation_network: types.TensorTransformation = lambda x: x,
       policy_optimizer: snt.Optimizer = None,
       critic_optimizer: snt.Optimizer = None,
+      risk_obj_func: bool = True,
+      risk_obj_c: np.float32 = 1.5,
       clipping: bool = True,
       counter: counting.Counter = None,
       logger: loggers.Logger = None,
@@ -109,24 +111,9 @@ class D4PGLearner(acme.Learner):
     }
 
     # Create a checkpointer and snapshotter objects.
-    self._checkpointer = None
     self._snapshotter = None
 
     if checkpoint:
-      self._checkpointer = tf2_savers.Checkpointer(
-          subdirectory='d4pg_learner',
-          objects_to_save={
-              'counter': self._counter,
-              'policy': self._policy_network,
-              'critic': self._critic_network,
-              'observation': self._observation_network,
-              'target_policy': self._target_policy_network,
-              'target_critic': self._target_critic_network,
-              'target_observation': self._target_observation_network,
-              'policy_optimizer': self._policy_optimizer,
-              'critic_optimizer': self._critic_optimizer,
-              'num_steps': self._num_steps,
-          })
       critic_mean = snt.Sequential(
           [self._critic_network, acme_nets.StochasticMeanHead()])
       self._snapshotter = tf2_savers.Snapshotter(
@@ -197,14 +184,22 @@ class D4PGLearner(acme.Learner):
 
       # Actor loss. If clipping is true use dqda clipping and clip the norm.
       dqda_clipping = 1.0 if self._clipping else None
-      policy_loss = dpg.risk_dpg(
-          dpg_q_t,
-          dpg_q_var_t,
-          1.25,
-          dpg_a_t,
-          tape=tape,
-          dqda_clipping=dqda_clipping,
-          clip_norm=self._clipping)
+      if risk_obj_func:
+        policy_loss = dpg.risk_dpg(
+            dpg_q_t,
+            dpg_q_var_t,
+            c,
+            dpg_a_t,
+            tape=tape,
+            dqda_clipping=dqda_clipping,
+            clip_norm=self._clipping)
+      else:
+        policy_loss = losses.dpg(
+            dpg_q_t,
+            dpg_a_t,
+            tape=tape,
+            dqda_clipping=dqda_clipping,
+            clip_norm=self._clipping)
       policy_loss = tf.reduce_mean(policy_loss, axis=[0])
 
     # Get trainable variables.
@@ -250,8 +245,6 @@ class D4PGLearner(acme.Learner):
     fetches.update(counts)
 
     # Checkpoint and attempt to write the logs.
-    if self._checkpointer is not None:
-      self._checkpointer.save()
     if self._snapshotter is not None:
       self._snapshotter.save()
     self._logger.write(fetches)

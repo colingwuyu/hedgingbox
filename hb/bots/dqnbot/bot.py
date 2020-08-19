@@ -41,7 +41,7 @@ class DQNBot(bot.Bot):
         n_step: int = 5,
         epsilon: tf.Tensor = None,
         learning_rate: float = 1e-3,
-        discount: float = 0.99,
+        discount: float = 1.0,
         pred_episode: int = 1_000,
         observation_per_pred: int = 10_000,
         pred_only: bool = False,
