@@ -24,6 +24,7 @@ from acme.adders import reverb as adders
 from acme.agents import agent
 from acme.agents.tf import actors
 from acme.tf import networks
+from acme.tf import savers as tf2_savers
 from acme.tf import utils as tf2_utils
 from acme.utils import counting
 from acme.utils import loggers
