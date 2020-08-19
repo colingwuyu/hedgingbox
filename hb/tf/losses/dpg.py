@@ -20,7 +20,7 @@ def risk_dpg(
   dqda = tape.gradient([q_max], [a_max])[0]
 
   # Calculate the gradient dq_var/da
-  dqvarda = tape.gradient([q_var_max], [a_max0])[0]
+  dqvarda = tape.gradient([q_var_max], [a_max])[0]
 
   if dqda is None:
     raise ValueError('q_max needs to be a function of a_max.')
