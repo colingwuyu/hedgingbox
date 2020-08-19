@@ -50,7 +50,7 @@ class D4PGBot(bot.Bot):
                 discount: float = 1.0,
                 pred_episode: int = 1_000,
                 observation_per_pred: int = 10_000,
-                pred_only=pred_only,
+                pred_only: bool = False,
                 batch_size: int = 256,
                 prefetch_size: int = 4,
                 target_update_period: int = 100,
