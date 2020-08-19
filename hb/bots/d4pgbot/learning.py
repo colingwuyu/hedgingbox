@@ -70,7 +70,8 @@ class D4PGLearner(acme.Learner):
       logger: logger object to be used by learner.
       checkpoint: boolean indicating whether to checkpoint the learner.
     """
-
+    self._risk_obj_func = risk_obj_func
+    self._risk_obj_c = risk_obj_c
     # Store online and target networks.
     self._policy_network = policy_network
     self._critic_network = critic_network
@@ -184,11 +185,11 @@ class D4PGLearner(acme.Learner):
 
       # Actor loss. If clipping is true use dqda clipping and clip the norm.
       dqda_clipping = 1.0 if self._clipping else None
-      if risk_obj_func:
+      if self._risk_obj_func:
         policy_loss = dpg.risk_dpg(
             dpg_q_t,
             dpg_q_var_t,
-            c,
+            self._risk_obj_c,
             dpg_a_t,
             tape=tape,
             dqda_clipping=dqda_clipping,
