@@ -182,6 +182,7 @@ class D4PGBot(bot.Bot):
         super().__init__(
             actor=actor,
             learner=learner,
+            predictor=predictor,
             min_observations=max(batch_size, min_replay_size),
             observations_per_step=float(batch_size) / samples_per_insert,
             pred_episods=pred_episode,
