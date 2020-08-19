@@ -38,7 +38,7 @@ from hb.bots.d4pgbot import learning
 
 
 # TODO(b/145531941): make the naming of this agent consistent.
-class D4PG(bot.Bot):
+class D4PGBot(bot.Bot):
     """D4PG Bot.
 
     """
@@ -191,4 +191,3 @@ class D4PG(bot.Bot):
         super().update()
         if (self._checkpointer is not None) and self._predictor.is_best_perf():
             self._checkpointer.save(force=True)
-            
