@@ -16,5 +16,5 @@ class D4PGPredictor(core.Predictor):
         logger_dir: str = '~/acme/d4pg_predictor',
         lable: str = 'd4pg_predictor'
     ):
-        pred_actor = actors.FeedForwardActor(behavior_network)
+        pred_actor = actors.FeedForwardActor(network)
         super().__init__(pred_actor, num_train_per_pred, logger_dir, lable)
