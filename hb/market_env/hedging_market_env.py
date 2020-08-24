@@ -235,10 +235,8 @@ class HedgingMarketEnv(dm_env.Environment):
     def action_spec(self):
         """Returns the action spec.
         """
-        minimum = [-self._market_param.lot_size *
-                   self._market_param.buy_sell_lots_bound]
-        maximum = [self._market_param.lot_size *
-                   self._market_param.buy_sell_lots_bound]
+        minimum = [-self._market_param.buy_sell_lots_bound]
+        maximum = [self._market_param.buy_sell_lots_bound]
         discretize_step = [self._market_param.lot_size]
         return market_specs.DiscretizedBoundedArray(
             shape=(1,), dtype=float,
