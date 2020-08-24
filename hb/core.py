@@ -205,27 +205,27 @@ class Predictor(core.Actor):
         # action
         action_count = len(self._pred_actions)
         measures['sell-5'] = np.count_nonzero(
-            self._pred_actions == -5) / action_count
+            np.rint(self._pred_actions) == -5) / action_count
         measures['sell-4'] = np.count_nonzero(
-            self._pred_actions == -4) / action_count
+            np.rint(self._pred_actions) == -4) / action_count
         measures['sell-3'] = np.count_nonzero(
-            self._pred_actions == -3) / action_count
+            np.rint(self._pred_actions) == -3) / action_count
         measures['sell-2'] = np.count_nonzero(
-            self._pred_actions == -2) / action_count
+            np.rint(self._pred_actions) == -2) / action_count
         measures['sell-1'] = np.count_nonzero(
-            self._pred_actions == -1) / action_count
+            np.rint(self._pred_actions) == -1) / action_count
         measures['hold'] = np.count_nonzero(
-            self._pred_actions == 0) / action_count
+            np.rint(self._pred_actions) == 0) / action_count
         measures['buy-1'] = np.count_nonzero(
-            self._pred_actions == 1) / action_count
+            np.rint(self._pred_actions) == 1) / action_count
         measures['buy-2'] = np.count_nonzero(
-            self._pred_actions == 2) / action_count
+            np.rint(self._pred_actions) == 2) / action_count
         measures['buy-3'] = np.count_nonzero(
-            self._pred_actions == 3) / action_count
+            np.rint(self._pred_actions) == 3) / action_count
         measures['buy-4'] = np.count_nonzero(
-            self._pred_actions == 4) / action_count
+            np.rint(self._pred_actions) == 4) / action_count
         measures['buy-5'] = np.count_nonzero(
-            self._pred_actions == 5) / action_count
+            np.rint(self._pred_actions) == 5) / action_count
         self._counter += self._num_train_per_pred
         measures['train_episodes'] = self._counter
         self._progress_measures.update(measures)
