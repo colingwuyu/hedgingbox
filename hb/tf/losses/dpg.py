@@ -10,8 +10,8 @@ def risk_dpg(
     dqda_clipping: float = None,
     clip_norm: bool = False,
 ) -> tf.Tensor:
-  """Deterministic policy gradient loss by minimizing the risk oriented objective function
-  F(S_t, A_t) = -E[Z(S_t, A_t)] + c*sqrt(Variance(Z(S_t, A_t))) 
+  """Deterministic policy gradient loss by maxmizing the risk oriented objective function
+  F(S_t, A_t) = E[Z(S_t, A_t)] - c*sqrt(Variance(Z(S_t, A_t))) 
   d(loss)/dw = -dF/da*da/dw
 
   """
@@ -38,12 +38,18 @@ def risk_dpg(
     else:
       dqda = tf.clip_by_value(dqda, -1. * dqda_clipping, dqda_clipping)
   c = tf.cast(c, dqda.dtype)
-  dfda = -dqda + 0.5*c*tf.pow(q_var_max, -0.5)*dqvarda
+  dfda = dqda - 0.5*c*tf.pow(q_var_max, -0.5)*dqvarda
   # Target_a ensures correct gradient calculated during backprop.
   target_a = dfda + a_max
   # Stop the gradient going through Q network when backprop.
   target_a = tf.stop_gradient(target_a)
   # Gradient only go through actor network.
-  loss = - 0.5 * tf.reduce_sum(tf.square(target_a - a_max), axis=-1)
+  loss = 0.5 * tf.reduce_sum(tf.square(target_a - a_max), axis=-1)
+  # This recovers the DPG because (letting w be the actor network weights):
+  # d(loss)/dw = 0.5 * (2 * (target_a - a_max) * d(target_a - a_max)/dw)
+  #            = (target_a - a_max) * [d(target_a)/dw  - d(a_max)/dw]
+  #            = df/da * [d(target_a)/dw  - d(a_max)/dw]  # by defn of target_a
+  #            = df/da * [0 - d(a_max)/dw]                # by stop_gradient
+  #            = - df/da * da/dw
 
   return loss
