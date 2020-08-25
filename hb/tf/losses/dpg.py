@@ -11,7 +11,7 @@ def risk_dpg(
     clip_norm: bool = False,
 ) -> tf.Tensor:
   """Deterministic policy gradient loss by minimizing the risk oriented objective function
-  F(S_t, A_t) = E[Z(S_t, A_t)] + c*sqrt(Variance(Z(S_t, A_t))) 
+  F(S_t, A_t) = -E[Z(S_t, A_t)] + c*sqrt(Variance(Z(S_t, A_t))) 
   d(loss)/dw = -dF/da*da/dw
 
   """
@@ -38,7 +38,7 @@ def risk_dpg(
     else:
       dqda = tf.clip_by_value(dqda, -1. * dqda_clipping, dqda_clipping)
   c = tf.cast(c, dqda.dtype)
-  dfda = dqda + 0.5*c*tf.pow(q_var_max, -0.5)*dqvarda
+  dfda = -dqda + 0.5*c*tf.pow(q_var_max, -0.5)*dqvarda
   # Target_a ensures correct gradient calculated during backprop.
   target_a = dfda + a_max
   # Stop the gradient going through Q network when backprop.
