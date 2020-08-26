@@ -1,5 +1,5 @@
 
-# DQN Bot Results
+# D4PG Bot Results
 
 ## Experiment Setups
 
