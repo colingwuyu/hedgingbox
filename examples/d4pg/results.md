@@ -96,6 +96,8 @@ Environment specifictions:
     </tbody>
 </table>
 
+**Delta Hedging Bot uses continous buy/sell action*
+
 ## Training Progress
 
 ### 0% Transaction Cost
