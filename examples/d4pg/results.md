@@ -15,7 +15,7 @@ Environment specifictions:
 
 ## Experiment Results
 
-### table 1: Tested Results
+### Table 1: Experiment Results
 
 <table>
     <thead>
@@ -96,8 +96,8 @@ Environment specifictions:
     </tbody>
 </table>
 
-**Delta Hedging Bot: the bot uses continous buy/sell action*
-**Action Distribution: the continuous buy/sell actions are rounded to integer *
+- **Delta Hedging Bot: the bot uses continous buy/sell action*
+- **Action Distribution: the continuous buy/sell actions are rounded to integer*
 
 ## Training Progress
 
