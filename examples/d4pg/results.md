@@ -25,7 +25,7 @@ Environment specifictions:
             <th>Delta Hedging Bot*</th>
             <th>D4PG Hedging Bot</th>
             <th>DQN Hedging Bot</th>
-            <th>Action Distribution</th>
+            <th>Action Distribution*</th>
             <th>P&L Distribution</th>
         </tr>
     </thead>
@@ -96,7 +96,8 @@ Environment specifictions:
     </tbody>
 </table>
 
-**Delta Hedging Bot uses continous buy/sell action*
+**Delta Hedging Bot: the bot uses continous buy/sell action*
+**Action Distribution: the continuous buy/sell actions are rounded to integer *
 
 ## Training Progress
 
