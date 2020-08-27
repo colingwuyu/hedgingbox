@@ -17,28 +17,22 @@ def risk_dpg(
   """
 
   # Calculate the gradient dq/da.
-  dqda = tape.gradient([q_max], [a_max])[0]
+  c = tf.cast(c, q_max.dtype)
+  f = q_max - c * tf.sqrt(q_var_max)
+  dfda = tape.gradient([f], [a_max])[0]
 
-  # Calculate the gradient dq_var/da
-  dqvarda = tape.gradient([q_var_max], [a_max])[0]
-
-  if dqda is None:
-    raise ValueError('q_max needs to be a function of a_max.')
-  if dqvarda is None:
-    raise ValueError('q_var_max needs to be a function of a_max')
-
+  if dfda is None:
+    raise ValueError('risk obj function needs to be a function of a_max.')
+  
   # Clipping the gradient dq/da.
   if dqda_clipping is not None:
     if dqda_clipping <= 0:
       raise ValueError('dqda_clipping should be bigger than 0, {} found'.format(
           dqda_clipping))
     if clip_norm:
-      dqda = tf.clip_by_norm(dqda, dqda_clipping, axes=-1)
-      dqvarda = tf.clip_by_norm(dqvarda, dqda_clipping, axes=-1)
+      dfda = tf.clip_by_norm(dfda, dqda_clipping, axes=-1)
     else:
-      dqda = tf.clip_by_value(dqda, -1. * dqda_clipping, dqda_clipping)
-  c = tf.cast(c, dqda.dtype)
-  dfda = dqda - 0.5*c*tf.pow(q_var_max, -0.5)*dqvarda
+      dfda = tf.clip_by_value(dfda, -1. * dqda_clipping, dqda_clipping)
   # Target_a ensures correct gradient calculated during backprop.
   target_a = dfda + a_max
   # Stop the gradient going through Q network when backprop.
