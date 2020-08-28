@@ -140,7 +140,9 @@ class D4PGBot(bot.Bot):
         predictor = d4pg_predictor.D4PGPredictor(network=pred_behavior_network,
                                                 action_spec=act_spec, 
                                                 num_train_per_pred=observation_per_pred, 
-                                                logger_dir=pred_dir)
+                                                logger_dir=pred_dir,
+                                                risk_obj_func=risk_obj_func,
+                                                risk_obj_c=risk_obj_c)
 
         # Create optimizers.
         policy_optimizer = policy_optimizer or snt.optimizers.Adam(
