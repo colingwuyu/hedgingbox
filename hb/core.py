@@ -205,8 +205,8 @@ class Predictor(core.Actor):
         measures['pnl_quantile_50'] = np.quantile(self._pred_pnls, 0.5)
         measures['pnl_quantile_90'] = np.quantile(self._pred_pnls, 0.9)
         measures['pnl_quantile_95'] = np.quantile(self._pred_pnls, 0.95)
-        measures['pnl_mean'] = self._pred_pnls.mean()[0]
-        measures['pnl_std'] = self._pred_pnls.std()[0]
+        measures['pnl_mean'] = self._pred_pnls.mean()
+        measures['pnl_std'] = self._pred_pnls.std()
         measures['risk_obj'] = measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
         # reward
         measures['reward_mean'] = self._pred_rewards.mean()
