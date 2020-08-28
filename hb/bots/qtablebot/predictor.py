@@ -12,8 +12,8 @@ class QTablePredictor(core.Predictor):
         qtable: QTable,
         num_train_per_pred: int,
         logger_dir: str = '~/acme/qtable_predictor',
-        lable: str = 'qtable_predictor'
+        label: str = 'qtable_predictor'
     ):
         pred_actor = QTableActor(qtable=qtable, epsilon=0.)
-        super().__init__(pred_actor, num_train_per_pred, logger_dir, lable)
+        super().__init__(pred_actor, num_train_per_pred, logger_dir=logger_dir, label=label)
 
