@@ -2,6 +2,7 @@ from hb.market_env.rewardrules import reward_rule
 import dm_env
 from acme import types
 from typing import Dict
+import numpy as np
 
 
 class PnLReward(reward_rule.RewardRule):
@@ -32,6 +33,49 @@ class PnLReward(reward_rule.RewardRule):
         self._this_step_obs = reset_obs.copy()
         self._first_reward = True
 
+class NoisyPnLReward(reward_rule.RewardRule):
+    def __init__(self, noise_mean_percentage, noise_std_percentage):
+        """add noise to PnL reward
+
+        Args:
+            noise_mean (float): mean of noise as percentage of option price
+            noise_std_percentage (float): std of noise as percentage of option price
+        """
+        self._noise_mean_percentage = noise_mean_percentage
+        self._noise_std_percentage = noise_std_percentage
+        self._this_step_obs = None
+        self._first_reward = True
+
+    def step_reward(self, step_type: dm_env.StepType,
+                    next_step_obs: Dict, action: types.NestedArray,
+                    ) -> types.NestedArray:
+        # R_i = V_{i+1} - V_i + H_i(S_{i+1} - S_i) - k|S_{i+1}*(H_{i+1}-H_i)|
+        # A_i = H_{i+1} - H_i
+        next_step_obs_cpy = next_step_obs.copy()
+        self._update_obs(next_step_obs_cpy)
+        if abs(next_step_obs_cpy['remaining_time'] - 0) < 1e-6:
+            # option expires
+            # action is to liquidate all holding
+            # cashflow from option_payoff
+            buy_sell_action = -self._this_step_obs['stock_holding'] 
+        else:
+            buy_sell_action = action[0]
+        
+        pnl = (next_step_obs_cpy['option_price'] - self._this_step_obs['option_price']) * self._this_step_obs['option_holding'] \
+            + self._this_step_obs['stock_holding'] * (next_step_obs_cpy['stock_price'] - self._this_step_obs['stock_price']) - \
+            next_step_obs_cpy['stock_trading_cost_pct'] * abs(buy_sell_action) * next_step_obs_cpy['stock_price']
+        self._this_step_obs = next_step_obs_cpy.copy()
+        return pnl
+
+    def reset(self, reset_obs):
+        self._this_step_obs = reset_obs.copy()
+        self._update_obs(self._this_step_obs)
+        self._first_reward = True
+
+    def _update_obs(self, obs):
+        option_price = obs['option_price']
+        noise = np.random.normal(option_price*self._noise_mean_percentage, option_price*self._noise_std_percentage)
+        obs['option_price'] = option_price + noise
 
 class FwdPnLReward(reward_rule.RewardRule):
     def __init__(self):
