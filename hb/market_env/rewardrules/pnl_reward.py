@@ -52,7 +52,8 @@ class NoisyPnLReward(reward_rule.RewardRule):
         # R_i = V_{i+1} - V_i + H_i(S_{i+1} - S_i) - k|S_{i+1}*(H_{i+1}-H_i)|
         # A_i = H_{i+1} - H_i
         next_step_obs_cpy = next_step_obs.copy()
-        self._update_obs(next_step_obs_cpy)
+        if step_type == dm_env.StepType.MID:
+            self._update_obs(next_step_obs_cpy)
         if abs(next_step_obs_cpy['remaining_time'] - 0) < 1e-6:
             # option expires
             # action is to liquidate all holding
@@ -69,7 +70,6 @@ class NoisyPnLReward(reward_rule.RewardRule):
 
     def reset(self, reset_obs):
         self._this_step_obs = reset_obs.copy()
-        self._update_obs(self._this_step_obs)
         self._first_reward = True
 
     def _update_obs(self, obs):

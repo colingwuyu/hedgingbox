@@ -56,6 +56,8 @@ class Predictor(core.Actor):
     def __init__(self,
                  actor: core.Actor,
                  num_train_per_pred: int,
+                 risk_obj: bool = False,
+                 risk_obj_c: float = 1.5,
                  logger_dir: str = 'predictor/',
                  label: str = 'predictor',
                  log_perf: bool = False):
@@ -85,6 +87,11 @@ class Predictor(core.Actor):
         self._perf_path_cnt = 0
         self._best_reward = None
         self._is_best_perf = False
+        self._risk_obj_c = risk_obj_c
+        if risk_obj:
+            self._best_reward_measure = 'risk_obj'
+        else:
+            self._best_reward_measure = 'reward_mean'
         if self._log_perf:
             self._performance_logger.clear()
         self._progress_measures = dict()
@@ -94,7 +101,7 @@ class Predictor(core.Actor):
                                     usecols=["train_episodes"]).max().values[0]
             self._best_reward = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
-                                    usecols=["reward_mean"]).max().values[0]
+                                    usecols=[self._best_reward_measure]).max().values[0]
         else:
             self._counter = 0
     
@@ -200,6 +207,7 @@ class Predictor(core.Actor):
         measures['pnl_quantile_95'] = np.quantile(self._pred_pnls, 0.95)
         measures['pnl_mean'] = self._pred_pnls.mean()
         measures['pnl_std'] = self._pred_pnls.std()
+        measures['risk_obj'] = measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
         # reward
         measures['reward_mean'] = self._pred_rewards.mean()
         # action
