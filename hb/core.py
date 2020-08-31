@@ -200,11 +200,13 @@ class Predictor(core.Actor):
     def _update_progress_figures(self):
         measures = dict()
         # pnl
+        measures['pnl_quantile_1'] = np.quantile(self._pred_pnls, 0.01)
         measures['pnl_quantile_5'] = np.quantile(self._pred_pnls, 0.05)
         measures['pnl_quantile_10'] = np.quantile(self._pred_pnls, 0.1)
         measures['pnl_quantile_50'] = np.quantile(self._pred_pnls, 0.5)
         measures['pnl_quantile_90'] = np.quantile(self._pred_pnls, 0.9)
         measures['pnl_quantile_95'] = np.quantile(self._pred_pnls, 0.95)
+        measures['pnl_quantile_99'] = np.quantile(self._pred_pnls, 0.99)
         measures['pnl_mean'] = self._pred_pnls.mean()
         measures['pnl_std'] = self._pred_pnls.std()
         measures['risk_obj'] = measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
