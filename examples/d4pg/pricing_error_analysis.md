@@ -50,7 +50,7 @@ In the tests, 0.5% transaction cost is used. For a fair comparison, D4PG Bot is 
             <td>Random shock miu=0, sigma=5%S<sub>t</sub><sup>opt</sup></td>
             <td>-5.06</td>
             <td>5.45</td>
-            <td>-11.71</td>
+            <td>-14.49</td>
             <td>-13.23</td>
         </tr>
         <tr>
