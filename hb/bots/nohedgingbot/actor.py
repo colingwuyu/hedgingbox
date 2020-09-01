@@ -16,7 +16,7 @@ class NoHedgeActor(core.Actor):
                  action_spec: market_specs.DiscretizedBoundedArray):
         self._action = np.zeros(action_spec.shape)
 
-    def select_action(self, observations: types.NestedArray) -> types.NestedArray
+    def select_action(self, observations: types.NestedArray) -> types.NestedArray:
         return self._action
 
     def observe_first(self, timestep: dm_env.TimeStep):
