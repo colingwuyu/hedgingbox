@@ -1,6 +1,8 @@
 from hb.instrument.instrument import Instrument
 from hb.transaction_cost.transaction_cost import TransactionCost
 from hb.utils.date import get_cur_time
+from hb.utils.process import *
+from typing import Union
 import QuantLib as ql
 import numpy as np
 
@@ -13,8 +15,11 @@ class Stock(Instrument):
         """Stock
 
         Args:
-            process ([ql.Process])
-            transaction_cost ([TransactionCost]): [description]
+            name ([str]): stock name (ticker)
+            quote ([float]): price
+            annual_yield ([float]): annual return
+            dividend_yield ([float]): annual dividend yield
+            transaction_cost ([TransactionCost]): transaction_cost calculator 
         """
         self._spot_path = None
         self._dividend_yield = dividend_yield
@@ -25,6 +30,7 @@ class Stock(Instrument):
         self._step_size = None
         self._cur_path = None
         self._stoc_vol = None
+        self._process_param = None
         super().__init__(name, True, quote, transaction_cost)
 
     def get_dividend_yield(self) -> float:
@@ -57,7 +63,17 @@ class Stock(Instrument):
         self._quote = quote
         return self
 
-    def set_pricing_engine(self, pricing_engine, step_size, num_step, repeat_path = None):
+    def get_market_value(self, holding):
+        price, _ = self.get_price()
+        return price*holding
+
+    def get_process_param(self):
+        return self._process_param
+
+    def set_pricing_engine(self, pricing_engine: Union[GBMProcessParam, HestonProcessParam], 
+                           step_size, num_step, repeat_path = None):
+        self._process_param = pricing_engine
+        self._process = create_process(self._process_param)
         self._repeat_path = repeat_path
         self._cur_path = None
         self._step_size = step_size
@@ -69,7 +85,7 @@ class Stock(Instrument):
         elif dimension == 2:
             self._stoc_vol = True
         rng = ql.GaussianRandomSequenceGenerator(ql.UniformRandomSequenceGenerator(dimension * num_step, ql.UniformRandomGenerator()))
-        self._pricing_engine = ql.GaussianMultiPathGenerator(pricing_engine, list(times), rng, False)
+        self._pricing_engine = ql.GaussianMultiPathGenerator(self._process, list(times), rng, False)
 
     def get_price(self):
         cur_time = get_cur_time()
@@ -161,7 +177,13 @@ if __name__ == "__main__":
     num_step = 10    
     step_days = 1
     step_size = time_from_days(step_days)
-    spx.set_pricing_engine(heston_process, step_size, num_step)
+    spx.set_pricing_engine(HestonProcessParam(
+                                spot=spx.get_quote(), 
+                                drift=spx.get_annual_yield(), 
+                                dividend=spx.get_dividend_yield(),
+                                spot_var=0.095078, kappa=6.649480, theta=0.391676, 
+                                rho=-0.796813, vov=0.880235
+                            ), step_size, num_step)
     for i in range(num_path):
         for j in range(num_step):
             print(get_cur_days())

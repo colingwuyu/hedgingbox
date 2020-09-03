@@ -106,10 +106,12 @@ def heston_calibration(risk_free_rate, stock,
         (theta, kappa, sigma, rho, v0))
     error = calibration_report(heston_helpers, grid_data)
     return HestonProcessParam(
+                risk_free_rate=risk_free_rate,
                 spot=_spot, 
                 drift=stock.get_annual_yield(), 
                 dividend=stock.get_dividend_yield(),
-                spot_var=v0, kappa=kappa, theta=theta, rho=rho, vov=sigma
+                spot_var=v0, kappa=kappa, theta=theta, rho=rho, vov=sigma,
+                use_risk_free=False
             )
 
 if __name__ == "__main__":
@@ -118,7 +120,7 @@ if __name__ == "__main__":
     from hb.utils.consts import *
     from hb.instrument.instrument_factory import InstrumentFactory
     risk_free_rate = 0.015
-    spx = InstrumentFactory.create(
+    amzn = InstrumentFactory.create(
         'Stock AMZN 3400 25 0 0.15'
     )
     maturity = ['1W', '2W', '3W', '4W', '7W', '3M']
@@ -129,15 +131,15 @@ if __name__ == "__main__":
           [39.99, 39.84, 40.01, 39.79],
           [43.51, 43.7, 43.67, 43.63],
           [49.34, 49.25, 48.77, 48.56]]
-    spx_listed_calls = []
+    amzn_listed_calls = []
     n = 0
     for i, m in enumerate(maturity):
-        spx_listed_calls_m = []
+        amzn_listed_calls_m = []
         for j, s in enumerate(strike):
-            spx_listed_calls_m = spx_listed_calls_m \
+            amzn_listed_calls_m = amzn_listed_calls_m \
                     + [InstrumentFactory.create(
                         f'EuroOpt AMZN Listed {m} Call {s} {iv[i][j]} 5 (AMZN_Call{n})'
-                    ).underlying(spx)] 
+                    ).underlying(amzn)] 
             n += 1
-        spx_listed_calls.append(spx_listed_calls_m)
-    heston_calibration(risk_free_rate, spx, spx_listed_calls)
+        amzn_listed_calls.append(amzn_listed_calls_m)
+    heston_calibration(risk_free_rate, amzn, amzn_listed_calls)

@@ -141,7 +141,7 @@ if __name__ == "__main__":
     print(add_time(1.))
     print(time_between(add_time(1.)))
     for i in range(10):
-        move_one_day()
+        move_days()
         print(get_cur_days())
         print(get_cur_time())
     reset_date()

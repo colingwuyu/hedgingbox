@@ -1,14 +1,20 @@
 import QuantLib as ql
+from typing import Union
 from collections import namedtuple
 from hb.utils.date import *
+from hb.utils.termstructure import *
 
 GBMProcessParam = namedtuple('GBMProcessParam',
+                             'risk_free_rate '
                              'spot '
                              'drift '
                              'dividend '
-                             'vol ')
+                             'vol '
+                             'use_risk_free '
+                             )
 
 HestonProcessParam = namedtuple('HestonProcessParam',
+                                'risk_free_rate '
                                 'spot '
                                 'spot_var '
                                 'drift '
@@ -16,7 +22,8 @@ HestonProcessParam = namedtuple('HestonProcessParam',
                                 'kappa '
                                 'theta '
                                 'rho '
-                                'vov ')
+                                'vov '
+                                'use_risk_free ')
 
 def create_gbm_process(param: GBMProcessParam):
     """Create GBM Process
@@ -27,15 +34,13 @@ def create_gbm_process(param: GBMProcessParam):
     Returns:
         QuantLib.BlackScholesMertonProcess: GBM Process
     """
-    drift_curve = ql.FlatForward(get_date(), param.drift, day_count)
-    flat_ts = ql.YieldTermStructureHandle(drift_curve)
-    div_curve = ql.FlatForward(get_date(), param.dividend, day_count)
-    dividend_ts = ql.YieldTermStructureHandle(div_curve)
-    spot_quote = ql.SimpleQuote(param.spot)
-    spot_handle = ql.QuoteHandle(spot_quote)
-    flat_vol_ts = ql.BlackVolTermStructureHandle(
-                        ql.BlackConstantVol(get_date(), calendar, param.vol, day_count)
-                    )
+    if param.use_risk_free:
+        flat_ts = create_flat_forward_ts(param.risk_free_rate)
+    else:
+        flat_ts = create_flat_forward_ts(param.drift)
+    dividend_ts = create_flat_forward_ts(param.dividend)
+    spot_handle = ql.QuoteHandle(ql.SimpleQuote(param.spot))
+    flat_vol_ts = create_constant_black_vol_ts(param.vol)
     return ql.BlackScholesMertonProcess(spot_handle, 
                                         dividend_ts, 
                                         flat_ts, 
@@ -50,15 +55,19 @@ def create_heston_process(param: HestonProcessParam):
     Returns:
         QuantLib.HestonProcess: Heston Process
     """
-    drift_curve = ql.FlatForward(get_date(), param.drift, day_count)
-    flat_ts = ql.YieldTermStructureHandle(drift_curve)
-    div_curve = ql.FlatForward(get_date(), param.dividend, day_count)
-    dividend_ts = ql.YieldTermStructureHandle(div_curve)
-    spot_quote = ql.SimpleQuote(param.spot)
-    spot_handle = ql.QuoteHandle(spot_quote)
+    if param.use_risk_free:
+        flat_ts = create_flat_forward_ts(param.risk_free_rate)
+    else:
+        flat_ts = create_flat_forward_ts(param.drift)
+    dividend_ts = create_flat_forward_ts(param.dividend)
+    spot_handle = ql.QuoteHandle(ql.SimpleQuote(param.spot))
     return ql.HestonProcess(flat_ts, dividend_ts, spot_handle, 
                             param.spot_var, param.kappa, param.theta, 
                             param.vov, param.rho)
     
-
-
+    def create_process(param: Union[GBMProcessParam, HestonProcessParam]):
+        if isinstance(pricing_engine, GBMProcessParam):
+            process = create_heston_process(pricing_engine)
+        elif isinstance(pricing_engine, HestonProcessParam):
+            process = create_gbm_process(pricing_engine)
+        return process

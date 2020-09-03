@@ -7,13 +7,14 @@ class Instrument(abc.ABC):
     """
     def __init__(self, name: str, tradable: bool, quote: float = None,
                  transaction_cost: TransactionCost = None,
-                 underlying = None):
+                 underlying = None, trading_limit: float = 1e10):
         self._name = name
         self._tradable = tradable
         self._quote = quote
         self._pricing_engine = None
         self._transaction_cost = transaction_cost
         self._underlying = underlying
+        self._trading_limit = trading_limit
 
     def get_name(self) -> str:
         return self._name
@@ -44,8 +45,8 @@ class Instrument(abc.ABC):
     def get_is_tradable(self) -> bool:
         return self._tradable
 
-    def set_pricing_engine(self, pricing_engine, *args):
-        self._pricing_engine = pricing_engine
+    @abc.abstractmethod
+    def set_pricing_engine(self, *args):
     
     def pricing_engine(self, pricing_engine, *args):
         self._pricing_engine = pricing_engine
@@ -60,11 +61,12 @@ class Instrument(abc.ABC):
         """
 
     def get_market_value(self, holding: float) -> float:
-        return holding*self.price()
+        return holding*self.get_price()
 
     def get_execute_cost(self, action: float) -> float:
         if self._tradable:
-            return self._transaction_cost.execute(action)
+            return self._transaction_cost.execute(action, 
+                                                  self.get_market_value(action))
         else:
             return 0.0
 
@@ -100,4 +102,19 @@ class Instrument(abc.ABC):
             float: maturity time
         """
 
-    
+    def get_is_expired(self) -> bool:
+        """check if instrument expires
+
+        Returns:
+            bool: True if it expires, False otherwise
+        """
+        return True
+
+    def get_trading_limit(self) -> float:
+        """trading block limit
+
+        Returns:
+            float: the maximum shares one buy/sell action can be executed 
+                   None - means no limit
+        """
+        return self._trading_limit

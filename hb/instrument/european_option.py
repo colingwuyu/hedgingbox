@@ -1,13 +1,14 @@
 import QuantLib as ql
 from hb.instrument.instrument import Instrument
 from hb.transaction_cost.transaction_cost import TransactionCost
+from hb.utils.process import *
 from hb.utils.date import *
 
 class EuropeanOption(Instrument):
     def __init__(self, name: str, option_type: str, strike: float, 
                  maturity: float, tradable: bool, quote: float = None,
                  transaction_cost: TransactionCost = None,
-                 underlying: Instrument = None):
+                 underlying: Instrument = None, trading_limit: float = 1e10):
         payoff = ql.PlainVanillaPayoff(ql.Option.Call if option_type=="Call" else ql.Option.Put, 
                                        strike)
         exercise = ql.EuropeanExercise(add_time(maturity))
@@ -16,7 +17,8 @@ class EuropeanOption(Instrument):
         self._call = option_type=="Call"
         self._strike = strike
         self._back_up_pricing_engine = None
-        super().__init__(name, tradable, quote, transaction_cost, underlying)
+        self._cur_time = None
+        super().__init__(name, tradable, quote, transaction_cost, underlying, trading_limit)
 
     def get_quote(self) -> float:
         return self._quote
@@ -31,20 +33,61 @@ class EuropeanOption(Instrument):
     def get_strike(self) -> float:
         return self._strike
 
-    def set_pricing_engine(self, pricing_engine, back_up_pricing_engine=None):
-        self._option.setPricingEngine(pricing_engine)
-        self._back_up_pricing_engine = back_up_pricing_engine
+    def set_pricing_engine(self):
+        process_param = self._underlying.get_process_param()
+        underlyer_price, underlyer_var = self._underlying.get_price()
+        if isinstance(process_param, HestonProcessParam):
+            # Heston model
+            heston_process = create_heston_process(
+                HestonProcessParam(
+                    risk_free_rate=process_param.risk_free_rate,spot=underlyer_price, spot_var=min(1e-4, underlyer_var), 
+                    drift=self._risk_free_rate, dividend=self._underlying.get_dividend_yield(),
+                    kappa=process_param.kappa, theta=process_param.theta, 
+                    rho=process_param.rho, vov=process_param.vov, use_risk_free=True
+                )
+            )
+            bsm_process = create_gbm_process(
+                GBMProcessParam(
+                    risk_free_rate=process_param.risk_free_rate, spot=underlyer_price, 
+                    drift=self._risk_free_rate, 
+                    dividend=self._underlying.get_dividend_yield(), 
+                    vol=underlyer_var**0.5, use_risk_free=True
+                )
+            )
+            self._option.setPricingEngine(ql.AnalyticHestonEngine(ql.HestonModel(heston_process),0.01,1000))
+            self._back_up_pricing_engine = ql.AnalyticEuropeanEngine(bsm_process)
+        elif isinstance(process_param, GBMProcessParam):
+            # BSM Model
+            bsm_process = create_gbm_process(
+                GBMProcessParam(
+                    risk_free_rate=process_param.risk_free_rate, spot=underlyer_price, 
+                    drift=self._risk_free_rate, 
+                    dividend=self._underlying.get_dividend_yield(), 
+                    vol=process_param.vol, use_risk_free=True
+                )
+            )        
+            self._option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
 
-    def pricing_engine(self, pricing_engine, back_up_pricing_engine=None):
-        self._option.setPricingEngine(pricing_engine)
-        self._back_up_pricing_engine = back_up_pricing_engine
-        return self
+    def get_is_expired(self) -> bool:
+        """check if instrument expires
+
+        Returns:
+            bool: True if it expires, False otherwise
+        """
+        return self._maturity_time-get_cur_time() <= 1e-5
 
     def get_price(self):
+        if (self._cur_time != get_cur_time()):
+            self.set_pricing_engine()
+            self._cur_time = get_cur_time()
         if abs(self._maturity_time-get_cur_time()) < 1e-5:
             # expiry
             return self.get_intrinsic_value()
+        elif self._maturity_time-get_cur_time() <= -1e-5:
+            # past expiry
+            return 0.
         else:
+            # price before expiry
             try:
                 price = self._option.NPV()
                 if price < self.get_intrinsic_value():
