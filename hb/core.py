@@ -155,10 +155,10 @@ class Predictor(core.Actor):
         # TODO observation[2] = stock price
         #      observation[8]
         self._episode_stock_price = np.append(
-            self._episode_stock_price, next_timestep.observation[2])
+            self._episode_stock_price, next_timestep.observation[0])
         if len(next_timestep.observation) >= 9:
             self._episode_option_price = np.append(
-                self._episode_option_price, next_timestep.observation[8])
+                self._episode_option_price, next_timestep.observation[2])
         self._episode_action = np.append(self._episode_action, action[0])
         self._episode_pnl_path = np.append(
             self._episode_pnl_path, next_timestep.observation[-1])
@@ -168,6 +168,7 @@ class Predictor(core.Actor):
         self._episode_reward += next_timestep.reward
         self._pred_actions = np.append(self._pred_actions, action[0])
         if next_timestep.last():
+            # print("Episode PnL", self._episode_pnl)
             self._pred_pnls = np.append(self._pred_pnls, self._episode_pnl)
             self._pred_rewards = np.append(
                 self._pred_rewards, int(round(self._episode_reward)))
@@ -214,7 +215,7 @@ class Predictor(core.Actor):
         measures['pnl_99CVaR'] = self._pred_pnls[:int(round(len(self._pred_pnls)*0.01))].mean()
         measures['pnl_mean'] = self._pred_pnls.mean()
         measures['pnl_std'] = self._pred_pnls.std()
-        measures['risk_obj'] = measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
+        measures['mean-var'] = measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
         # reward
         measures['reward_mean'] = self._pred_rewards.mean()
         # action

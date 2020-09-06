@@ -11,7 +11,7 @@ from hb.market_env.rewardrules.pnl_reward import PnLReward
 from hb.market_env.rewardrules.pnl_sqrpenalty_reward import PnLSquarePenaltyReward
 from hb.market_env.rewardrules.pnl_qmeasure_reward import PnLQMeasureReward
 from hb.bots.qtablebot.qtable import  QTable
-from hb.bots.deltabot.bot import DeltaHedgeBot
+from hb.bots.euro_deltabot.bot import DeltaHedgeBot
 import matplotlib.pyplot as plt
 
 import dm_env
