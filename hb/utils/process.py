@@ -65,9 +65,9 @@ def create_heston_process(param: HestonProcessParam):
                             param.spot_var, param.kappa, param.theta, 
                             param.vov, param.rho)
     
-    def create_process(param: Union[GBMProcessParam, HestonProcessParam]):
-        if isinstance(pricing_engine, GBMProcessParam):
-            process = create_heston_process(pricing_engine)
-        elif isinstance(pricing_engine, HestonProcessParam):
-            process = create_gbm_process(pricing_engine)
-        return process
+def create_process(param: Union[GBMProcessParam, HestonProcessParam]):
+    if isinstance(param, GBMProcessParam):
+        process = create_gbm_process(param)
+    elif isinstance(param, HestonProcessParam):
+        process = create_heston_process(param)
+    return process

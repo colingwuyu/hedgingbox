@@ -50,8 +50,11 @@ class CashAccount(object):
             interest_rate = self._rate_ts.forwardRate(self._cur_time, cur_time, ql.Continuous).rate()
         else:
             interest_rate = 0.
+        interest = self._balance * (math.exp(interest_rate*(cur_time - self._cur_time)) - 1.)
+        # accrue the interest into balance 
+        self._balance += interest
         self._cur_time = cur_time
-        return math.exp(interest_rate*(cur_time - self._cur_time))
+        return interest
 
     def reset(self):
         self._balance = 0.

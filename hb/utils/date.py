@@ -18,7 +18,7 @@ def add_days(num_days: int, d: ql.Date = None) -> ql.Date:
         return calendar.advance(ql.Settings.instance().getEvaluationDate(), num_days, ql.Days)
 
 def add_time(time: float, d: ql.Date = None) -> ql.Date:
-    return add_days(int(time*360.),d)
+    return add_days(int(round(time*360.)),d)
 
 def days_from_time(time: float) -> int:
     return int(round(time*360))

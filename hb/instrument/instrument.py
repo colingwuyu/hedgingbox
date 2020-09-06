@@ -47,7 +47,9 @@ class Instrument(abc.ABC):
 
     @abc.abstractmethod
     def set_pricing_engine(self, *args):
-    
+        """set pricing engine
+        """
+      
     def pricing_engine(self, pricing_engine, *args):
         self._pricing_engine = pricing_engine
         return self
@@ -101,6 +103,41 @@ class Instrument(abc.ABC):
         Returns:
             float: maturity time
         """
+
+    @abc.abstractmethod
+    def get_remaining_time(self) -> float:
+        """remaining time of the instrument
+
+        Returns:
+            float: remaining time
+        """
+
+    def get_delivery_amount(self) -> float:
+        """after expiry, how much amount is delivered
+
+        Returns:
+            float: delivery shares for option exercise
+        """
+        return 0
+
+    def get_receive_amount(self) -> float:
+        """after expiry, how much amount is received
+
+        Returns:
+            float: receive cahs for option exercise
+        """
+        return 0
+
+    def get_is_physical_settle(self) -> bool:
+        return False
+
+    def get_is_exercised(self) -> bool:
+        """after expiry, if the derivative is exercised
+
+        Returns:
+            bool: true if exercised
+        """
+        return True
 
     def get_is_expired(self) -> bool:
         """check if instrument expires

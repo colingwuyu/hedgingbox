@@ -3,7 +3,7 @@ from acme import types
 import dm_env
 
 from hb import core
-from hb.bots.deltabot import actor
+from hb.bots.euro_deltabot import actor
 
 
 class DeltaHedgePredictor(core.Predictor):

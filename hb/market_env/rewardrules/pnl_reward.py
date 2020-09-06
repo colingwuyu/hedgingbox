@@ -14,19 +14,13 @@ class PnLReward(reward_rule.RewardRule):
         self._first_reward = True
 
     def step_reward(self, step_type: dm_env.StepType,
-                    cash_account: CashAccount, portfolio: Portfolio, 
-                    trans_cost: float
+                    step_pnl: float
                     ) -> types.NestedArray:
-        next_nav = portfolio.get_nav()
         # interest from cash account
-        cash_interest = cash_account.accrue_interest()
-        next_nav = portfolio.get_nav()
-        portfolio_pnl = next_nav - self._this_nav
-        self._this_nav = next_nav
-        return portfolio_pnl + cash_interest - trans_cost
+        return step_pnl
 
-    def reset(self, portfolio: Portfolio):
-        self._this_nav = portfolio.get_nav()
+    def reset(self, reset_observation):
+        pass
 
 class NoisyPnLReward(reward_rule.RewardRule):
     def __init__(self, noise_mean_percentage, noise_std_percentage):

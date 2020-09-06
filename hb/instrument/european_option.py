@@ -3,6 +3,8 @@ from hb.instrument.instrument import Instrument
 from hb.transaction_cost.transaction_cost import TransactionCost
 from hb.utils.process import *
 from hb.utils.date import *
+from hb.pricing import blackscholes
+import numpy as np
 
 class EuropeanOption(Instrument):
     def __init__(self, name: str, option_type: str, strike: float, 
@@ -18,6 +20,7 @@ class EuropeanOption(Instrument):
         self._strike = strike
         self._back_up_pricing_engine = None
         self._cur_time = None
+        self._param = None
         super().__init__(name, tradable, quote, transaction_cost, underlying, trading_limit)
 
     def get_quote(self) -> float:
@@ -38,18 +41,17 @@ class EuropeanOption(Instrument):
         underlyer_price, underlyer_var = self._underlying.get_price()
         if isinstance(process_param, HestonProcessParam):
             # Heston model
-            heston_process = create_heston_process(
-                HestonProcessParam(
+            self._param = HestonProcessParam(
                     risk_free_rate=process_param.risk_free_rate,spot=underlyer_price, spot_var=min(1e-4, underlyer_var), 
-                    drift=self._risk_free_rate, dividend=self._underlying.get_dividend_yield(),
+                    drift=process_param.risk_free_rate, dividend=self._underlying.get_dividend_yield(),
                     kappa=process_param.kappa, theta=process_param.theta, 
                     rho=process_param.rho, vov=process_param.vov, use_risk_free=True
                 )
-            )
+            heston_process = create_heston_process(self._param)
             bsm_process = create_gbm_process(
                 GBMProcessParam(
                     risk_free_rate=process_param.risk_free_rate, spot=underlyer_price, 
-                    drift=self._risk_free_rate, 
+                    drift=process_param.risk_free_rate,
                     dividend=self._underlying.get_dividend_yield(), 
                     vol=underlyer_var**0.5, use_risk_free=True
                 )
@@ -58,14 +60,13 @@ class EuropeanOption(Instrument):
             self._back_up_pricing_engine = ql.AnalyticEuropeanEngine(bsm_process)
         elif isinstance(process_param, GBMProcessParam):
             # BSM Model
-            bsm_process = create_gbm_process(
-                GBMProcessParam(
+            self._param = GBMProcessParam(
                     risk_free_rate=process_param.risk_free_rate, spot=underlyer_price, 
-                    drift=self._risk_free_rate, 
+                    drift=process_param.risk_free_rate, 
                     dividend=self._underlying.get_dividend_yield(), 
                     vol=process_param.vol, use_risk_free=True
                 )
-            )        
+            bsm_process = create_gbm_process(self._param)        
             self._option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
 
     def get_is_expired(self) -> bool:
@@ -74,7 +75,7 @@ class EuropeanOption(Instrument):
         Returns:
             bool: True if it expires, False otherwise
         """
-        return self._maturity_time-get_cur_time() <= 1e-5
+        return (self._maturity_time-get_cur_time()) <= 1e-5
 
     def get_price(self):
         if (self._cur_time != get_cur_time()):
@@ -90,7 +91,7 @@ class EuropeanOption(Instrument):
             # price before expiry
             try:
                 price = self._option.NPV()
-                if price < self.get_intrinsic_value():
+                if price - self.get_intrinsic_value() < -1e-5:
                     raise Exception("Less than intrinsic price")
                 return price
             except:
@@ -107,17 +108,109 @@ class EuropeanOption(Instrument):
     def get_maturity_time(self):
         return self._maturity_time
 
+    def get_remaining_time(self):
+        return self._maturity_time - get_cur_time()
+
     def get_maturity_date(self):
         return date_from_time(self._maturity_time, ref_date=date0)
 
+    def get_delivery_amount(self):
+        assert abs(self.get_remaining_time()) < 1e-5
+        if self._call:
+            return 1.
+        else:
+            return -1.
+    
+    def get_receive_amount(self):
+        assert abs(self.get_remaining_time()) < 1e-5
+        if self._call:
+            return self._strike
+        else:
+            return -self._strike
+
+    def get_is_exercised(self):
+        assert abs(self.get_remaining_time()) < 1e-5
+        spot, _ = self._underlying.get_price()
+        if self._call:
+            return False if spot <= self._strike else True
+        else:
+            return False if spot >= self._strike else True
+
+    def get_is_physical_settle(self):
+        return True
+
+    def get_implied_vol(self) -> float:
+        if isinstance(self._param, GBMProcessParam):
+            return self._param.vol
+        else:
+            return blackscholes.implied_vol(
+                self._call, self._strike, self.get_remaining_time(),
+                self.get_price(),
+                GBMProcessParam(
+                                risk_free_rate=self._param.risk_free_rate, 
+                                spot=self._param.spot,
+                                drift=self._param.drift, dividend=self._param.dividend, 
+                                vol=0.2,
+                                use_risk_free=True
+                               )
+            )
+
+    def _get_gbm_param(self) -> GBMProcessParam:
+        if isinstance(self._param, GBMProcessParam):
+            return self._param
+        else:
+            return GBMProcessParam(
+                                risk_free_rate=self._param.risk_free_rate, 
+                                spot=self._param.spot,
+                                drift=self._param.drift, dividend=self._param.dividend, 
+                                vol=self.get_implied_vol(),
+                                use_risk_free=True
+                            )
+
     def get_delta(self) -> float:
-        return self._option.delta()
+        """BS Delta
+
+        Returns:
+            float: BlackScholes Model Delta
+        """
+        if isinstance(self._param, GBMProcessParam):
+            delta_value = self._option.delta()
+            if np.isnan(delta_value):
+                delta_value = blackscholes.delta_bk(True, self._param.spot, self._param.risk_free_rate, 
+                                                    self._param.dividend, self._strike, 
+                                                    self._param.vol, self.get_remaining_time(), 
+                                                    self.get_remaining_time())
+            return delta_value
+        else:
+            return blackscholes.delta(self._call, self._strike,
+                                    self._get_gbm_param(),
+                                    self._maturity_time-self._cur_time)
 
     def get_gamma(self) -> float:
-        return self._option.gamma()
+        """BS Gamma
+
+        Returns:
+            float: BlackScholes Model Gamma
+        """
+        if isinstance(self._param, GBMProcessParam):
+            return self._option.gamma()
+        else:
+            return blackscholes.gamma(self._call, self._strike,
+                                    self._get_gbm_param(),
+                                    self._maturity_time-self._cur_time)
 
     def get_vega(self) -> float:
-        return self._option.vega()
+        """BS Vega
+
+        Returns:
+            float: BlackScholes Model Vega
+        """
+        if isinstance(self._param, GBMProcessParam):
+            return self._option.vega()
+        else:
+            return blackscholes.vega(self._call, self._strike,
+                                    self._get_gbm_param(),
+                                    self._maturity_time-self._cur_time)
 
     def __repr__(self):
         return f'European Option {self._name}: \nunderlying=({str(self._underlying)})\noption_type={self._call}, maturity={get_period_str_from_time(self._maturity_time)}, tradable={self._tradable}, iv={self._quote}, transaction_cost={str(self._transaction_cost)}'
@@ -129,6 +222,8 @@ if __name__ == "__main__":
     from hb.utils.date import *
     from hb.utils.consts import *
     from hb.utils.process import *
+    import numpy as np
+    
     spx = InstrumentFactory.create(
         'Stock AMZN 3400 25 0 0.15'
     )
@@ -139,62 +234,56 @@ if __name__ == "__main__":
     print(spx_3m)
     risk_free_rate = 0.015
     heston_param = HestonProcessParam(
+            risk_free_rate=0.015,
             spot=spx.get_quote(), 
             drift=spx.get_annual_yield(), 
             dividend=spx.get_dividend_yield(),
-            spot_var=0.095078, kappa=6.649480, theta=0.391676, 
-            rho=-0.796813, vov=0.880235
+            spot_var=0.096024, kappa=6.288453, theta=0.397888, 
+            rho=-0.696611, vov=0.753137, use_risk_free=False
         )
-    heston_process = create_heston_process(heston_param)
     gbm_param = GBMProcessParam(
+            risk_free_rate = 0.015,
             spot=spx.get_quote(), 
             drift=spx.get_annual_yield(), 
             dividend=spx.get_dividend_yield(), 
-            vol=0.3
+            vol=0.5,
+            use_risk_free=False
         )
-    bsm_process = create_gbm_process(gbm_param)
-
-    num_path = 10
+    
+    num_path = 1_000
     num_step = 90    
     step_days = 1
     step_size = time_from_days(step_days)
-    spx.set_pricing_engine(heston_process, step_size, num_step)
+    spx.set_pricing_engine(step_size, num_step, heston_param)
+    heston_prices = np.zeros([num_path, num_step])
+    times = np.zeros([num_step])
+    
     for i in range(num_path):
-        for j in range(num_step+1):
-            print("Days ", get_cur_days())
-            spx_price, spx_vol = spx.get_price()
-            print(spx.get_name(), spx_price, spx_vol)
-            call_heston_process = create_heston_process(
-                HestonProcessParam(
-                    spot=spx_price, spot_var=min(1e-4, spx_vol), drift=risk_free_rate, dividend=heston_param.dividend,
-                    kappa=heston_param.kappa, theta=heston_param.theta, rho=heston_param.rho, vov=heston_param.vov
-                )
-            )
-            call_bsm_process = create_gbm_process(
-                GBMProcessParam(
-                    spot=spx_price, drift=risk_free_rate, dividend=heston_param.dividend, vol=spx_vol**0.5
-                )
-            )
-            bsm_engine = ql.AnalyticEuropeanEngine(call_bsm_process)
-            heston_engine = ql.AnalyticHestonEngine(ql.HestonModel(call_heston_process),0.01,1000)
-            spx_3m.set_pricing_engine(heston_engine, bsm_engine)
-            print(spx_3m.get_name(), spx_3m.get_price())
+        for j in range(num_step):
+            times[j] = get_cur_days()
+            # print("Days ", get_cur_days())
+            heston_prices[i][j] = spx_3m.get_price()
             move_days(step_days)
         reset_date()
         
-    spx.set_pricing_engine(bsm_process, step_size, num_step)
+    spx.set_pricing_engine(step_size, num_step, gbm_param)
+    gbm_prices = np.zeros([num_path, num_step])
     for i in range(num_path):
-        for j in range(num_step+1):
-            print(get_cur_days())
-            spx_price, spx_vol = spx.get_price()
-            print(spx.get_name(), spx_price, spx_vol)
-            call_bsm_process = create_gbm_process(
-                GBMProcessParam(
-                    spot=spx_price, drift=risk_free_rate, dividend=gbm_param.dividend, vol=gbm_param.vol
-                )
-            )
-            engine = ql.AnalyticEuropeanEngine(call_bsm_process)
-            spx_3m.set_pricing_engine(engine)
-            print(spx_3m.get_name(), spx_3m.get_price())
+        for j in range(num_step):
+            # print(get_cur_days())
+            gbm_prices[i][j] = spx_3m.get_price()
             move_days(step_days)
         reset_date()
+
+    import matplotlib.pyplot as plt
+
+    for i in range(num_path):
+        plt.plot(times, heston_prices[i, :], lw=0.8, alpha=0.6)
+    plt.title("Heston Simulation Option")
+    plt.show()
+    print(heston_prices[:,-1].mean())
+    for i in range(num_path):
+        plt.plot(times, gbm_prices[i, :], lw=0.8, alpha=0.6)
+    plt.title("GBM Simulation")
+    plt.show()
+    print(gbm_prices[:,-1].mean())

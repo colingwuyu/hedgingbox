@@ -51,7 +51,7 @@ class HedgeEnvTest(unittest.TestCase):
         loop.run(num_episodes=1)
 
     def test_delta_hedge_bot(self):
-        from hb.bots.deltabot.bot import DeltaHedgeBot
+        from hb.bots.euro_deltabot.bot import DeltaHedgeBot
         # Create Environment
         gbm = gbm_pathgenerator.GBMGenerator(
             initial_price=50., drift=0.05,
