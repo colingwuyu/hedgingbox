@@ -7,8 +7,11 @@ from hb.market_env.portfolio import Portfolio
 
 class MarketTest(unittest.TestCase):
     def set_up_regression_bsm_market(self):
-        market = Market(reward_rule=PnLReward(),risk_free_rate=0.1,hedging_step_in_days=1)
+        market = Market(reward_rule=PnLReward(),risk_free_rate=0.02,hedging_step_in_days=1)
         # create instruments
+        # --------------------------------------------
+        # AMZN
+        # --------------------------------------------
         amzn = InstrumentFactory.create(
             'Stock AMZN 100 10 0 0.0'
         )
@@ -30,16 +33,32 @@ class MarketTest(unittest.TestCase):
     def set_up_bsm_market(self):
         market = Market(reward_rule=PnLReward(),risk_free_rate=0.015,hedging_step_in_days=1)
         # create instruments
+        # --------------------------------------------
+        # AMZN
+        # --------------------------------------------
         amzn = InstrumentFactory.create(
             'Stock AMZN 3400 25 0 0.15'
         )
         otc_atm_3m_call = InstrumentFactory.create(
-                                f'EuroOpt AMZN OTC 3M Call 3400 49.25 5 (AMZN_OTC_3M_ATM_CALL)'
+                                f'EuroOpt AMZN OTC 1W Call 3400 33.21 5 (AMZN_OTC_1W_ATM_CALL)'
                             ).underlying(amzn)
         market.calibrate(vol_model='BSM',
                          underlying=amzn,
                          listed_options=otc_atm_3m_call)
-        market.add_instruments([otc_atm_3m_call])                
+        market.add_instruments([otc_atm_3m_call])    
+        # --------------------------------------------
+        # SPX
+        # --------------------------------------------
+        spx = InstrumentFactory.create(
+            'Stock SPX 3426.96 10 1.92 0.5'
+        )
+        otc_atm_3m_call = InstrumentFactory.create(
+                                f'EuroOpt SPX OTC 3M Call 3425 27.87 3.5 (SPX_OTC_3M_ATM_CALL)'
+                            ).underlying(spx)
+        market.calibrate(vol_model='BSM',
+                         underlying=spx,
+                         listed_options=otc_atm_3m_call)
+        market.add_instruments([otc_atm_3m_call])            
         return market
 
     def test_bsm_market_setup(self):
@@ -92,6 +111,9 @@ class MarketTest(unittest.TestCase):
     def set_up_heston_market(self):
         market = Market(reward_rule=PnLReward(),risk_free_rate=0.015,hedging_step_in_days=1)
         # create instruments
+        # --------------------------------------------
+        # AMZN
+        # --------------------------------------------
         amzn = InstrumentFactory.create(
             'Stock AMZN 3400 25 0 0.15'
         )
@@ -128,6 +150,46 @@ class MarketTest(unittest.TestCase):
         otc_atm_3m_call = InstrumentFactory.create(
                                 f'EuroOpt AMZN OTC 3M Call 3400 49.25 5 (AMZN_OTC_3M_ATM_CALL)'
                             ).underlying(amzn)
+        market.add_instruments([otc_atm_1w_call, otc_atm_1m_call, otc_atm_3m_call])
+        # --------------------------------------------
+        # SPX
+        # --------------------------------------------
+        spx = InstrumentFactory.create(
+            'Stock SPX 3426.96 10 1.92 0.5'
+        )
+        maturity = ['1W', '2W', '3W', '4W', '7W', '3M']
+        strike = [3420, 3425, 3430, 3435]
+        iv = [[29.33, 28.99, 28.66, 28.32],
+            [27.42, 27.78, 27.15, 27.54],
+            [26.28, 26.05, 25.85, 25.62],
+            [25.96, 25.77, 25.57, 25.38],
+            [25.5, 25.35, 25.2, 24.93],
+            [27.87, 27.75, 27.63, 27.51]]
+        spx_listed_calls = []
+        n = 0
+        for i, m in enumerate(maturity):
+            spx_listed_calls_m = []
+            for j, s in enumerate(strike):
+                spx_listed_calls_m = spx_listed_calls_m \
+                        + [InstrumentFactory.create(
+                            f'EuroOpt SPX Listed {m} Call {s} {iv[i][j]} 3.5 (SPX_Call{n})'
+                        ).underlying(spx)] 
+                n += 1
+            spx_listed_calls.append(spx_listed_calls_m)
+        
+        market.calibrate(vol_model='Heston',
+                         underlying=spx,
+                         listed_options=spx_listed_calls)
+        
+        otc_atm_1w_call = InstrumentFactory.create(
+                                f'EuroOpt SPX OTC 1W Call 3425 28.99 3.5 (SPX_OTC_1W_ATM_CALL)'
+                            ).underlying(spx)
+        otc_atm_1m_call = InstrumentFactory.create(
+                                f'EuroOpt SPX OTC 4W Call 3425 25.96 3.5 (SPX_OTC_1M_ATM_CALL)'
+                            ).underlying(spx)
+        otc_atm_3m_call = InstrumentFactory.create(
+                                f'EuroOpt SPX OTC 3M Call 3425 27.87 3.5 (SPX_OTC_3M_ATM_CALL)'
+                            ).underlying(spx)
         market.add_instruments([otc_atm_1w_call, otc_atm_1m_call, otc_atm_3m_call])
         return market
         

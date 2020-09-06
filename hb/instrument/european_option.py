@@ -4,6 +4,7 @@ from hb.transaction_cost.transaction_cost import TransactionCost
 from hb.utils.process import *
 from hb.utils.date import *
 from hb.pricing import blackscholes
+from hb.utils import consts
 import numpy as np
 
 class EuropeanOption(Instrument):
@@ -36,13 +37,16 @@ class EuropeanOption(Instrument):
     def get_strike(self) -> float:
         return self._strike
 
-    def set_pricing_engine(self):
+    def set_pricing_engine(self, spot_price=None):
         process_param = self._underlying.get_process_param()
-        underlyer_price, underlyer_var = self._underlying.get_price()
+        price, underlyer_var = self._underlying.get_price()
+        underlyer_price = price
+        if spot_price:
+            underlyer_price = spot_price
         if isinstance(process_param, HestonProcessParam):
             # Heston model
             self._param = HestonProcessParam(
-                    risk_free_rate=process_param.risk_free_rate,spot=underlyer_price, spot_var=min(1e-4, underlyer_var), 
+                    risk_free_rate=process_param.risk_free_rate,spot=underlyer_price, spot_var=max(consts.IMPLIED_VOL_FLOOR, underlyer_var), 
                     drift=process_param.risk_free_rate, dividend=self._underlying.get_dividend_yield(),
                     kappa=process_param.kappa, theta=process_param.theta, 
                     rho=process_param.rho, vov=process_param.vov, use_risk_free=True
@@ -77,26 +81,32 @@ class EuropeanOption(Instrument):
         """
         return (self._maturity_time-get_cur_time()) <= 1e-5
 
-    def get_price(self):
+    def get_price(self, spot_price=None):
         if (self._cur_time != get_cur_time()):
             self.set_pricing_engine()
             self._cur_time = get_cur_time()
+        if spot_price:
+            self.set_pricing_engine(spot_price)
         if abs(self._maturity_time-get_cur_time()) < 1e-5:
             # expiry
-            return self.get_intrinsic_value()
+            option_price = self.get_intrinsic_value()
         elif self._maturity_time-get_cur_time() <= -1e-5:
             # past expiry
-            return 0.
+            option_price = 0.
         else:
             # price before expiry
             try:
                 price = self._option.NPV()
                 if price - self.get_intrinsic_value() < -1e-5:
                     raise Exception("Less than intrinsic price")
-                return price
+                option_price = price
             except:
                 self._option.setPricingEngine(self._back_up_pricing_engine)
-                return self._option.NPV()
+                option_price = self._option.NPV()
+        if spot_price:
+            # reset pricing engine with current spot
+            self.set_pricing_engine()
+        return option_price
 
     def get_intrinsic_value(self):
         spot, _ = self._underlying.get_price()
@@ -167,24 +177,44 @@ class EuropeanOption(Instrument):
                                 use_risk_free=True
                             )
 
-    def get_delta(self) -> float:
-        """BS Delta
+    def get_delta(self, use_bs=True) -> float:
+        """Delta
+            Black-Scholes delta: 
+                If underlying follows BSM, then directly use BS delta formula
+                If underlying follows Heston, then implied vol is calculated from option price, and then use BS delta formula
+            Heston delta:
+                Numeric method
+                    delta = (Price(S+delta_S) - Price(delta_S)) / delta_S
+                    delta_S = 1%*S
+
+
+        Args:
+            use_bs (bool, optional): Use BS Delta or delta from Underlying process. Defaults to True.
 
         Returns:
-            float: BlackScholes Model Delta
+            float: [description]
         """
-        if isinstance(self._param, GBMProcessParam):
-            delta_value = self._option.delta()
-            if np.isnan(delta_value):
-                delta_value = blackscholes.delta_bk(True, self._param.spot, self._param.risk_free_rate, 
-                                                    self._param.dividend, self._strike, 
-                                                    self._param.vol, self.get_remaining_time(), 
-                                                    self.get_remaining_time())
-            return delta_value
+        if use_bs or isinstance(self._param, GBMProcessParam):
+            if isinstance(self._param, GBMProcessParam):
+                delta_value = self._option.delta()
+                if np.isnan(delta_value):
+                    delta_value = blackscholes.delta_bk(True, self._param.spot, self._param.risk_free_rate, 
+                                                        self._param.dividend, self._strike, 
+                                                        self._param.vol, self.get_remaining_time(), 
+                                                        self.get_remaining_time())
+                return delta_value
+            else:
+                return blackscholes.delta(self._call, self._strike,
+                                        self._get_gbm_param(),
+                                        self._maturity_time-self._cur_time)
         else:
-            return blackscholes.delta(self._call, self._strike,
-                                    self._get_gbm_param(),
-                                    self._maturity_time-self._cur_time)
+            base_price = self.get_price()
+            underlying_price, _ = self._underlying.get_price()
+            pertub = underlying_price*0.01
+            pertub_spot = underlying_price + pertub
+            pertub_price = self.get_price(spot_price=pertub_spot)
+            return (pertub_price - base_price) / pertub
+
 
     def get_gamma(self) -> float:
         """BS Gamma

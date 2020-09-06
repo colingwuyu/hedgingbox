@@ -27,30 +27,106 @@ class DeltaBotTest(unittest.TestCase):
         )
         self._set_up_delta_bot_test(market, portfolio)
 
-    def test_deltabot_with_heston_amzn(self):
+    def test_bs_deltabot_with_heston_amzn(self):
         # Create a GBM market
         market = MarketTest().set_up_heston_market()
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments([
                                                 'AMZN', 
                                                 'AMZN_OTC_1W_ATM_CALL',  
-                                                'AMZN_OTC_1M_ATM_CALL', 
-                                                'AMZN_OTC_3M_ATM_CALL'
+                                                # 'AMZN_OTC_1M_ATM_CALL', 
+                                                # 'AMZN_OTC_3M_ATM_CALL'
                                                 ]),
             holdings=[0., 
-                      -10., 
+                    #   -10., 
+                    #   -10., 
+                      -10.]
+        )
+        self._set_up_delta_bot_test(market, portfolio)
+
+    def test_bs_deltabot_with_heston_spx(self):
+        # Create a GBM market
+        market = MarketTest().set_up_heston_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'SPX', 
+                                                'SPX_OTC_1W_ATM_CALL',  
+                                                # 'SPX_OTC_1M_ATM_CALL', 
+                                                # 'SPX_OTC_3M_ATM_CALL'
+                                                ]),
+            holdings=[0., 
+                    #   -10., 
+                    #   -10., 
+                      -10.]
+        )
+        self._set_up_delta_bot_test(market, portfolio)
+
+    def test_heston_deltabot_with_heston_amzn(self):
+        # Create a GBM market
+        market = MarketTest().set_up_heston_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'AMZN', 
+                                                'AMZN_OTC_1W_ATM_CALL',  
+                                                # 'AMZN_OTC_1M_ATM_CALL', 
+                                                # 'AMZN_OTC_3M_ATM_CALL'
+                                                ]),
+            holdings=[0., 
+                    #   -10., 
+                    #   -10., 
+                      -10.]
+        )
+        self._set_up_delta_bot_test(market, portfolio, use_bs_delta=False)
+
+    def test_heston_deltabot_with_heston_spx(self):
+        # Create a GBM market
+        market = MarketTest().set_up_heston_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'SPX', 
+                                                'SPX_OTC_1M_ATM_CALL'
+                                                ]),
+            holdings=[0., 
+                      -10.]
+        )
+        self._set_up_delta_bot_test(market, portfolio, use_bs_delta=False)
+
+    def test_deltabot_with_bsm_amzn(self):
+        # Create a GBM market
+        market = MarketTest().set_up_bsm_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'AMZN', 
+                                                'AMZN_OTC_1W_ATM_CALL'
+                                                ]),
+            holdings=[0.,
+                      -10.]
+        )
+        self._set_up_delta_bot_test(market, portfolio)
+
+    def test_deltabot_with_bsm_spx_amzn(self):
+        # Create a GBM market
+        market = MarketTest().set_up_bsm_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'AMZN', 'SPX',
+                                                'AMZN_OTC_1W_ATM_CALL', 
+                                                'SPX_OTC_3M_ATM_CALL', 
+                                                ]),
+            holdings=[0.,  
                       -10., 
                       -10.]
         )
         self._set_up_delta_bot_test(market, portfolio)
 
-    def _set_up_delta_bot_test(self, market, portfolio):
+    def _set_up_delta_bot_test(self, market, portfolio, use_bs_delta=True):
         market.init_portfolio(portfolio)
         spec = specs.make_environment_spec(market)
         
         # Construct the agent.
         agent = euro_deltabot.DeltaHedgeBot(
             portfolio=portfolio,
+            use_bs_delta=use_bs_delta,
             environment_spec=spec
         )
         market.set_pred_mode(True)

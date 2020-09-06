@@ -16,6 +16,7 @@ class DeltaHedgeBot(bot.Bot):
 
     def __init__(self, portfolio: Portfolio,
                  environment_spec: specs.EnvironmentSpec,
+                 use_bs_delta: bool = True,
                  pred_dir: str = '~/acme/',
                  pred_episode: int = 1_000 
                  ):
@@ -26,7 +27,7 @@ class DeltaHedgeBot(bot.Bot):
             environment_spec (specs.EnvironmentSpec): description of the actions, observations, etc.
         """
         # Create the actor
-        actor = delta_hedge_actor.DeltaHedgeActor(portfolio, environment_spec.actions)
+        actor = delta_hedge_actor.DeltaHedgeActor(portfolio, use_bs_delta, environment_spec.actions)
         predictor = delta_hedge_predictor.DeltaHedgePredictor(actor, logger_dir=pred_dir)
         learner = fake_learner.FakeLeaner()
 
