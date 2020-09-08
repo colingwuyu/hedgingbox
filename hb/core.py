@@ -272,8 +272,8 @@ class Predictor(core.Actor):
         self._counter += self._num_train_per_pred
         measures['train_episodes'] = self._counter
         self._progress_measures.update(measures)
-        if (self._best_reward is None) or (self._best_reward < measures['reward_mean']):
-            self._best_reward = measures['reward_mean'] 
+        if (self._best_reward is None) or (self._best_reward < measures[self._best_reward_measure]):
+            self._best_reward = measures[self._best_reward_measure] 
             self._is_best_perf = True
 
     def _write_progress_figures(self):
