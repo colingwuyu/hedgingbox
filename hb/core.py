@@ -164,10 +164,6 @@ class Predictor(core.Actor):
                                                         (self._num_derivatives,1))
             self._episode_action = np.reshape(action, (len(action),1))
         else:
-            print(np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2], (self._num_hedgings,1)))
-            print(self._episode_hedging_price.shape)
-            print(np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2], (self._num_hedgings,1)).shape)
-            
             self._episode_hedging_price = np.append(
                 self._episode_hedging_price, 
                 np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2], (self._num_hedgings,1)),
