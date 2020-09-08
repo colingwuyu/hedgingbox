@@ -258,6 +258,7 @@ class Market(dm_env.Environment):
         #   + interest from cash account from Time t => t+1 
         #   - transaction cost caused by hedging action at Time t
         step_pnl = portfolio_pnl + cash_interest - trans_cost
+        # print(action, trans_cost)
         # print(get_cur_days(), self._portfolio.get_instruments()[0].get_price()[0], self._portfolio.get_holdings()[0], self._funding_account.get_balance(), cash_interest, portfolio_pnl, step_pnl)
         if self._reach_terminal():
             # last step at Time T

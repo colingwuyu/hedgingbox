@@ -163,12 +163,12 @@ class Portfolio():
         trans_cost = 0.
         shares = derivative_position.get_instrument().get_delivery_amount()
         dump_shares = derivative_position.get_holding()*shares
-        if not derivative_position.get_instrument().get_is_physical_settle():
+        if derivative_position.get_instrument().get_is_physical_settle():
             # physical settle
             trans_cost = derivative_position.get_instrument().get_execute_cost(dump_shares)
-        cashflow = derivative_position.get_market_value()
+        # cashflow = derivative_position.get_market_value()
         # derivative position cleared
-        derivative_position.buy(-derivative_position.get_holding())
+        cashflow, _ = derivative_position.buy(-derivative_position.get_holding())
         return cashflow, trans_cost
 
 
