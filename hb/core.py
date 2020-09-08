@@ -213,7 +213,7 @@ class Predictor(core.Actor):
                                 perf_path[str(col_i)] = step_measure 
                             self._performance_logger.write(perf_path)
                 self._perf_path_cnt += 1
-                self._num_hedgings = None
+            self._num_hedgings = None
             self._last_episode_pnl_path = self._episode_pnl_path
             self._last_episode_reward_path = self._episode_reward_path
             self._last_episode_hedging_price = self._episode_hedging_price
