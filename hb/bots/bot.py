@@ -78,3 +78,12 @@ class Bot(agent.Agent):
             self._pred = False
             self._cur_episods = -self._observations_per_pred
             self._predictor.end_log_perf()
+
+    def get_predictor(self):
+        return self._predictor
+
+    def get_actor(self):
+        return self._actor
+
+    def get_learner(self):
+        return self._learner

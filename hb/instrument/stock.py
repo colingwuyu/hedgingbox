@@ -5,6 +5,8 @@ from hb.utils.date import *
 from hb.utils.process import *
 from typing import Union
 import numpy as np
+import os
+from os.path import join as pjoin
 
 
 class Stock(Instrument):
@@ -28,17 +30,70 @@ class Stock(Instrument):
         self._vol_path = None
         self._repeat_episodes = None
         self._length = None
-        self._num_step = None
         self._step_size = None
         self._cur_path = None
         self._stoc_vol = None
         self._process_param = None
-        self._pred_mode = False
-        self._pred_episodes = pred_episodes
-        self._pred_spot_path = None
         self._pred_vol_path = None
-        self._cur_pred_path = 0
-        super().__init__(name, True, quote, transaction_cost)
+        super().__init__(name, True, quote, transaction_cost, pred_episodes=pred_episodes)
+        self._cur_price_vol = (0., None, None)
+
+
+    def get_process_param_dir(self):
+        """Generate the process parameter directory
+
+        Returns:
+            [str]: instrument process parameter directory
+        """
+        return pjoin(self._dir, 'Process_Param')
+
+    def set_portfolio_dir(self, portfolio_dir):
+        super().set_portfolio_dir(portfolio_dir)
+        self.load_param()
+
+    def save_param(self):
+        """Save the process parameter
+        """
+        if not os.path.exists(self.get_process_param_dir()):
+            save_process_param(self.get_process_param_dir(), self._process_param)
+        
+    def load_param(self):
+        """Load the process parameter
+        """
+        if load_process_param(self.get_process_param_dir()) is None:
+            self.save_param()
+        self._process_param = load_process_param(self.get_process_param_dir())
+
+    def load_pred_episodes(self, pred_file: str='pred_price.csv', pred_vol_file: str='pred_vol.csv') -> int:
+        """Load prediction episodes into memory if it was saved in files
+           
+        Args:
+            pred_file (str, optional): The prediction saved file for spot. Defaults to 'pred_price.csv'.
+            pred_vol_file (str, optional): The prediction saved file for vol. Defaults to 'pred_vol.csv'
+        
+        Returns:
+            num_steps (float): number of steps
+        """
+        if os.path.exists(pjoin(self.get_pred_dir(), pred_file)):
+            self._cur_pred_file = pred_file
+            self._pred_price_path = pd.read_csv(pjoin(self.get_pred_dir(), pred_file)).values
+            if isinstance(self._process_param, HestonProcessParam):
+                self._pred_vol_path = pd.read_csv(pjoin(self.get_pred_dir(), pred_vol_file)).values
+            self.set_pred_episodes(self._pred_price_path.shape[0])
+            return self._pred_price_path.shape[0], self._pred_price_path.shape[1] - 1
+        else:
+            self._cur_pred_file = None
+            self._cur_pred_path = None
+            return None
+
+    def save_pred_episodes(self):
+        """Save prediction episodes into files
+           to be inherited, if intends to save more pred attributes other than price
+        """
+        if self._cur_pred_file is None:
+            pd.DataFrame(self._pred_price_path).to_csv(pjoin(self.get_pred_dir(), 'pred_price.csv'), index=False)
+            pd.DataFrame(self._pred_vol_path).to_csv(pjoin(self.get_pred_dir(), 'pred_vol.csv'), index=False)
+            self._cur_pred_file = 'pred_price.csv'
 
     def get_dividend_yield(self) -> float:
         return self._dividend_yield
@@ -80,33 +135,47 @@ class Stock(Instrument):
     def get_process_param(self):
         return self._process_param
 
-    def set_pred_episodes(self, pred_episodes: int):
-        self._pred_episodes = pred_episodes
-
-    def set_pricing_engine(self, step_size, num_step, 
+    def set_pricing_engine(self, step_size, 
                            pricing_engine: Union[GBMProcessParam, HestonProcessParam]=None, repeat_episodes=None):
-        if pricing_engine is not None:
+        if (pricing_engine is not None) and (self._process_param is None):
             self._process_param = pricing_engine
         self._process = create_process(self._process_param)
         self._repeat_episodes = repeat_episodes
         self._cur_path = None
         self._step_size = step_size
-        self._num_step = num_step
-        self._length = num_step*step_size
-        times = ql.TimeGrid(self._length, self._num_step)
+        self._length = self._num_steps*step_size
+        times = ql.TimeGrid(self._length, self._num_steps)
         dimension = self._process.factors()
         if dimension == 1:
             self._stoc_vol = False
         elif dimension == 2:
             self._stoc_vol = True
-        rng = ql.GaussianRandomSequenceGenerator(ql.UniformRandomSequenceGenerator(dimension * self._num_step, ql.UniformRandomGenerator()))
+        rng = ql.GaussianRandomSequenceGenerator(ql.UniformRandomSequenceGenerator(dimension * self._num_steps, ql.UniformRandomGenerator()))
         self._pricing_engine = ql.GaussianMultiPathGenerator(self._process, list(times), rng, False)
+    
+    def get_price(self, *args) -> float:
+        """price of the instrument at current time
 
-    def set_pred_mode(self, pred_mode: bool):
-        self._pred_mode = pred_mode
-        self._cur_pred_path = None
+        Returns:
+            float: price
+        """
+        if (abs(self._cur_price_vol[0] - get_cur_time())<1e-5) \
+            and (self._cur_price_vol[1] is not None):
+            # already has cached price for current time step
+            return self._cur_price_vol[1], self._cur_price_vol[2]
+        else:
+            # first visit at time step, need reprice
+            self._cur_price_vol = (get_cur_time(), None, None)
+            # generate price
+            if self._pred_mode:
+                price, vol = self.get_pred_price()
+            else:
+                price, vol = self.get_sim_price()
+            # cache price for current time step
+            self._cur_price_vol = (self._cur_price_vol[0], price, vol)
+            return price, vol
 
-    def get_price(self):
+    def get_sim_price(self):
         cur_time = get_cur_time()
         if (self._repeat_episodes is None) and (not self._pred_mode):
             # no repeat path
@@ -136,8 +205,8 @@ class Stock(Instrument):
                     _cur_path += 1
         ind = int(round(cur_time/self._step_size))
         if self._pred_mode:
-            spot = self._pred_spot_path[_cur_path][ind]
-            self._cur_pred_path = _cur_path
+            spot = self._pred_price_path[_cur_path][ind]
+            self._cur_pred_path = -1
         else:
             spot = self._spot_path[_cur_path][ind]
             self._cur_path = _cur_path
@@ -147,6 +216,36 @@ class Stock(Instrument):
                 vol = self._pred_vol_path[_cur_path][ind]
             else:
                 vol = self._vol_path[_cur_path][ind]
+        else:
+            vol = 0. 
+        return spot, vol
+
+    def get_pred_price(self) -> float:
+        """Get the prediction price at timestep t
+           This function will only be called once at each timestep
+           The price will be cached into _cur_price_vol and retrieved directly from get_price() method
+        Returns:
+            float: prediction price
+        """
+        if self._cur_pred_file is None:
+            # no existing prediction episodes loaded
+            # simulate pred episodes
+            spot, vol = self.get_sim_price()
+            # save pred episodes, and next timestep will not need call get_sim_price
+            self.save_pred_episodes()
+        if (abs(self._cur_price_vol[0]-0.0) < 1e-5):
+            # end of an episode
+            if self._cur_pred_path == self._pred_episodes:
+                # run out all episodes, start repeating
+                self._cur_pred_path = 0
+            else:
+                # continue next path
+                self._cur_pred_path += 1
+        ind = int(round(self._cur_price_vol[0]/self._step_size))
+        spot = self._pred_price_path[self._cur_pred_path][ind]
+        if self._stoc_vol:
+            # stochastic vol
+            vol = self._pred_vol_path[self._cur_pred_path][ind]
         else:
             vol = 0. 
         return spot, vol
@@ -174,7 +273,7 @@ class Stock(Instrument):
                 _spot_path.append([x for x in spot[0]])
         
         if self._pred_mode:
-            self._pred_spot_path = np.array(_spot_path) 
+            self._pred_price_path = np.array(_spot_path) 
             self._pred_vol_path = np.array(_vol_path)
         else:
             self._spot_path = np.array(_spot_path)

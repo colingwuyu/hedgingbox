@@ -14,7 +14,7 @@ from typing import List, Union
 import numpy as np
 import dm_env
 from dm_env import specs
-
+from os.path import join as pjoin
 
 
 class Market(dm_env.Environment):
@@ -25,7 +25,9 @@ class Market(dm_env.Environment):
             reward_rule: reward_rule.RewardRule=PnLReward(),  
             risk_free_rate: float=0.01,
             hedging_step_in_days: int=1,
-            pred_episodes: int=1_000,
+            vol_model: str = 'BSM', 
+            name: str = 'Market',
+            dir_: str = 'Market'
         ):
         self._risk_free_rate = risk_free_rate
         self._underlying_processes = dict()
@@ -40,7 +42,13 @@ class Market(dm_env.Environment):
         self._hedging_step_in_days = hedging_step_in_days
         self._num_steps = 0
         self._portfolio = None
-        self._pred_episodes = pred_episodes
+        self._pred_episodes = None
+        self._vol_model = vol_model
+        self._name = name
+        self._dir = pjoin(dir_, "Market_" + name + "_VolModel_" + vol_model)
+
+    def get_dir(self):
+        return self._dir
     
     def set_pred_mode(self, pred_mode: bool):
         """Set market to prediction mode
@@ -51,9 +59,25 @@ class Market(dm_env.Environment):
                               False - set to non-prediction mode
         """
         for position in self._portfolio.get_portfolio_positions():
-            if isinstance(position.get_instrument(), Stock):
-                # Stock simulation set to prediction mode
-                position.get_instrument().set_pred_mode(pred_mode)
+            position.get_instrument().set_pred_mode(pred_mode)
+
+    def get_num_steps(self):
+        return self._num_steps
+
+    def set_num_steps(self, num_steps: int):
+        self._num_steps = num_steps
+        for position in self._portfolio.get_portfolio_positions():
+            position.get_instrument().set_num_steps(self._num_steps)
+
+    def get_pred_episodes(self):
+        return self._pred_episodes
+
+    def set_pred_episodes(self, pred_episodes):
+        self._pred_episodes = pred_episodes
+        for instrument in self._tradable_products:
+            instrument.set_pred_episodes(pred_episodes)
+        for instrument in self._exotic_products:
+            instrument.set_pred_episodes(pred_episodes)
 
     def add_instrument(self, instrument: Instrument):
         """add instrument into market, which will be available to construct portfolio
@@ -78,14 +102,24 @@ class Market(dm_env.Environment):
         """
         for i in instruments:
             self.add_instrument(i)
- 
-    def calibrate(self, vol_model: str, 
+    
+    def set_vol_model(self, vol_model: str):
+        """vol_model setter
+
+        Args:
+            vol_model (str): Volatility model - "Heston", or "BSM"
+        """
+        self._vol_model = vol_model
+    
+    def get_vol_model(self):
+        return self._vol_model
+
+    def calibrate(self,  
                   underlying: Stock, 
                   listed_options: Union[EuropeanOption, List[List[EuropeanOption]]]):
         """Calibrate volatility model by given instruments
 
         Args:
-            vol_model (str): Volatility model - "Heston", or "BSM"
             underlying (Stock): Underlying stock instrument
             listed_options (Union[EuropeanOption, List[List[EuropeanOption]]]): 
                                 European Options used to calibrate the volatility model
@@ -95,7 +129,7 @@ class Market(dm_env.Environment):
         Raises:
             NotImplementedError: vol_model other than "Heston" or "BSM" is not implemented
         """
-        if vol_model == 'BSM':
+        if self._vol_model == 'BSM':
             param = GBMProcessParam(
                 risk_free_rate=self._risk_free_rate,
                 spot=underlying.get_quote(), 
@@ -104,7 +138,7 @@ class Market(dm_env.Environment):
                 vol=listed_options.get_quote(),
                 use_risk_free=False
             )
-        elif vol_model == 'Heston':
+        elif self._vol_model == 'Heston':
             param = heston_calibration(self._risk_free_rate, underlying, listed_options)
         else:
             raise NotImplementedError(f'{vol_model} is not supported')
@@ -148,13 +182,32 @@ class Market(dm_env.Environment):
         for derivative in portfolio.get_liability_portfolio():
             num_steps_to_maturity = int(days_from_time(derivative.get_instrument().get_maturity_time()) / self._hedging_step_in_days)
             self._num_steps = max(self._num_steps, num_steps_to_maturity)
+        self._portfolio = portfolio 
+        self.set_num_steps(self._num_steps)
         for position in portfolio.get_portfolio_positions():
             if isinstance(position.get_instrument(), Stock):
-                # set up Stock evolving process by step size and number steps  
-                position.get_instrument().set_pricing_engine(time_from_days(self._hedging_step_in_days), 
-                                                             self._num_steps)
-        self._portfolio = portfolio 
+                # set up Stock evolving process by step size 
+                position.get_instrument().set_pricing_engine(time_from_days(self._hedging_step_in_days))
+        self._portfolio.set_market_dir(self._dir)
         
+    def load_scenario(self, scenario_name: str):
+        """Load scenario path of instruments to the market
+
+        Args:
+            scenario_name (str): the scenario file name of instruments
+        """
+        for position in self._portfolio.get_portfolio_positions():
+            instrument = position.get_instrument()
+            if isinstance(instrument, Stock):
+                self._pred_episodes, self._num_steps = \
+                    instrument.load_pred_episodes(pred_file=scenario_name+'_price.csv', 
+                                                  pred_vol_file=scenario_name+'_vol.csv')
+            else:
+                instrument.load_pred_episodes(pred_file=scenario_name+'_price.csv')
+        self.set_pred_mode(True)
+        self.set_pred_episodes(self._pred_episodes)
+        self.set_num_steps(self._num_steps)
+
     def reset(self):
         """dm_env interface
            Reset episode
@@ -165,9 +218,9 @@ class Market(dm_env.Environment):
         reset_date()
         self._portfolio.reset()
         self._cash_account.reset()
-        derivative_premiums = self._portfolio.get_nav()
-        # save derivative premiums into cash account
-        self._cash_account.add(-derivative_premiums)
+        initial_cashflow = self._portfolio.get_nav()
+        # save initial cashflow into cash account
+        self._cash_account.add(-initial_cashflow)
         self._reward_rule.reset(self._portfolio)
         self._pnl_reward.reset(self._portfolio)
         return dm_env.restart(np.append(self._observation(), 0.))
@@ -232,15 +285,13 @@ class Market(dm_env.Environment):
         
     def _reach_terminal(self) -> bool:
         """ Check if episode reaches terminal step
-            If all derivatives expire, then episode reaches terminal step
+            If num_steps*hedging_step_in_days equals get_cur_days, 
+            then episode reaches terminal step
 
         Returns:
             bool: True if current time reaches terminal step of the episode
         """
-        all_expired = True
-        for derivative in self._portfolio.get_liability_portfolio():
-            all_expired = (all_expired and derivative.get_instrument().get_is_expired())
-        return all_expired
+        return (self._num_steps * self._hedging_step_in_days) == get_cur_days()
 
     def _observation(self):
         """Construct state observation
@@ -318,8 +369,11 @@ class Market(dm_env.Environment):
         for i in self._exotic_products:
             market_str += f'            {str(i)}\n'
         market_str += f'    Portfolio: \n'
-        for position in self._portfolio.get_portfolio_positions():
-            market_str += f'         {position.get_instrument().get_name()} Holding {position.get_holding()}\n'
+        if self._portfolio is None:
+            market_str += '         Not initialized'
+        else:
+            for position in self._portfolio.get_portfolio_positions():
+                market_str += f'         {position.get_instrument().get_name()} Holding {position.get_holding()}\n'
         return market_str
 
     

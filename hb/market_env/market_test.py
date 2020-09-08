@@ -7,7 +7,12 @@ from hb.market_env.portfolio import Portfolio
 
 class MarketTest(unittest.TestCase):
     def set_up_regression_bsm_market(self):
-        market = Market(reward_rule=PnLReward(),risk_free_rate=0.02,hedging_step_in_days=1)
+        market = Market(reward_rule=PnLReward(),
+                        risk_free_rate=0.02,
+                        hedging_step_in_days=1,
+                        vol_model='BSM',
+                        name='Regression_BSM',
+                        dir_='Markets')
         # create instruments
         # --------------------------------------------
         # AMZN
@@ -24,14 +29,18 @@ class MarketTest(unittest.TestCase):
         otc_atm_3m_call = InstrumentFactory.create(
                                 f'EuroOpt AMZN OTC 3M Call 100.50 30.0 5 (AMZN_OTC_3M_ATM_CALL)'
                             ).underlying(amzn)
-        market.calibrate(vol_model='BSM',
-                         underlying=amzn,
+        market.calibrate(underlying=amzn,
                          listed_options=otc_atm_3m_call)
         market.add_instruments([otc_atm_1w_call, otc_atm_1m_call, otc_atm_3m_call])
         return market
 
     def set_up_bsm_market(self):
-        market = Market(reward_rule=PnLReward(),risk_free_rate=0.015,hedging_step_in_days=1)
+        market = Market(reward_rule=PnLReward(),
+                        risk_free_rate=0.015,
+                        hedging_step_in_days=1,
+                        vol_model='BSM',
+                        name='BSM_AMZN_SPX',
+                        dir_='Markets')
         # create instruments
         # --------------------------------------------
         # AMZN
@@ -42,8 +51,7 @@ class MarketTest(unittest.TestCase):
         otc_atm_3m_call = InstrumentFactory.create(
                                 f'EuroOpt AMZN OTC 1W Call 3400 33.21 5 (AMZN_OTC_1W_ATM_CALL)'
                             ).underlying(amzn)
-        market.calibrate(vol_model='BSM',
-                         underlying=amzn,
+        market.calibrate(underlying=amzn,
                          listed_options=otc_atm_3m_call)
         market.add_instruments([otc_atm_3m_call])    
         # --------------------------------------------
@@ -55,8 +63,7 @@ class MarketTest(unittest.TestCase):
         otc_atm_3m_call = InstrumentFactory.create(
                                 f'EuroOpt SPX OTC 3M Call 3425 27.87 3.5 (SPX_OTC_3M_ATM_CALL)'
                             ).underlying(spx)
-        market.calibrate(vol_model='BSM',
-                         underlying=spx,
+        market.calibrate(underlying=spx,
                          listed_options=otc_atm_3m_call)
         market.add_instruments([otc_atm_3m_call])            
         return market
@@ -65,25 +72,28 @@ class MarketTest(unittest.TestCase):
         import numpy as np
         from hb.utils.date import get_cur_days
         market = self.set_up_bsm_market()
-        print(market)
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments([
-                                                'AMZN', 
-                                                'AMZN_OTC_3M_ATM_CALL',  
+                                                'SPX', 
+                                                'SPX_OTC_3M_ATM_CALL',  
                                                 ]),
             holdings=[0., 
-                      -10.]
+                      -10.],
+            name="SPX and SPX_3M_CALL"
         )
         market.init_portfolio(portfolio)
-        pred_num_episodes = 1_000
+        print(market)
+        market.set_pred_mode(True)
+        market.set_pred_episodes(1_000)
+        pred_num_episodes = market.get_pred_episodes()
         gbm_stock_prices = np.zeros([pred_num_episodes, 91])
         gbm_option_prices = np.zeros([pred_num_episodes, 91])
         times = np.zeros([91])
         i = 0; j=0
         for episode in range(pred_num_episodes):
+            timestep = market.reset()
             j = 0
             times[j] = get_cur_days()
-            timestep = market.reset()
             gbm_stock_prices[i][j] = timestep.observation[0]
             gbm_option_prices[i][j] = timestep.observation[2]
             j += 1
@@ -95,21 +105,54 @@ class MarketTest(unittest.TestCase):
                 gbm_option_prices[i][j] = timestep.observation[2]
                 j += 1
             i += 1
-        import matplotlib.pyplot as plt
+        self.plot_results(pred_num_episodes, times, gbm_stock_prices, gbm_option_prices)
 
-        for i in range(pred_num_episodes):
-            plt.plot(times, gbm_stock_prices[i, :], lw=0.8, alpha=0.6)
-        plt.title("GBM Simulation Spot")
-        plt.show()
-        print(gbm_stock_prices[:,-1].mean())
-        for i in range(pred_num_episodes):
-            plt.plot(times, gbm_option_prices[i, :], lw=0.8, alpha=0.6)
-        plt.title("GBM Simulation Option")
-        plt.show()
-        print(gbm_option_prices[:,-1].mean())
+    def test_bsm_market_load_scenario(self):
+        import numpy as np
+        from hb.utils.date import get_cur_days
+        market = self.set_up_bsm_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'SPX', 
+                                                'SPX_OTC_3M_ATM_CALL',  
+                                                ]),
+            holdings=[0., 
+                      -10.],
+            name="SPX and SPX_3M_CALL"
+        )
+        market.init_portfolio(portfolio)
+        print(market)
+        market.load_scenario('Covid19')
+        pred_num_episodes = market.get_pred_episodes()
+        num_steps = market.get_num_steps() + 1
+        gbm_stock_prices = np.zeros([pred_num_episodes, num_steps])
+        gbm_option_prices = np.zeros([pred_num_episodes, num_steps])
+        times = np.zeros([num_steps])
+        i = 0; j=0
+        for episode in range(pred_num_episodes):
+            timestep = market.reset()
+            j = 0
+            times[j] = get_cur_days()
+            gbm_stock_prices[i][j] = timestep.observation[0]
+            gbm_option_prices[i][j] = timestep.observation[2]
+            j += 1
+            while not timestep.last():
+                action = np.random.uniform(-4, 4, 1)
+                timestep = market.step(action)
+                times[j] = get_cur_days()
+                gbm_stock_prices[i][j] = timestep.observation[0]
+                gbm_option_prices[i][j] = timestep.observation[2]
+                j += 1
+            i += 1
+        self.plot_results(pred_num_episodes, times, gbm_stock_prices, gbm_option_prices)
 
     def set_up_heston_market(self):
-        market = Market(reward_rule=PnLReward(),risk_free_rate=0.015,hedging_step_in_days=1)
+        market = Market(reward_rule=PnLReward(),
+                        risk_free_rate=0.015,
+                        hedging_step_in_days=1,
+                        vol_model='Heston',
+                        name='Heston_AMZN_SPX',
+                        dir_='Markets')
         # create instruments
         # --------------------------------------------
         # AMZN
@@ -137,8 +180,7 @@ class MarketTest(unittest.TestCase):
                 n += 1
             amzn_listed_calls.append(amzn_listed_calls_m)
         
-        market.calibrate(vol_model='Heston',
-                         underlying=amzn,
+        market.calibrate(underlying=amzn,
                          listed_options=amzn_listed_calls)
         
         otc_atm_1w_call = InstrumentFactory.create(
@@ -177,8 +219,7 @@ class MarketTest(unittest.TestCase):
                 n += 1
             spx_listed_calls.append(spx_listed_calls_m)
         
-        market.calibrate(vol_model='Heston',
-                         underlying=spx,
+        market.calibrate(underlying=spx,
                          listed_options=spx_listed_calls)
         
         otc_atm_1w_call = InstrumentFactory.create(
@@ -197,25 +238,29 @@ class MarketTest(unittest.TestCase):
         import numpy as np
         from hb.utils.date import get_cur_days
         market = self.set_up_heston_market()
-        print(market)
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments([
                                                 'AMZN', 
                                                 'AMZN_OTC_1W_ATM_CALL',  
                                                 ]),
             holdings=[0., 
-                      -10.]
+                      -10.],
+            name="AMZN and AMZN_1W_CALL"
         )
         market.init_portfolio(portfolio)
-        pred_num_episodes = 1_000
-        heston_stock_prices = np.zeros([pred_num_episodes, 91])
-        heston_option_prices = np.zeros([pred_num_episodes, 91])
-        times = np.zeros([91])
+        # market.set_pred_mode(True)
+        market.set_pred_episodes(1_000)
+        print(market)
+        pred_num_episodes = market.get_pred_episodes()
+        num_steps = market.get_num_steps() + 1
+        heston_stock_prices = np.zeros([pred_num_episodes, num_steps])
+        heston_option_prices = np.zeros([pred_num_episodes, num_steps])
+        times = np.zeros([num_steps])
         i = 0; j=0
         for episode in range(pred_num_episodes):
+            timestep = market.reset()
             j = 0
             times[j] = get_cur_days()
-            timestep = market.reset()
             heston_stock_prices[i][j] = timestep.observation[0]
             heston_option_prices[i][j] = timestep.observation[2]
             j += 1
@@ -228,15 +273,24 @@ class MarketTest(unittest.TestCase):
                 heston_option_prices[i][j] = timestep.observation[2]
                 j += 1
             i += 1
+        self.plot_results(pred_num_episodes, times, heston_stock_prices, heston_option_prices)
+        
+    def plot_results(self, pred_num_episodes, times, prices, option_prices):
         import matplotlib.pyplot as plt
 
         for i in range(pred_num_episodes):
-            plt.plot(times, heston_stock_prices[i, :], lw=0.8, alpha=0.6)
-        plt.title("Heston Simulation Spot")
+            plt.plot(times, prices[i, :], lw=0.8, alpha=0.6)
+        plt.title("Simulation Spot")
         plt.show()
-        print(heston_stock_prices[:,-1].mean())
+        print(prices[:,-1].mean())
         for i in range(pred_num_episodes):
-            plt.plot(times, heston_option_prices[i, :], lw=0.8, alpha=0.6)
-        plt.title("Heston Simulation Option")
+            plt.plot(times, option_prices[i, :], lw=0.8, alpha=0.6)
+        plt.title("Simulation Option")
         plt.show()
-        print(heston_option_prices[:,-1].mean())
+        print(option_prices[:,-1].mean())
+
+
+if __name__ == "__main__":
+    # MarketTest().test_bsm_market_setup()
+    MarketTest().test_heston_market_setup()
+    # MarketTest().test_bsm_market_load_scenario()

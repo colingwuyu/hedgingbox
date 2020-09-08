@@ -8,7 +8,7 @@ import dm_env
 import numpy as np
 
 
-class DeltaHedgeActor(core.Actor):
+class EuroDeltaHedgingStrategy:
     """A delta hedge actor for European Options
 
     An actor based on delta hedge policy which takes market observations
@@ -20,19 +20,23 @@ class DeltaHedgeActor(core.Actor):
         self._use_bs_delta = use_bs_delta
         self._min_action = action_spec.minimum
         self._max_action = action_spec.maximum
-        self._actions = np.zeros(action_spec.shape)
-        self._option_positions = portfolio.get_liability_portfolio()
+        self._option_positions = []
         # underlying name => action index mapping
         self._action_index_map = dict()
         # underlying name => holding index in observation mapping
         self._holding_obs_index_map = dict()
+        # hedging instruments for european options
+        self._hedging_instrument_names = []
+        for derivative in portfolio.get_liability_portfolio():
+            if isinstance(derivative.get_instrument(), EuropeanOption):
+                self._hedging_instrument_names += [derivative.get_instrument().get_underlying_name()]
+                self._option_positions += [derivative]
         for i, position in enumerate(portfolio.get_hedging_portfolio()):
-            self._action_index_map[position.get_instrument().get_name()] = i
-            self._holding_obs_index_map[position.get_instrument().get_name()] = 2*i + 1
-        
+            if position.get_instrument().get_name() in self._hedging_instrument_names:
+                self._action_index_map[position.get_instrument().get_name()] = i
+                self._holding_obs_index_map[position.get_instrument().get_name()] = 2*i + 1
 
-    def select_action(self, observations: types.NestedArray) -> types.NestedArray:
-        actions = self._actions.copy()
+    def update_action(self, observations: types.NestedArray, actions: types.NestedArray):
         delta_map = {k: 0. for k, _ in self._action_index_map.items()}
         
         # calculate option's delta
@@ -47,18 +51,5 @@ class DeltaHedgeActor(core.Actor):
             cur_holding = observations[holding_obs_index]
             action_index = self._action_index_map[underlying]
             action = np.clip(- delta - cur_holding, self._min_action[action_index], self._max_action[action_index])
-            actions[action_index] = action
+            actions[action_index] += action
         return actions
-
-    def observe_first(self, timestep: dm_env.TimeStep):
-        pass
-
-    def observe(
-        self,
-        action: types.NestedArray,
-        next_timestep: dm_env.TimeStep
-    ):
-        pass
-
-    def update(self):
-        pass

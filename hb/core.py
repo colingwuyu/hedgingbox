@@ -69,16 +69,16 @@ class Predictor(core.Actor):
         self._pred_actions = np.array([], dtype=np.int32)
         self._episode_pnl_path = np.array([])
         self._episode_reward_path = np.array([])
-        self._episode_stock_price = np.array([])
-        self._episode_option_price = np.array([])
+        self._episode_hedging_price = np.array([])
+        self._episode_derivative_price = np.array([])
         self._episode_action = np.array([])
         self._last_pred_rewards = self._pred_rewards
         self._last_pred_pnls = self._pred_pnls
         self._last_pred_actions = self._pred_actions
         self._last_episode_pnl_path = self._episode_pnl_path
         self._last_episode_reward_path = self._episode_reward_path
-        self._last_episode_option_price = self._episode_option_price
-        self._last_episode_stock_price = self._episode_stock_price
+        self._last_episode_derivative_price = self._episode_derivative_price
+        self._last_episode_hedging_price = self._episode_hedging_price
         self._last_episode_action = self._episode_action
         self._num_train_per_pred = num_train_per_pred
         self._progress_logger = hb_loggers.CSVLogger(logger_dir, label + '/progress')
@@ -88,6 +88,8 @@ class Predictor(core.Actor):
         self._best_reward = None
         self._is_best_perf = False
         self._risk_obj_c = risk_obj_c
+        self._num_hedgings = None
+        self._num_derivatives = None
         if risk_obj:
             self._best_reward_measure = 'risk_obj'
         else:
@@ -138,11 +140,11 @@ class Predictor(core.Actor):
     def get_episode_pnl_path(self):
         return self._last_episode_pnl_path
 
-    def get_episode_stock_price(self):
-        return self._last_episode_stock_price
+    def get_episode_hedging_price(self):
+        return self._last_episode_hedging_price
 
-    def get_episode_option_price(self):
-        return self._last_episode_option_price
+    def get_episode_derivative_price(self):
+        return self._last_episode_derivative_price
 
     def get_episode_action(self):
         return self._last_episode_action
@@ -152,51 +154,52 @@ class Predictor(core.Actor):
         action: types.NestedArray,
         next_timestep: dm_env.TimeStep,
     ):
-        # TODO observation[2] = stock price
-        #      observation[8]
-        self._episode_stock_price = np.append(
-            self._episode_stock_price, next_timestep.observation[0])
-        if len(next_timestep.observation) >= 9:
-            self._episode_option_price = np.append(
-                self._episode_option_price, next_timestep.observation[2])
-        self._episode_action = np.append(self._episode_action, action[0])
+        if self._num_hedgings is None:
+            self._num_hedgings = action.shape[0]
+            num_obs = next_timestep.observation.shape[0]
+            self._num_derivatives = int((num_obs - 2*num_hedgings - 3)/3)
+        self._episode_hedging_price = np.append(
+            self._episode_hedging_price, next_timestep.observation[0:(2*self._num_hedgings):2])
+        self._episode_derivative_price = np.append(
+            self._episode_derivative_price, next_timestep.observation[(2*self._num_hedgings):(2*(self._num_hedgings+self._num_derivatives)):2])
+        self._episode_action = np.append(self._episode_action, action)
         self._episode_pnl_path = np.append(
             self._episode_pnl_path, next_timestep.observation[-1])
         self._episode_reward_path = np.append(
             self._episode_reward_path, next_timestep.reward)
         self._episode_pnl += next_timestep.observation[-1]
         self._episode_reward += next_timestep.reward
-        self._pred_actions = np.append(self._pred_actions, action[0])
+        self._pred_actions = np.append(self._pred_actions, action)
         if next_timestep.last():
             # print("Episode PnL", self._episode_pnl)
             self._pred_pnls = np.append(self._pred_pnls, self._episode_pnl)
-            self._pred_rewards = np.append(
-                self._pred_rewards, int(round(self._episode_reward)))
+            self._pred_rewards = np.append(self._pred_rewards, self._episode_reward)
             self._episode_pnl = 0.
             self._episode_reward = 0.
             if self._log_perf:
                 perf_log_measures = {'pnl': self._episode_pnl_path,
                                     'reward': self._episode_reward_path,
-                                    'stock_price': self._episode_stock_price,
-                                    'option_price': self._episode_option_price,
+                                    'hedging_price': self._episode_hedging_price,
+                                    'derivative_price': self._episode_derivative_price,
                                     'action': self._episode_action}
                 for measure_name, measure in perf_log_measures.items():
-                    perf_path = {'path_num': self._perf_path_cnt,
-                                 'type': measure_name}
-                    for i, step_measure in enumerate(measure):
-                        perf_path[str(i)] = step_measure 
-                    self._performance_logger.write(perf_path)
+                    for row_i in range(measure.shape[0]):
+                        perf_path = {'path_num': self._perf_path_cnt,
+                                     'type': measure_name + str(row_i)}
+                        for col_i, step_measure in enumerate(measure[row_i]):
+                            perf_path[str(col_i)] = step_measure 
+                        self._performance_logger.write(perf_path)
                 self._perf_path_cnt += 1
             self._last_episode_pnl_path = self._episode_pnl_path
             self._last_episode_reward_path = self._episode_reward_path
-            self._last_episode_stock_price = self._episode_stock_price
+            self._last_episode_hedging_price = self._episode_hedging_price
             self._last_episode_action = self._episode_action
-            self._last_episode_option_price = self._episode_option_price
+            self._last_episode_derivative_price = self._episode_derivative_price
             self._episode_pnl_path = np.array([])
             self._episode_reward_path = np.array([])
-            self._episode_stock_price = np.array([])
+            self._episode_hedging_price = np.array([])
             self._episode_action = np.array([])
-            self._episode_option_price = np.array([])
+            self._episode_derivative_price = np.array([])
 
     def _update_progress_figures(self):
         measures = dict()
@@ -218,30 +221,30 @@ class Predictor(core.Actor):
         measures['mean-var'] = measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
         # reward
         measures['reward_mean'] = self._pred_rewards.mean()
-        # action
-        action_count = len(self._pred_actions)
-        measures['sell-5'] = np.count_nonzero(
-            np.rint(self._pred_actions) == -5) / action_count
-        measures['sell-4'] = np.count_nonzero(
-            np.rint(self._pred_actions) == -4) / action_count
-        measures['sell-3'] = np.count_nonzero(
-            np.rint(self._pred_actions) == -3) / action_count
-        measures['sell-2'] = np.count_nonzero(
-            np.rint(self._pred_actions) == -2) / action_count
-        measures['sell-1'] = np.count_nonzero(
-            np.rint(self._pred_actions) == -1) / action_count
-        measures['hold'] = np.count_nonzero(
-            np.rint(self._pred_actions) == 0) / action_count
-        measures['buy-1'] = np.count_nonzero(
-            np.rint(self._pred_actions) == 1) / action_count
-        measures['buy-2'] = np.count_nonzero(
-            np.rint(self._pred_actions) == 2) / action_count
-        measures['buy-3'] = np.count_nonzero(
-            np.rint(self._pred_actions) == 3) / action_count
-        measures['buy-4'] = np.count_nonzero(
-            np.rint(self._pred_actions) == 4) / action_count
-        measures['buy-5'] = np.count_nonzero(
-            np.rint(self._pred_actions) == 5) / action_count
+        # # action
+        # action_count = len(self._pred_actions)
+        # measures['sell-5'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == -5) / action_count
+        # measures['sell-4'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == -4) / action_count
+        # measures['sell-3'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == -3) / action_count
+        # measures['sell-2'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == -2) / action_count
+        # measures['sell-1'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == -1) / action_count
+        # measures['hold'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == 0) / action_count
+        # measures['buy-1'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == 1) / action_count
+        # measures['buy-2'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == 2) / action_count
+        # measures['buy-3'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == 3) / action_count
+        # measures['buy-4'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == 4) / action_count
+        # measures['buy-5'] = np.count_nonzero(
+        #     np.rint(self._pred_actions) == 5) / action_count
         self._counter += self._num_train_per_pred
         measures['train_episodes'] = self._counter
         self._progress_measures.update(measures)

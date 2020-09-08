@@ -1,15 +1,14 @@
 from acme import specs
 from acme.utils import loggers
 from hb.bots import bot
-from hb.bots.euro_deltabot import actor as delta_hedge_actor
-from hb.bots.euro_deltabot import predictor as delta_hedge_predictor
+from hb.bots.greekbot import actor as greek_hedge_actor
+from hb.bots.greekbot import predictor as greek_hedge_predictor
 from hb.bots import fake_learner
-from hb.instrument.european_option import EuropeanOption
 from hb.market_env.portfolio import Portfolio
 
 
-class DeltaHedgeBot(bot.Bot):
-    """Delta Hedging Bot.
+class GreekHedgeBot(bot.Bot):
+    """Greek Hedging Bot.
 
 
     """
@@ -27,8 +26,8 @@ class DeltaHedgeBot(bot.Bot):
             environment_spec (specs.EnvironmentSpec): description of the actions, observations, etc.
         """
         # Create the actor
-        actor = delta_hedge_actor.DeltaHedgeActor(portfolio, use_bs_delta, environment_spec.actions)
-        predictor = delta_hedge_predictor.DeltaHedgePredictor(actor, logger_dir=pred_dir)
+        actor = greek_hedge_actor.GreekHedgeActor(portfolio, use_bs_delta, environment_spec.actions)
+        predictor = greek_hedge_predictor.GreekHedgePredictor(actor, logger_dir=pred_dir)
         learner = fake_learner.FakeLeaner()
 
         super().__init__(

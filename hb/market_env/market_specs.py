@@ -74,3 +74,4 @@ class StockMarketActionSpec(specs.BoundedArray):
             return np.arange(self._min_buy_sell, self._max_buy_sell + self._lot_size, self._lot_size)
         else:
             return None
+

@@ -2,7 +2,7 @@
 
 import acme
 from acme import specs
-from hb.bots import euro_deltabot
+from hb.bots.greekbot.bot import GreekHedgeBot 
 from hb.market_env.market_test import MarketTest
 from hb.market_env.portfolio import Portfolio
 import unittest
@@ -23,9 +23,10 @@ class DeltaBotTest(unittest.TestCase):
             holdings=[0., 
                       -10., 
                       -10., 
-                      -10.]
+                      -10.],
+            name="Three AMZN Calls"
         )
-        self._set_up_delta_bot_test(market, portfolio)
+        self._set_up_greek_bot_test(market, portfolio)
 
     def test_bs_deltabot_with_heston_amzn(self):
         # Create a GBM market
@@ -40,9 +41,10 @@ class DeltaBotTest(unittest.TestCase):
             holdings=[0., 
                     #   -10., 
                     #   -10., 
-                      -10.]
+                      -10.],
+            name="AMZN and AMZN_1W_Call"
         )
-        self._set_up_delta_bot_test(market, portfolio)
+        self._set_up_greek_bot_test(market, portfolio)
 
     def test_bs_deltabot_with_heston_spx(self):
         # Create a GBM market
@@ -57,9 +59,10 @@ class DeltaBotTest(unittest.TestCase):
             holdings=[0., 
                     #   -10., 
                     #   -10., 
-                      -10.]
+                      -10.],
+            name="SPX and SPX_1W_Call"
         )
-        self._set_up_delta_bot_test(market, portfolio)
+        self._set_up_greek_bot_test(market, portfolio)
 
     def test_heston_deltabot_with_heston_amzn(self):
         # Create a GBM market
@@ -74,9 +77,10 @@ class DeltaBotTest(unittest.TestCase):
             holdings=[0., 
                     #   -10., 
                     #   -10., 
-                      -10.]
+                      -10.],
+            name="AMZN and AMZN_1W_Call"
         )
-        self._set_up_delta_bot_test(market, portfolio, use_bs_delta=False)
+        self._set_up_greek_bot_test(market, portfolio, use_bs_delta=False)
 
     def test_heston_deltabot_with_heston_spx(self):
         # Create a GBM market
@@ -84,12 +88,13 @@ class DeltaBotTest(unittest.TestCase):
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments([
                                                 'SPX', 
-                                                'SPX_OTC_1M_ATM_CALL'
+                                                'SPX_OTC_1W_ATM_CALL'
                                                 ]),
             holdings=[0., 
-                      -10.]
+                      -10.],
+            name="SPX and SPX_1W_Call"
         )
-        self._set_up_delta_bot_test(market, portfolio, use_bs_delta=False)
+        self._set_up_greek_bot_test(market, portfolio, use_bs_delta=False)
 
     def test_deltabot_with_bsm_amzn(self):
         # Create a GBM market
@@ -100,9 +105,24 @@ class DeltaBotTest(unittest.TestCase):
                                                 'AMZN_OTC_1W_ATM_CALL'
                                                 ]),
             holdings=[0.,
-                      -10.]
+                      -10.],
+            name="AMZN and AMZN_1W_Call"
         )
-        self._set_up_delta_bot_test(market, portfolio)
+        self._set_up_greek_bot_test(market, portfolio)
+
+    def test_deltabot_with_bsm_spx_covid19(self):
+        # Create a GBM market
+        market = MarketTest().set_up_bsm_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'SPX', 
+                                                'SPX_OTC_3M_ATM_CALL'
+                                                ]),
+            holdings=[0.,
+                      -10.],
+            name="SPX and SPX_3M_Call"
+        )
+        self._set_up_greek_bot_test(market, portfolio, scenario='Covid19')
 
     def test_deltabot_with_bsm_spx_amzn(self):
         # Create a GBM market
@@ -113,37 +133,43 @@ class DeltaBotTest(unittest.TestCase):
                                                 'AMZN_OTC_1W_ATM_CALL', 
                                                 'SPX_OTC_3M_ATM_CALL', 
                                                 ]),
-            holdings=[0.,  
+            holdings=[0.,
+                      0.,  
                       -10., 
-                      -10.]
+                      -10.],
+            name="AMZN and SPX and AMZN_1W_Call and SPX_3M_CALL"
         )
-        self._set_up_delta_bot_test(market, portfolio)
+        self._set_up_greek_bot_test(market, portfolio)
 
-    def _set_up_delta_bot_test(self, market, portfolio, use_bs_delta=True):
+    def _set_up_greek_bot_test(self, market, portfolio, use_bs_delta=True, scenario=None):
         market.init_portfolio(portfolio)
+        if scenario:
+            market.load_scenario(scenario)
+        else:
+            market.set_pred_mode(True)
+            market.set_pred_episodes(1_000)
         spec = specs.make_environment_spec(market)
         
         # Construct the agent.
-        agent = euro_deltabot.DeltaHedgeBot(
+        agent = GreekHedgeBot(
             portfolio=portfolio,
             use_bs_delta=use_bs_delta,
             environment_spec=spec
         )
-        market.set_pred_mode(True)
         # Try running the environment loop. We have no assertions here because all
         # we care about is that the agent runs without raising any errors.
         loop = acme.EnvironmentLoop(market, agent)
-        loop.run(num_episodes=1_000)
+        loop.run(num_episodes=market.get_pred_episodes())
         agent._predictor._update_progress_figures()
         status = agent._predictor._progress_measures
-        print("Delta Bot PnL mean %s" % str(status['pnl_mean']))
-        print("Delta Bot PnL std %s" % str(status['pnl_std']))
-        print("Delta Bot 95VaR %s" % status['pnl_95VaR'])
-        print("Delta Bot 99VaR %s" % status['pnl_99VaR'])
-        print("Delta Bot 95CVaR %s" % status['pnl_95CVaR'])
-        print("Delta Bot 99CVaR %s" % status['pnl_99CVaR'])
+        print("Greek Bot PnL mean %s" % str(status['pnl_mean']))
+        print("Greek Bot PnL std %s" % str(status['pnl_std']))
+        print("Greek Bot 95VaR %s" % status['pnl_95VaR'])
+        print("Greek Bot 99VaR %s" % status['pnl_99VaR'])
+        print("Greek Bot 95CVaR %s" % status['pnl_95CVaR'])
+        print("Greek Bot 99CVaR %s" % status['pnl_99CVaR'])
 
 
 if __name__ == '__main__':
     # unittest.main()
-    DeltaBotTest().test_deltabot()
+    DeltaBotTest().test_deltabot_with_bsm_amzn()

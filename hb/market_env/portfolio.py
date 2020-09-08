@@ -1,13 +1,14 @@
 from typing import List
 from hb.instrument.instrument import Instrument
 from hb.instrument.stock import Stock
+import os
 
 class Position():
     def __init__(self, instrument, holding=0.):
         self._instrument = instrument
         self._holding = holding
         self._init_holding = holding
-
+       
     def reset(self):
         self._holding = self._init_holding
 
@@ -47,10 +48,13 @@ class Position():
 
 class Portfolio():
     def __init__(self, 
-                 positions: List[Position]):
+                 positions: List[Position],
+                 name: str):
         self._positions = positions
         self._hedging_portfolio = []
         self._liability_portfolio = []
+        self._name = name
+        self._dir = None
         for position in positions:
             if position.get_instrument().get_is_tradable():
                 self._hedging_portfolio += [position]
@@ -60,11 +64,27 @@ class Portfolio():
     @classmethod
     def make_portfolio(cls,
                        instruments: List[Instrument],
-                       holdings: List[float]):
+                       holdings: List[float],
+                       name: str):
         positions = []
         for instrument, holding in zip(instruments, holdings):
             positions += [Position(instrument, holding)]
-        return cls(positions)
+        return cls(positions, name)
+
+    def get_dir(self):
+        return self._dir
+
+    def set_market_dir(self, market_dir):
+        """Set market directory for saving data
+
+        Args:
+            market_dir (str): Director of market
+        """
+        self._dir = os.path.join(market_dir, "Portfolio_"+self._name)
+        if not os.path.exists(self._dir):
+            os.makedirs(self._dir)
+        for position in self._positions:
+            position.get_instrument().set_portfolio_dir(self._dir)
 
     def get_hedging_portfolio(self):
         return self._hedging_portfolio
@@ -83,6 +103,15 @@ class Portfolio():
         nav = 0.
         for position in self._positions:
             nav += position.get_market_value()
+        return nav
+
+    def get_initial_cashflow(self):
+        cashflow = 0.
+        for position in self._positions:
+            cashflow -= position.get_market_value()
+            if position.get_instrument().get_is_tradable:
+                # add transaction cost
+                cashflow -= position.get_instrument().get_execute_cost(position.get_holding())
         return nav
 
     def rebalance(self, actions):
