@@ -197,8 +197,7 @@ class Instrument(abc.ABC):
 
     def get_execute_cost(self, action: float) -> float:
         if self._tradable:
-            return self._transaction_cost.execute(action, 
-                                                  self.get_market_value(action))
+            return self._transaction_cost.execute(self.get_market_value(action))
         else:
             return 0.0
 

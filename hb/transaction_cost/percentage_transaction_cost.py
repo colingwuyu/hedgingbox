@@ -11,9 +11,16 @@ class PercentageTransactionCost(TransactionCost):
         self._percentage_cost = percentage_cost
         super().__init__()
 
-    def execute(self, action, *args):
-        price = args[0]
-        return action*price*self._percentage_cost
+    def execute(self, action):
+        """transaction cost as percentage of traded market value
+
+        Args:
+            action (float): Traded market value (buy/sell shares * price)
+
+        Returns:
+            float: Transaction cost
+        """
+        return abs(action*self._percentage_cost)
 
     def __repr__(self):
         return f'percentage transaction cost({self._percentage_cost})'
