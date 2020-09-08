@@ -157,12 +157,28 @@ class Predictor(core.Actor):
         if self._num_hedgings is None:
             self._num_hedgings = action.shape[0]
             num_obs = next_timestep.observation.shape[0]
-            self._num_derivatives = int((num_obs - 2*num_hedgings - 3)/3)
-        self._episode_hedging_price = np.append(
-            self._episode_hedging_price, next_timestep.observation[0:(2*self._num_hedgings):2])
-        self._episode_derivative_price = np.append(
-            self._episode_derivative_price, next_timestep.observation[(2*self._num_hedgings):(2*(self._num_hedgings+self._num_derivatives)):2])
-        self._episode_action = np.append(self._episode_action, action)
+            self._num_derivatives = int((num_obs - 2*self._num_hedgings - 3)/3)
+            self._episode_hedging_price = np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2],
+                                                     (self._num_hedgings,1))
+            self._episode_derivative_price = np.reshape(next_timestep.observation[(2*self._num_hedgings):(2*(self._num_hedgings+self._num_derivatives)):2],
+                                                        (self._num_derivatives,1))
+            self._episode_action = np.reshape(action, (len(action),1))
+        else:
+            self._episode_hedging_price = np.append(
+                self._episode_hedging_price, 
+                np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2], (self._num_hedgings,1)),
+                axis=1
+            )
+            self._episode_derivative_price = np.append(
+                self._episode_derivative_price, 
+                np.reshape(next_timestep.observation[(2*self._num_hedgings):(2*(self._num_hedgings+self._num_derivatives)):2], (self._num_derivatives,1)),
+                axis=1
+            )
+            self._episode_action = np.append(
+                self._episode_action, 
+                np.reshape(action, (len(action),1)),
+                axis=1
+            )
         self._episode_pnl_path = np.append(
             self._episode_pnl_path, next_timestep.observation[-1])
         self._episode_reward_path = np.append(
@@ -183,13 +199,21 @@ class Predictor(core.Actor):
                                     'derivative_price': self._episode_derivative_price,
                                     'action': self._episode_action}
                 for measure_name, measure in perf_log_measures.items():
-                    for row_i in range(measure.shape[0]):
+                    if len(measure.shape) == 1:
                         perf_path = {'path_num': self._perf_path_cnt,
-                                     'type': measure_name + str(row_i)}
-                        for col_i, step_measure in enumerate(measure[row_i]):
+                                    'type': measure_name}
+                        for col_i, step_measure in enumerate(measure):
                             perf_path[str(col_i)] = step_measure 
                         self._performance_logger.write(perf_path)
+                    else:
+                        for row_i in range(measure.shape[0]):
+                            perf_path = {'path_num': self._perf_path_cnt,
+                                        'type': measure_name + str(row_i)}
+                            for col_i, step_measure in enumerate(measure[row_i]):
+                                perf_path[str(col_i)] = step_measure 
+                            self._performance_logger.write(perf_path)
                 self._perf_path_cnt += 1
+                self._num_hedgings = None
             self._last_episode_pnl_path = self._episode_pnl_path
             self._last_episode_reward_path = self._episode_reward_path
             self._last_episode_hedging_price = self._episode_hedging_price
