@@ -157,7 +157,7 @@ class Predictor(core.Actor):
         if self._num_hedgings is None:
             self._num_hedgings = action.shape[0]
             num_obs = next_timestep.observation.shape[0]
-            self._num_derivatives = int((num_obs - 2*self._num_hedgings - 3)/3)
+            self._num_derivatives = int((num_obs - 2*self._num_hedgings)/2)
             self._episode_hedging_price = np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2],
                                                      (self._num_hedgings,1))
             self._episode_derivative_price = np.reshape(next_timestep.observation[(2*self._num_hedgings):(2*(self._num_hedgings+self._num_derivatives)):2],

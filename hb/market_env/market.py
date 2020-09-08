@@ -296,45 +296,37 @@ class Market(dm_env.Environment):
     def _observation(self):
         """Construct state observation
            Now the observation includes
-                - all positions' price, holding in the portfolio
-                - current time
-                - derivatives' remaining times in the portfolio
-                - cash account balance
+                - all hedging positions' price, holding in the portfolio
+                - all derivative positions' price, remaining times in the portfolio
 
         Returns:
             market_observations [np.darray]: a list of state observation
         """
         market_observations = np.array([], dtype=np.float)
-        for position in self._portfolio.get_portfolio_positions():
+        for position in self._portfolio.get_hedging_portfolio():
             if isinstance(position.get_instrument(), Stock):
                 price, _ = position.get_instrument().get_price()
             else:
                 price = position.get_instrument().get_price()
             # add position's price and holding
             market_observations = np.append(market_observations, [price, position.get_holding()])
-        # add current time
-        market_observations = np.append(market_observations, get_cur_time())
-        for derivative in self._portfolio.get_liability_portfolio():
-            # add derivative's remaining time
-            market_observations = np.append(market_observations, position.get_instrument().get_remaining_time())
-        # add cash account balance
-        market_observations = np.append(market_observations, self._cash_account.get_balance())
+        for position in self._portfolio.get_liability_portfolio():
+            market_observations = np.append(market_observations, [position.get_instrument().get_price(), 
+                                                                  position.get_instrument().get_remaining_time()])
         return market_observations
     
     def observation_spec(self):
         """dm_env interface
            observation specification returns the observation shapes
            Now the observation includes
-                - all positions' price, holding in the portfolio
-                - current time
-                - derivatives' remaining times in the portfolio
-                - cash account balance
+                - all hedging positions' price, holding in the portfolio
+                - all derivative positions' price, remaining times in the portfolio
 
         Returns:
             [dm_env.specs.Array]: observation specification
         """
         # positions' price, holding; current time; derivatives' remaining times; cash account balance
-        num_obs = 2*len(self._portfolio.get_portfolio_positions()) + 2 + len(self._portfolio.get_liability_portfolio())
+        num_obs = 2*len(self._portfolio.get_portfolio_positions())
         obs_shape = (num_obs, )
         return specs.Array(
             shape=obs_shape, dtype=float, name="market_observations"
