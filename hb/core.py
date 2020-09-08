@@ -91,7 +91,7 @@ class Predictor(core.Actor):
         self._num_hedgings = None
         self._num_derivatives = None
         if risk_obj:
-            self._best_reward_measure = 'risk_obj'
+            self._best_reward_measure = 'mean-var'
         else:
             self._best_reward_measure = 'reward_mean'
         if self._log_perf:

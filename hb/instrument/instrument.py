@@ -285,3 +285,6 @@ class Instrument(abc.ABC):
                    None - means no limit
         """
         return self._trading_limit
+
+    def set_trading_limit(self, trading_limit):
+        self._trading_limit = trading_limit
