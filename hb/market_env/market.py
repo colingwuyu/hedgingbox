@@ -29,6 +29,7 @@ class Market(dm_env.Environment):
             name: str = 'Market',
             dir_: str = 'Market'
         ):
+        reset_date()
         self._risk_free_rate = risk_free_rate
         self._underlying_processes = dict()
         self._underlying_processes_param = dict()
@@ -259,7 +260,13 @@ class Market(dm_env.Environment):
         #   - transaction cost caused by hedging action at Time t
         step_pnl = portfolio_pnl + cash_interest - trans_cost
         # print(action, trans_cost)
-        # print(get_cur_days(), self._portfolio.get_instruments()[0].get_price()[0], self._portfolio.get_holdings()[0], self._funding_account.get_balance(), cash_interest, portfolio_pnl, step_pnl)
+        # with open('logger.csv', 'a') as logger:
+        #     logger.write(','.join([str(k) for k in [get_cur_days(), self._portfolio.get_hedging_portfolio()[0].get_instrument().get_price()[0], 
+        #         self._portfolio.get_hedging_portfolio()[0].get_holding(),
+        #         self._portfolio.get_liability_portfolio()[0].get_instrument().get_price(), 
+        #         self._portfolio.get_liability_portfolio()[0].get_holding(), 
+        #         self._cash_account.get_balance(), 
+        #         cash_interest, portfolio_pnl, trans_cost, step_pnl]])+'\n')
         if self._reach_terminal():
             # last step at Time T
             # dump whole portfolio

@@ -172,4 +172,5 @@ class DeltaBotTest(unittest.TestCase):
 
 if __name__ == '__main__':
     # unittest.main()
-    DeltaBotTest().test_deltabot_with_bsm_amzn()
+    DeltaBotTest().test_regression_deltabot()
+    DeltaBotTest().test_regression_deltabot()

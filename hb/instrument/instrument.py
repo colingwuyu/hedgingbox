@@ -12,6 +12,7 @@ class Instrument(abc.ABC):
                  transaction_cost: TransactionCost = None,
                  underlying = None, trading_limit: float = 1e10,
                  pred_episodes=1_000):
+        reset_date()
         self._name = name
         self._tradable = tradable
         self._quote = quote
