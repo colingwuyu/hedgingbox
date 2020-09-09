@@ -16,13 +16,13 @@ class DeltaBotTest(unittest.TestCase):
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments([
                                                 'AMZN', 
-                                                # 'AMZN_OTC_1W_ATM_CALL',  
-                                                # 'AMZN_OTC_1M_ATM_CALL', 
+                                                'AMZN_OTC_1W_ATM_CALL',  
+                                                'AMZN_OTC_1M_ATM_CALL', 
                                                 'AMZN_OTC_3M_ATM_CALL'
                                                 ]),
             holdings=[0., 
-                    #   -10., 
-                    #   -10., 
+                      -10., 
+                      -10., 
                       -10.],
             name="Three AMZN Calls"
         )
@@ -112,15 +112,15 @@ class DeltaBotTest(unittest.TestCase):
 
     def test_deltabot_with_bsm_spx_covid19(self):
         # Create a GBM market
-        market = MarketTest().set_up_bsm_market()
+        market = MarketTest().set_up_regression_bsm_market()
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments([
-                                                'SPX', 
-                                                'SPX_OTC_3M_ATM_CALL'
+                                                'AMZN', 
+                                                'AMZN_OTC_3M_ATM_CALL'
                                                 ]),
             holdings=[0.,
                       -10.],
-            name="SPX and SPX_3M_Call"
+            name="Three AMZN Calls"
         )
         self._set_up_greek_bot_test(market, portfolio, scenario='Covid19')
 

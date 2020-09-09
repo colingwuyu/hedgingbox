@@ -261,7 +261,7 @@ class Market(dm_env.Environment):
         step_pnl = portfolio_pnl + cash_interest - trans_cost
         # print(action, trans_cost)
         # with open('logger.csv', 'a') as logger:
-        #     logger.write(','.join([str(k) for k in [get_cur_days(), self._portfolio.get_hedging_portfolio()[0].get_instrument().get_price()[0], 
+        #     logger.write(','.join([str(k) for k in [get_cur_days(), action[0], self._portfolio.get_hedging_portfolio()[0].get_instrument().get_price()[0], 
         #         self._portfolio.get_hedging_portfolio()[0].get_holding(),
         #         self._portfolio.get_liability_portfolio()[0].get_instrument().get_price(), 
         #         self._portfolio.get_liability_portfolio()[0].get_holding(), 

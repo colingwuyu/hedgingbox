@@ -13,7 +13,8 @@ class EuropeanOption(Instrument):
     def __init__(self, name: str, option_type: str, strike: float, 
                  maturity: float, tradable: bool, quote: float = None,
                  transaction_cost: TransactionCost = None,
-                 underlying: Instrument = None, trading_limit: float = 1e10):
+                 underlying: Instrument = None, trading_limit: float = 1e10, 
+                 reset_time=True):
         payoff = ql.PlainVanillaPayoff(ql.Option.Call if option_type=="Call" else ql.Option.Put, 
                                        strike)
         exercise = ql.EuropeanExercise(add_time(maturity))
@@ -24,7 +25,7 @@ class EuropeanOption(Instrument):
         self._back_up_pricing_engine = None
         self._param = None
         self._pred_ind = 0
-        super().__init__(name, tradable, quote, transaction_cost, underlying, trading_limit)
+        super().__init__(name, tradable, quote, transaction_cost, underlying, trading_limit, reset_time)
 
     def get_quote(self) -> float:
         return self._quote
@@ -90,11 +91,11 @@ class EuropeanOption(Instrument):
         if spot_price:
             # use to calculate perturb spot price
             self.set_pricing_engine(spot_price)
-        if abs(self._maturity_time-get_cur_time()) < 1e-5:
-            # expiry
+        if (abs(self._maturity_time-get_cur_time()) < 1e-5) and (not self._exercised):
+            # expiry, not exercised
             option_price = self.get_intrinsic_value()
-        elif self._maturity_time-get_cur_time() <= -1e-5:
-            # past expiry
+        elif (self._maturity_time-get_cur_time() < 1e-5) or (self._exercised):
+            # past expiry, or exercised
             option_price = 0.
         else:
             # price before expiry
@@ -185,6 +186,15 @@ class EuropeanOption(Instrument):
     def get_maturity_date(self):
         return date_from_time(self._maturity_time, ref_date=date0)
 
+    def exercise(self) -> float:
+        super().exercise()
+        spot, _ = self._underlying.get_price()
+        if self._call:
+            delivery = 0. if spot <= self._strike else 1.
+        else:
+            delivery = 0. if spot >= self._strike else -1.
+        return delivery
+
     def get_delivery_amount(self):
         assert abs(self.get_remaining_time()) < 1e-5
         if self._call:
@@ -198,14 +208,6 @@ class EuropeanOption(Instrument):
             return self._strike
         else:
             return -self._strike
-
-    def get_is_exercised(self):
-        assert abs(self.get_remaining_time()) < 1e-5
-        spot, _ = self._underlying.get_price()
-        if self._call:
-            return False if spot <= self._strike else True
-        else:
-            return False if spot >= self._strike else True
 
     def get_is_physical_settle(self):
         return True
@@ -255,6 +257,17 @@ class EuropeanOption(Instrument):
         Returns:
             float: [description]
         """
+        if (abs(self._maturity_time-get_cur_time()) < 1e-5) and (not self._exercised):
+            # expiry, not exercised
+            spot, _ = self._underlying.get_price()
+            if self._call:
+                delta = 0. if spot <= self._strike else 1.
+            else:
+                delta = 0. if spot >= self._strike else -1.
+            return delta
+        elif (self._maturity_time-get_cur_time() < 1e-5) or (self._exercised):
+            # past expiry, or exercised
+            return 0.
         if use_bs or isinstance(self._param, GBMProcessParam):
             if isinstance(self._param, GBMProcessParam):
                 delta_value = self._option.delta()
@@ -283,6 +296,9 @@ class EuropeanOption(Instrument):
         Returns:
             float: BlackScholes Model Gamma
         """
+        if (self._maturity_time-get_cur_time() <= -1e-5) or (self._exercised):
+            # past expiry / exercised
+            return 0.
         if isinstance(self._param, GBMProcessParam):
             return self._option.gamma()
         else:
@@ -296,6 +312,9 @@ class EuropeanOption(Instrument):
         Returns:
             float: BlackScholes Model Vega
         """
+        if (self._maturity_time-get_cur_time() <= -1e-5) or (self._exercised):
+            # past expiry / exercised
+            return 0.
         if isinstance(self._param, GBMProcessParam):
             return self._option.vega()
         else:
@@ -305,7 +324,7 @@ class EuropeanOption(Instrument):
     @classmethod
     def _implied_vol(cls, call, strike, tau_e, option_price, gbm_param):
         euro_opt = cls("impl_vol", 'Call' if call else 'Put', strike,
-                                tau_e, False)
+                       tau_e, False, reset_time=False)
         process = create_process(gbm_param)
         try:
             return euro_opt._option.impliedVolatility(option_price, process)

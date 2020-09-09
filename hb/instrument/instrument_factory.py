@@ -1,5 +1,6 @@
 from hb.instrument.stock import Stock
 from hb.instrument.european_option import EuropeanOption
+from hb.instrument.variance_swap import VarianceSwap
 from hb.transaction_cost.percentage_transaction_cost import PercentageTransactionCost
 from hb.utils import date as date_util
 
@@ -15,6 +16,8 @@ class InstrumentFactory():
                     'Stock Ticker Quote annual_yield% dividend_yield% transaction_cost%'  
                 European Option:
                     'EuroOpt Ticker OTC/Listed Maturity Call/Put Strike IV% transaction_cost% (ShortName)'
+                Variance Swap:
+                    'VarSwap Ticker Maturity VarStrike Alpha (ShortName)'
         """
         params = str_instrument.split(' ')
         if params[0] == 'Stock':
@@ -34,6 +37,13 @@ class InstrumentFactory():
                 tradable=True if params[2]=='Listed' else False,
                 quote=float(params[6])/100.,
                 transaction_cost=PercentageTransactionCost(float(params[7])/100.)
+            )
+        if params[0] == 'VarSwap':
+            return VarianceSwap(
+                name=params[-1][1:-1],
+                strike=float(params[3]),
+                maturity=date_util.get_period_from_str(params[2]),
+                alpha=float(params[4])
             )
         return None
 

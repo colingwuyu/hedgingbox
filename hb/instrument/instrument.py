@@ -11,8 +11,9 @@ class Instrument(abc.ABC):
     def __init__(self, name: str, tradable: bool, quote: float = None,
                  transaction_cost: TransactionCost = None,
                  underlying = None, trading_limit: float = 1e10,
-                 pred_episodes=1_000):
-        reset_date()
+                 pred_episodes=1_000, reset_time=True):
+        if reset_time:
+            reset_date()
         self._name = name
         self._tradable = tradable
         self._quote = quote
@@ -28,9 +29,17 @@ class Instrument(abc.ABC):
         self._cur_pred_file = None
         self._cur_price = (0., None)
         self._num_steps = None
+        self._exercised = False
+
+    def reset(self):
+        self._exercised = False
+        self._cur_price = (0., None)
 
     def get_name(self) -> str:
         return self._name
+
+    def get_underlying(self):
+        return self._underlying
 
     def get_underlying_name(self) -> str:
         if self._underlying:
@@ -156,6 +165,10 @@ class Instrument(abc.ABC):
         self._pricing_engine = pricing_engine
         return self
 
+    def exercise(self) -> float:
+        self._exercised = True
+        return 0.
+
     def get_price(self, *args) -> float:
         """price of the instrument at current time
 
@@ -228,7 +241,7 @@ class Instrument(abc.ABC):
 
     @abc.abstractmethod
     def get_maturity_time(self) -> float:
-        """maturity time of the instrument
+        """maturity time of the instrument from inception
 
         Returns:
             float: maturity time
@@ -259,14 +272,6 @@ class Instrument(abc.ABC):
         return 0
 
     def get_is_physical_settle(self) -> bool:
-        return False
-
-    def get_is_exercised(self) -> bool:
-        """after expiry, if the derivative is exercised
-
-        Returns:
-            bool: true if exercised
-        """
         return True
 
     def get_is_expired(self) -> bool:
