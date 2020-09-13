@@ -25,7 +25,7 @@ class EuropeanOption(Instrument):
         self._back_up_pricing_engine = None
         self._param = None
         self._pred_ind = 0
-        super().__init__(name, tradable, quote, transaction_cost, underlying, trading_limit, reset_time)
+        super().__init__(name, tradable, quote, transaction_cost, underlying, trading_limit, reset_time=reset_time)
 
     def get_quote(self) -> float:
         return self._quote
