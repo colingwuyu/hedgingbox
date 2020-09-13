@@ -1,6 +1,7 @@
 from typing import List
 from hb.instrument.instrument import Instrument
 from hb.instrument.stock import Stock
+from hb.utils.date import *
 import os
 
 class Position():
@@ -141,7 +142,11 @@ class Portfolio():
             proceeds, trans_cost = hedging_position.buy(action)
             cashflows += proceeds
             trans_costs += trans_cost
-            
+        return cashflows, trans_costs
+    
+    def event_handler(self):
+        cashflows = 0.
+        trans_costs = 0.
         for derivative in self._liability_portfolio:
             if abs(derivative.get_instrument().get_remaining_time()-0.0) < 1e-5:
                 # position expired
@@ -153,7 +158,7 @@ class Portfolio():
                 # in such case rebate trans_costs to the delivery shares
                 trans_costs += trans_cost
         return cashflows, trans_costs
-    
+
     def derivative_exercise_event(self, derivative_position: Position):
         """Deal derivative exercise event
             When a derivative expires:
@@ -168,17 +173,17 @@ class Portfolio():
         trans_cost = 0.
         # cashflow = derivative_position.get_market_value()
         # derivative position cleared and exercised
-        cashflow, _ = derivative_position.buy(-derivative_position.get_holding())
         shares = derivative_position.get_instrument().exercise()
         dump_shares = derivative_position.get_holding()*shares
+        cashflow, _ = derivative_position.buy(-derivative_position.get_holding())
         # trade or deliver the corresponding shares for option exercise
         hedging_position = self._hedging_portfolio_map[derivative_position.get_instrument().get_underlying_name()]
-        trans_cost = hedging_position.buy(-dump_shares)
-        # if hedging_position is a derivative, then exercise it
-        hedging_position.get_instrument().exercise()
+        proceeds, trans_cost = hedging_position.buy(dump_shares)
         if derivative_position.get_instrument().get_is_physical_settle():
             # physical settle
+            proceeds += trans_cost
             trans_cost = 0
+        cashflow += proceeds
         return cashflow, trans_cost
 
 
@@ -191,11 +196,6 @@ class Portfolio():
         """
         cashflows = 0.
         trans_costs = 0.
-        for derivative in self._liability_portfolio:
-            if abs(derivative.get_instrument().get_remaining_time()-0.0) < 1e-5:    
-                derivative_cash_flow, trans_cost = self.derivative_exercise_event(derivative)
-                trans_costs += trans_cost
-                cashflows += derivative_cash_flow
         for hedging_position in self._hedging_portfolio:
             # rebalance hedging positions
             proceeds, trans_cost = hedging_position.buy(-hedging_position.get_holding())

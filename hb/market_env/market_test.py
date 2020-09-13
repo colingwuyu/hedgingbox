@@ -18,7 +18,7 @@ class MarketTest(unittest.TestCase):
         # AMZN
         # --------------------------------------------
         amzn = InstrumentFactory.create(
-            'Stock AMZN 100 10 0 0.5'
+            'Stock AMZN 100 10 0 0.'
         )
         otc_atm_1w_call = InstrumentFactory.create(
                                 f'EuroOpt AMZN OTC 1W Call 100.10 30.0 5 (AMZN_OTC_1W_ATM_CALL)'
@@ -197,16 +197,19 @@ class MarketTest(unittest.TestCase):
         # SPX
         # --------------------------------------------
         spx = InstrumentFactory.create(
-            'Stock SPX 3426.96 10 1.92 0.5'
+            'Stock SPX 3340.97 10 1.92 0.5'
         )
-        maturity = ['1W', '2W', '3W', '4W', '7W', '3M']
-        strike = [3420, 3425, 3430, 3435]
-        iv = [[29.33, 28.99, 28.66, 28.32],
-            [27.42, 27.78, 27.15, 27.54],
-            [26.28, 26.05, 25.85, 25.62],
-            [25.96, 25.77, 25.57, 25.38],
-            [25.5, 25.35, 25.2, 24.93],
-            [27.87, 27.75, 27.63, 27.51]]
+        maturity = ['1W', '2W', '3W', '4W', '7W', '2M', '3M']
+        strike = [3330, 3335, 3340, 3345, 3350, 3355]
+        iv = [  
+            [22.02,21.96,21.90,23.03,22.51,22.95],
+            [22.14,23.02,21.92,22.26,21.71,22.59],
+            [22.26,22.17,22.03,22.32,21.81,21.74],
+            [23.01,22.27,22.63,21.04,22.36,21.59],
+            [22.29,21.46,21.34,21.24,21.46,21.01],
+            [24.12,22.16,22.07,21.95,22.59,22.17],
+            [24.06,23.96,23.88,23.79,23.70,23.61]
+        ]
         spx_listed_calls = []
         n = 0
         for i, m in enumerate(maturity):
@@ -214,7 +217,7 @@ class MarketTest(unittest.TestCase):
             for j, s in enumerate(strike):
                 spx_listed_calls_m = spx_listed_calls_m \
                         + [InstrumentFactory.create(
-                            f'EuroOpt SPX Listed {m} Call {s} {iv[i][j]} 3.5 (SPX_Call{n})'
+                            f'EuroOpt SPX Listed {m} Call {s} {iv[i][j]} 0.5 (SPX_Call{n})'
                         ).underlying(spx)] 
                 n += 1
             spx_listed_calls.append(spx_listed_calls_m)
@@ -232,6 +235,114 @@ class MarketTest(unittest.TestCase):
                                 f'EuroOpt SPX OTC 3M Call 3425 27.87 3.5 (SPX_OTC_3M_ATM_CALL)'
                             ).underlying(spx)
         market.add_instruments([otc_atm_1w_call, otc_atm_1m_call, otc_atm_3m_call])
+        listed_3m_put_1 = InstrumentFactory.create(
+                                f'EuroOpt SPX Listed 3M Put 3330 26.48 0.5 (SPX_Listed_3M_PUT1)'
+                            ).underlying(spx)
+        listed_3m_put_2 = InstrumentFactory.create(
+                                f'EuroOpt SPX Listed 3M Put 3335 26.39 0.5 (SPX_Listed_3M_PUT2)'
+                            ).underlying(spx)
+        listed_3m_put_3 = InstrumentFactory.create(
+                                f'EuroOpt SPX Listed 3M Put 3340 25.91 0.5 (SPX_Listed_3M_PUT3)'
+                            ).underlying(spx)
+        market.add_instruments([listed_3m_put_1, listed_3m_put_2, listed_3m_put_3])
+        variance_swap_opt_hedging = market.get_instruments(['SPX_Listed_3M_PUT1',
+                                                            'SPX_Listed_3M_PUT2',
+                                                            'SPX_Listed_3M_PUT3',
+                                                            'SPX_Call38',
+                                                            'SPX_Call39',
+                                                            'SPX_Call40',
+                                                            'SPX_Call41',
+                                                            ])
+                                                            
+        variance_swap = InstrumentFactory.create(
+            f'VarSwap SPX 3M 25 1 100 (SPX_3M_VAR_SWAP)'
+        ).underlying(spx).replicating_opts(variance_swap_opt_hedging)
+        market.add_instruments([variance_swap])
+        # Test Var Swap
+        # test = InstrumentFactory.create(
+        #     'Stock TEST 100 5 0 0.5'
+        # )
+        # maturity = ['3M']
+        # strike = [50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135]
+        # iv = [  
+        #     [30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13],
+        # ]
+        # test_listed_calls = []
+        # n = 0
+        # for i, m in enumerate(maturity):
+        #     test_listed_calls_m = []
+        #     for j, s in enumerate(strike):
+        #         test_listed_calls_m = test_listed_calls_m \
+        #                 + [InstrumentFactory.create(
+        #                     f'EuroOpt TEST Listed {m} Call {s} {iv[i][j]} 0.5 (TEST_Call{n})'
+        #                 ).underlying(test)] 
+        #         n += 1
+        #     test_listed_calls.append(test_listed_calls_m)
+        
+        # market.calibrate(underlying=test,
+        #                  listed_options=test_listed_calls)
+        
+        # listed_3m_put_1 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 50 30 0.5 (TEST_Listed_3M_PUT1)'
+        #                     ).underlying(test)
+        # listed_3m_put_2 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 55 29 0.5 (TEST_Listed_3M_PUT2)'
+        #                     ).underlying(test)
+        # listed_3m_put_3 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 60 28 0.5 (TEST_Listed_3M_PUT3)'
+        #                     ).underlying(test)
+        # listed_3m_put_4 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 65 27 0.5 (TEST_Listed_3M_PUT4)'
+        #                     ).underlying(test)
+        # listed_3m_put_5 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 70 26 0.5 (TEST_Listed_3M_PUT5)'
+        #                     ).underlying(test)
+        # listed_3m_put_6 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 75 25 0.5 (TEST_Listed_3M_PUT6)'
+        #                     ).underlying(test)
+        # listed_3m_put_7 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 80 24 0.5 (TEST_Listed_3M_PUT7)'
+        #                     ).underlying(test)
+        # listed_3m_put_8 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 85 23 0.5 (TEST_Listed_3M_PUT8)'
+        #                     ).underlying(test)
+        # listed_3m_put_9 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 90 22 0.5 (TEST_Listed_3M_PUT9)'
+        #                     ).underlying(test)
+        # listed_3m_put_10 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 95 21 0.5 (TEST_Listed_3M_PUT10)'
+        #                     ).underlying(test)
+        # listed_3m_put_11 = InstrumentFactory.create(
+        #                         f'EuroOpt TEST Listed 3M Put 100 20 0.5 (TEST_Listed_3M_PUT11)'
+        #                     ).underlying(test)
+        # market.add_instruments([listed_3m_put_1, listed_3m_put_2, listed_3m_put_3, listed_3m_put_4,
+        #                         listed_3m_put_5, listed_3m_put_6, listed_3m_put_7, listed_3m_put_8,
+        #                         listed_3m_put_9, listed_3m_put_10, listed_3m_put_11])
+        # variance_swap_opt_hedging = market.get_instruments(['TEST_Listed_3M_PUT1',
+        #                                                     'TEST_Listed_3M_PUT2',
+        #                                                     'TEST_Listed_3M_PUT3',
+        #                                                     'TEST_Listed_3M_PUT4',
+        #                                                     'TEST_Listed_3M_PUT5',
+        #                                                     'TEST_Listed_3M_PUT6',
+        #                                                     'TEST_Listed_3M_PUT7',
+        #                                                     'TEST_Listed_3M_PUT8',
+        #                                                     'TEST_Listed_3M_PUT9',
+        #                                                     'TEST_Listed_3M_PUT10',
+        #                                                     'TEST_Listed_3M_PUT11',
+        #                                                     'TEST_Call10',
+        #                                                     'TEST_Call11',
+        #                                                     'TEST_Call12',
+        #                                                     'TEST_Call13',
+        #                                                     'TEST_Call14',
+        #                                                     'TEST_Call15',
+        #                                                     'TEST_Call16',
+        #                                                     'TEST_Call17',
+        #                                                     ])
+                                                            
+        # variance_swap = InstrumentFactory.create(
+        #     f'VarSwap TEST 3M 25 1 50000 (TEST_3M_VAR_SWAP)'
+        # ).underlying(test).replicating_opts(variance_swap_opt_hedging)
+        # market.add_instruments([variance_swap])
         return market
         
     def test_heston_market_setup(self):
@@ -294,3 +405,4 @@ if __name__ == "__main__":
     # MarketTest().test_bsm_market_setup()
     MarketTest().test_heston_market_setup()
     # MarketTest().test_bsm_market_load_scenario()
+    

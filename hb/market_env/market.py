@@ -46,6 +46,7 @@ class Market(dm_env.Environment):
         self._pred_episodes = None
         self._vol_model = vol_model
         self._name = name
+        self._event_trans_cost = 0.
         self._dir = pjoin(dir_, "Market_" + name + "_VolModel_" + vol_model)
 
     def get_dir(self):
@@ -143,6 +144,14 @@ class Market(dm_env.Environment):
             param = heston_calibration(self._risk_free_rate, underlying, listed_options)
         else:
             raise NotImplementedError(f'{vol_model} is not supported')
+        # param = HestonProcessParam(
+        #     risk_free_rate=0.015,
+        #     spot=100, 
+        #     drift=0.05, 
+        #     dividend=0.00,
+        #     spot_var=0.096024, kappa=6.288453, theta=0.397888, 
+        #     rho=-0.696611, vov=0.753137, use_risk_free=False
+        # )
         underlying.set_process_param(param)
         self.add_instrument(underlying)
         self.add_instruments(np.array(listed_options).flatten())
@@ -242,6 +251,7 @@ class Market(dm_env.Environment):
         #   Cashflow at Time t
         #   Transaction Cost at Time t
         cashflow, trans_cost = self._portfolio.rebalance(action)
+        trans_cost += self._event_trans_cost
         # add any cashflow in/out to funding account
         self._cash_account.add(cashflow)
         last_period_nav = self._portfolio.get_nav()
@@ -254,6 +264,9 @@ class Market(dm_env.Environment):
         portfolio_pnl = next_period_nav - last_period_nav
         # cash interest from cash account Time t => t+1
         cash_interest = self._cash_account.accrue_interest()
+        # event handling, i.e. option exercise 
+        event_cashflows, self._event_trans_cost = self._portfolio.event_handler()
+        self._cash_account.add(event_cashflows)
         # step pnl (reward) at Time t+1 includes 
         #   + portfolio pnl from Time t => t+1
         #   + interest from cash account from Time t => t+1 

@@ -236,10 +236,8 @@ class Stock(Instrument):
             spot, vol = self.get_sim_price()
             # save pred episodes, and next timestep will not need call get_sim_price
             self.save_pred_episodes()
-            print(self._cur_pred_path)
         elif (abs(self._cur_price_vol[0]-0.0) < 1e-5):
             # end of an episode
-            print(self._cur_pred_path)
             if self._cur_pred_path == self._pred_episodes:
                 # run out all episodes, start repeating
                 self._cur_pred_path = 0

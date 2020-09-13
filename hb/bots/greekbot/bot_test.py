@@ -123,6 +123,46 @@ class DeltaBotTest(unittest.TestCase):
             name="Three AMZN Calls"
         )
         self._set_up_greek_bot_test(market, portfolio, scenario='Covid19')
+    
+    def test_deltabot_with_bsm_spx_var(self):
+        # Create a GBM market
+        market = MarketTest().set_up_regression_bsm_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'AMZN', 
+                                                'AMZN_OTC_3M_ATM_CALL'
+                                                ]),
+            holdings=[0.,
+                      -10.],
+            name="Three AMZN Calls"
+        )
+        self._set_up_greek_bot_test(market, portfolio, scenario='VaR')
+    
+    def test_deltabot_with_bsm_spx_svar(self):
+        # Create a GBM market
+        market = MarketTest().set_up_regression_bsm_market()
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments([
+                                                'AMZN', 
+                                                'AMZN_OTC_3M_ATM_CALL'
+                                                ]),
+            holdings=[0.,
+                      -10.],
+            name="Three AMZN Calls"
+        )
+        self._set_up_greek_bot_test(market, portfolio, scenario='SVaR')
+
+    def test_variance_swap_hedge_heston(self):
+        market = MarketTest().set_up_heston_market()
+        variance_swap_portfolio_instruments = market.get_instrument('SPX_3M_VAR_SWAP').get_hedging_instrument_names() + ['SPX_3M_VAR_SWAP']
+        holdings = [0]*len(variance_swap_portfolio_instruments)
+        holdings[-1] = -1
+        portfolio = Portfolio.make_portfolio(
+            instruments=market.get_instruments(variance_swap_portfolio_instruments),
+            holdings=holdings,
+            name="SPX 3M Variance Swap"
+        )
+        self._set_up_greek_bot_test(market, portfolio)
 
     def test_deltabot_with_bsm_spx_amzn(self):
         # Create a GBM market

@@ -40,6 +40,12 @@ class EuropeanOption(Instrument):
     def get_strike(self) -> float:
         return self._strike
 
+    def get_is_call(self) -> bool:
+        return self._call
+    
+    def get_risk_free_rate(self):
+        return self._param.risk_free_rate
+
     def set_pricing_engine(self, spot_price=None):
         process_param = self._underlying.get_process_param()
         price, underlyer_var = self._underlying.get_price()
@@ -350,7 +356,7 @@ class EuropeanOption(Instrument):
                                     use_risk_free=True
                                 ))
         euro_opt = EuropeanOption("impl_vol", 'Call' if call else 'Put', strike,
-                                tau_e, False)
+                                tau_e, False, reset_time=False)
         euro_opt._option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
         return euro_opt
 
@@ -371,7 +377,7 @@ class EuropeanOption(Instrument):
 
 
     def __repr__(self):
-        return f'European Option {self._name}: \nunderlying=({str(self._underlying)})\noption_type={self._call}, maturity={get_period_str_from_time(self._maturity_time)}, tradable={self._tradable}, iv={self._quote}, transaction_cost={str(self._transaction_cost)}'
+        return f'European Option {self._name}: \nunderlying=({str(self._underlying)})\noption_type={self._call}, strike={self._strike}, maturity={get_period_str_from_time(self._maturity_time)}, tradable={self._tradable}, iv={self._quote}, transaction_cost={str(self._transaction_cost)}'
 
 
 if __name__ == "__main__":
