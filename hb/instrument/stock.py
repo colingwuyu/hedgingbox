@@ -135,6 +135,9 @@ class Stock(Instrument):
     def get_process_param(self):
         return self._process_param
 
+    def get_risk_free_rate(self):
+        return self._process_param.risk_free_rate
+
     def set_pricing_engine(self, step_size, 
                            pricing_engine: Union[GBMProcessParam, HestonProcessParam]=None, repeat_episodes=None):
         if (pricing_engine is not None) and (self._process_param is None):
@@ -197,7 +200,7 @@ class Stock(Instrument):
                 _cur_path = 0
                 self._simulate()
             elif (abs(cur_time-0.0) < 1e-5):
-                if (_cur_path + 1) == _repeat_episodes:
+                if _cur_path == _repeat_episodes:
                     # repeat
                     _cur_path = 0
                 else:
@@ -233,7 +236,7 @@ class Stock(Instrument):
             spot, vol = self.get_sim_price()
             # save pred episodes, and next timestep will not need call get_sim_price
             self.save_pred_episodes()
-        if (abs(self._cur_price_vol[0]-0.0) < 1e-5):
+        elif (abs(self._cur_price_vol[0]-0.0) < 1e-5):
             # end of an episode
             if self._cur_pred_path == self._pred_episodes:
                 # run out all episodes, start repeating
