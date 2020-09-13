@@ -33,7 +33,7 @@ class InstrumentFactory():
                 name=params[-1][1:-1],
                 option_type=params[4],
                 maturity=date_util.get_period_from_str(params[3]),
-                strike=float(params[5])/100.,
+                strike=float(params[5]),
                 tradable=True if params[2]=='Listed' else False,
                 quote=float(params[6])/100.,
                 transaction_cost=PercentageTransactionCost(float(params[7])/100.)
@@ -41,7 +41,7 @@ class InstrumentFactory():
         if params[0] == 'VarSwap':
             return VarianceSwap(
                 name=params[-1][1:-1],
-                vol_strike=float(params[3]),
+                vol_strike=float(params[3])/100.,
                 maturity=date_util.get_period_from_str(params[2]),
                 alpha=float(params[4]),
                 notional=float(params[5])
