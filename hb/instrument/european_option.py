@@ -136,6 +136,10 @@ class EuropeanOption(Instrument):
         return option_price
 
     def get_pred_price(self) -> float:
+        price = self.get_sim_price()
+        return price
+        
+    def _get_pred_price(self) -> float:
         """Get the prediction price at timestep t
            This function will only be called once at each timestep
            The price will be cached into _cur_price and retrieved directly from get_price() method

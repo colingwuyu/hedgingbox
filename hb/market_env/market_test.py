@@ -19,7 +19,7 @@ class MarketTest(unittest.TestCase):
         # AMZN
         # --------------------------------------------
         amzn = InstrumentFactory.create(
-            'Stock AMZN 100 10 0 0.'
+            'Stock AMZN 100 10 0 0.5'
         )
         otc_atm_1w_call = InstrumentFactory.create(
                                 f'EuroOpt AMZN OTC 1W Call 100.10 30.0 5 (AMZN_OTC_1W_ATM_CALL)'

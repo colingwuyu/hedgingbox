@@ -20,10 +20,10 @@ class DeltaBotTest(unittest.TestCase):
                                                 'AMZN_OTC_1M_ATM_CALL', 
                                                 'AMZN_OTC_3M_ATM_CALL'
                                                 ]),
-            holdings=[0., 
-                      -10., 
-                      -10., 
-                      -10.],
+            holdings=[4.5, 
+                      -3., 
+                      -3., 
+                      -3.],
             name="Three AMZN Calls"
         )
         self._set_up_greek_bot_test(market, portfolio)
