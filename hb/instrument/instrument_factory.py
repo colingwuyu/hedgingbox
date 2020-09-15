@@ -17,7 +17,7 @@ class InstrumentFactory():
                 European Option:
                     'EuroOpt Ticker OTC/Listed Maturity Call/Put Strike IV% transaction_cost% (ShortName)'
                 Variance Swap:
-                    'VarSwap Ticker Maturity VolStrike% Alpha Notional (ShortName)'
+                    'VarSwap Ticker Maturity VolStrike VarNotional (ShortName)'
         """
         params = str_instrument.split(' ')
         if params[0] == 'Stock':
@@ -41,10 +41,9 @@ class InstrumentFactory():
         if params[0] == 'VarSwap':
             return VarianceSwap(
                 name=params[-1][1:-1],
-                vol_strike=float(params[3])/100.,
+                vol_strike=float(params[3]),
                 maturity=date_util.get_period_from_str(params[2]),
-                alpha=float(params[4]),
-                notional=float(params[5])
+                var_notional=float(params[4])
             )
         return None
 

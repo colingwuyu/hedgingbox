@@ -118,7 +118,8 @@ class Market(dm_env.Environment):
 
     def calibrate(self,  
                   underlying: Stock, 
-                  listed_options: Union[EuropeanOption, List[List[EuropeanOption]]]):
+                  listed_options: Union[EuropeanOption, List[List[EuropeanOption]]]=[],
+                  param: Union[GBMProcessParam, HestonProcessParam]=None):
         """Calibrate volatility model by given instruments
 
         Args:
@@ -131,27 +132,28 @@ class Market(dm_env.Environment):
         Raises:
             NotImplementedError: vol_model other than "Heston" or "BSM" is not implemented
         """
-        if self._vol_model == 'BSM':
-            param = GBMProcessParam(
-                risk_free_rate=self._risk_free_rate,
-                spot=underlying.get_quote(), 
-                drift=underlying.get_annual_yield(), 
-                dividend=underlying.get_dividend_yield(), 
-                vol=listed_options.get_quote(),
-                use_risk_free=False
-            )
-        elif self._vol_model == 'Heston':
-            param = heston_calibration(self._risk_free_rate, underlying, listed_options)
-        else:
-            raise NotImplementedError(f'{vol_model} is not supported')
-        # param = HestonProcessParam(
-        #     risk_free_rate=0.015,
-        #     spot=100, 
-        #     drift=0.05, 
-        #     dividend=0.00,
-        #     spot_var=0.096024, kappa=6.288453, theta=0.397888, 
-        #     rho=-0.696611, vov=0.753137, use_risk_free=False
-        # )
+        if param is None:
+            if self._vol_model == 'BSM':
+                param = GBMProcessParam(
+                    risk_free_rate=self._risk_free_rate,
+                    spot=underlying.get_quote(), 
+                    drift=underlying.get_annual_yield(), 
+                    dividend=underlying.get_dividend_yield(), 
+                    vol=listed_options.get_quote(),
+                    use_risk_free=False
+                )
+            elif self._vol_model == 'Heston':
+                param = heston_calibration(self._risk_free_rate, underlying, listed_options)
+            else:
+                raise NotImplementedError(f'{vol_model} is not supported')
+            # param = HestonProcessParam(
+            #     risk_free_rate=0.015,
+            #     spot=100, 
+            #     drift=0.05, 
+            #     dividend=0.00,
+            #     spot_var=0.096024, kappa=6.288453, theta=0.397888, 
+            #     rho=-0.696611, vov=0.753137, use_risk_free=False
+            # )
         underlying.set_process_param(param)
         self.add_instrument(underlying)
         self.add_instruments(np.array(listed_options).flatten())

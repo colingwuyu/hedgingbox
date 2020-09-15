@@ -1,7 +1,7 @@
 from hb.pricing import blackscholes
 from hb.instrument.european_option import EuropeanOption
 from hb.market_env.portfolio import Portfolio
-from hb.bots.greekbot.hedging_strategy import EuroDeltaHedgingStrategy
+from hb.bots.greekbot.hedging_strategy import *
 from acme import core
 from acme import types
 from dm_env import specs
@@ -19,7 +19,8 @@ class GreekHedgeActor(core.Actor):
     def __init__(self, portfolio: Portfolio, use_bs_delta: bool,
                  action_spec: specs.BoundedArray):
         self._strategies = [
-            EuroDeltaHedgingStrategy(portfolio, use_bs_delta, action_spec)
+            EuroDeltaHedgingStrategy(portfolio, use_bs_delta, action_spec),
+            VarianceSwapReplicatingStrategy(portfolio, action_spec)
         ]
         self._actions = np.zeros(action_spec.shape)
 

@@ -14,7 +14,7 @@ from typing import List
 
 class VarianceSwap(Instrument):
     def __init__(self, name: str, vol_strike: float, 
-                 maturity: float, alpha: float=1.0, notional: float=100.,
+                 maturity: float, var_notional: float=None, vega_notional: float=None,
                  underlying: Stock = None,
                  replicating_portfolio: List[EuropeanOption] = [],
                  dk: float = 5.):
@@ -24,18 +24,21 @@ class VarianceSwap(Instrument):
            Using replicating portfolio to price variance swap
         Args:
             name (str): name of the instrument
-            vol_strike (float): volatility strike price
+            vol_strike (float): volatility strike (in terms of 100, for example implied vol = 0.25, then strike = 25, var_strike = 25**2)
             maturity (float): maturity time
-            alpha (float, optional): converting parameter $ per volatility-square. Defaults to 1.0.
-            notional (float, optional): notional of the contract. Defaults to 100.0.
+            notional (float, optional): notional of the contract. Defaults to 1000.0.
             underlying (Stock, optional): underlying stock. Defaults to None.
             replicating_portfolio (List[EuropeanOption], optional): the european options used to price the variance swap by replicating portfolio. Default to empty.
             dk (float, optional): use as the boundary case delta k for the european options' weights calculation. 
         """
+        self._pricing_method = 'Replicating'
+        self._excl_realized_var = False
         self._maturity = maturity
-        self._strike = vol_strike**2
-        self._alpha = alpha
-        self._notional = notional
+        self._var_strike = vol_strike**2
+        if var_notional:
+            self._var_notional = var_notional
+        else:
+            self._var_notional = vega_notional/2/vol_strike
         self._s_tm = None
         self._realized_var = 0.
         self._tm = None
@@ -71,59 +74,18 @@ class VarianceSwap(Instrument):
             self._options = np.append(self._puts, self._calls)
         super().__init__(name, False, None, None, underlying, None)
 
-    def _compute_option_weights(self, strikes: List[float], is_call: bool) -> List[float]:
-        option_weights = np.zeros(len(strikes))
-        if len(strikes) == 0:
-            return option_weights
-        strikes = self._call_strikes if is_call else self._put_strikes
-        if is_call:
-            strikes = np.append(strikes, strikes[-1]+self._dk)
-        else:
-            strikes = np.append(strikes, max(strikes[-1]-self._dk, 0.))
-        slope = 0.; prev_slope = 0.
-        for strike_i in range(len(strikes)-1):
-            # slope = abs(self._comput_log_payoff(strikes[strike_i+1]) - 
-            #             self._comput_log_payoff(strikes[strike_i])  
-            #             / (strikes[strike_i+1] - strikes[strike_i]))
-            # if strike_i == 0:
-            #     option_weights[strike_i] = slope
-            # else:
-            #     option_weights[strike_i] = slope - prev_slope
-            option_weights[strike_i] = abs(1/strikes[strike_i+1] - 1/strikes[strike_i])*2./self.get_remaining_time()
-            prev_slope = slope
-        return option_weights
-
-    def _comput_log_payoff(self, strike: float) -> float:
-        return (2./self.get_remaining_time())*((strike - self._f)/self._f - math.log(strike/self._f))
-
-    def _compute_replication_portfolio(self, option_weights: List[float], options: List[EuropeanOption]) -> float:
-        options_value = 0.
-        spot, _ = self._underlying.get_price()
-        r = self._underlying.get_risk_free_rate()
-        df = math.exp(-r*self.get_remaining_time())
-        fwd = spot/df
-        process_param = self._underlying.get_process_param()
-        for option_i in range(len(option_weights)):
-            # self._param = GBMProcessParam(
-            #         risk_free_rate=process_param.risk_free_rate, spot=spot, 
-            #         drift=process_param.risk_free_rate, 
-            #         dividend=self._underlying.get_dividend_yield(), 
-            #         vol=options[option_i].get_quote(), use_risk_free=True
-            #     )
-            # bsm_process = create_gbm_process(self._param)        
-            # options[option_i]._option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
-            # option_price=options[option_i]._option.NPV()
-            option_price = options[option_i].get_price()
-            weight = option_weights[option_i]
-            options_value += option_price*weight
-        ret_var = 2. * r \
-                    - 2./self.get_remaining_time() * \
-                        ((fwd - self._f)/self._f + 
-                         math.log(self._f/spot)) \
-                    + options_value / df
-        return ret_var
-
     def replicating_opts(self, repliacting_portfolio: List[EuropeanOption]):
+        """Add a portfolio of OTM options for replicating variance swap
+            Calculates the replicating weights of OTM options
+            Derman's Method (Demeterfi et al., 1999)
+            Replicating the constant dollar gamma payoff:
+                $$f(x)=\frac{x}{K_0}-1-ln(\frac{x}{K_0})$$
+        Args:
+            repliacting_portfolio (List[EuropeanOption]): a list OTM puts and calls
+
+        Returns:
+            VarianceSwap: return self
+        """
         self._puts = np.array([])
         self._put_strikes = np.array([])
         self._calls = np.array([])
@@ -152,9 +114,84 @@ class VarianceSwap(Instrument):
         self._option_weights = np.append(self._call_weights, self._put_weights)
         self._options = np.append(self._calls, self._puts)
         return self
+        
+    def _compute_option_weights(self, strikes: List[float], is_call: bool) -> List[float]:
+        """Compute the replicating weights of OTM options
+            Derman's Method (Demeterfi et al., 1999)
+
+        Args:
+            strikes (List[float]): a list of OTM strikes call or put
+            is_call (bool): True - OTM Calls; False - OTM Puts
+
+        Returns:
+            List[float]: the replicating weights of the input options
+        """
+        option_weights = np.zeros(len(strikes))
+        if len(strikes) == 0:
+            return option_weights
+        strikes = self._call_strikes if is_call else self._put_strikes
+        if is_call:
+            strikes = np.append(strikes, strikes[-1]+self._dk)
+        else:
+            strikes = np.append(strikes, max(strikes[-1]-self._dk, 0.))
+        slope = 0.; prev_slope = 0.
+        for strike_i in range(len(strikes)-1):
+            slope = abs((self._compute_log_payoff(strikes[strike_i+1]) - 
+                        self._compute_log_payoff(strikes[strike_i])) / 
+                        (strikes[strike_i+1] - strikes[strike_i]))
+            if strike_i == 0:
+                option_weights[strike_i] = slope
+            else:
+                option_weights[strike_i] = slope - prev_slope
+            prev_slope = slope
+        return option_weights
+
+    def _compute_log_payoff(self, strike: float) -> float:
+        """Log Payoff
+                $$f(x)=\frac{x}{K_0}-1-ln(\frac{x}{K_0})$$
+
+        Args:
+            strike (float): strike x
+
+        Returns:
+            float: log payoff
+        """
+        return strike/self._f - 1 - math.log(strike/self._f)
+
+    def _compute_replication_portfolio(self, option_weights: List[float], options: List[EuropeanOption]) -> float:
+        options_value = 0.
+        spot, _ = self._underlying.get_price()
+        r = self._underlying.get_risk_free_rate()
+        df = math.exp(-r*self.get_remaining_time())
+        fwd = spot/df
+        process_param = self._underlying.get_process_param()
+        for option_i in range(len(option_weights)):
+            option_price = options[option_i].get_price()
+            weight = option_weights[option_i]
+            options_value += option_price*weight
+        ret_var = 2. * r \
+                    - 2./self.get_remaining_time() * \
+                        ((fwd - self._f)/self._f + 
+                         math.log(self._f/spot)) \
+                    + 2./self.get_remaining_time() * (options_value / df)
+        return ret_var
+
+    def _heston_fut_var(self):
+        """Future variance based on Heston model
+           The variance sde of Heston model follows CIR process 
+            $$dv=\kappa (\theta - v)dt + \sigma \sqrt{v} dW_v$$
+           The expected value of total variance
+            $$E[\int_t^T{\sigma^2_t}dt]$$
+           can be solved in closed form
+            $$\theta+\frac{v_0-\theta}{\kappa T}(1-e^{-\kappa T})$$
+        """
+        tau = self.get_remaining_time()
+        return (self._param.theta + 
+                 (self._param.spot_var-self._param.theta)/self._param.kappa/tau 
+                 * (1- math.exp(-self._param.kappa*tau)))
 
     def get_strike(self) -> float:
-        return self._strike
+        return self._var_strike
 
     def set_pricing_engine(self):
         pass
@@ -165,15 +202,40 @@ class VarianceSwap(Instrument):
             hedging_names += [opt.get_name()]
         return hedging_names
 
+    def get_var_notional(self):
+        return self._var_notional
+
+    def get_vega_notional(self):
+        return self._var_notional*2*self._var_strike**0.5
+
+    def set_pricing_method(self, pricing_method: str):
+        """Pricing method
+
+        Args:
+            pricing_method (str): 'Replicating' (default in constructor) or 'Heston'
+        """
+        self._pricing_method = pricing_method
+
+    def set_excl_realized_var(self, excl_realized_var: bool):
+        """For testing purpose only
+
+        Args:
+            excl_realized_var (bool): True - to exclude realized variance from price
+        """
+        self._excl_realized_var = excl_realized_var
+
     def get_greeks(self):
         """Return greeks
             A long position of Variance swap has greeks:
                 - underlying share: -1
                 - replicating options: option_weight
         """
-        hedging_ratios = {self._underlying.get_name(): -2./self._maturity/self._f}
-        for opt, weight in zip(self._options, 2./self._maturity*self._option_weights):
-            hedging_ratios[opt.get_name()] = weight
+        underlying_price, _ = self._underlying.get_price()
+        r = self._underlying.get_risk_free_rate()
+        fwd = underlying_price*math.exp(r*self.get_remaining_time())
+        hedging_ratios = {self._underlying.get_name(): self._var_notional*1e4*2./self._maturity*(1/fwd-1/self._f)}
+        for opt, weight in zip(self._options, self._option_weights):
+            hedging_ratios[opt.get_name()] = self._var_notional*1e4*weight*2./self._maturity
         return hedging_ratios
         
     def exercise(self) -> float:
@@ -187,6 +249,19 @@ class VarianceSwap(Instrument):
         delivery = -1.
         return delivery
 
+    def set_pricing_engine(self):
+        process_param = self._underlying.get_process_param()
+        underlying_price, underlyer_var = self._underlying.get_price()
+        assert isinstance(process_param, HestonProcessParam), "Market volatility model has to be dynamic vol (i.e. Heston) for pricing variance swap."
+        # Heston model
+        self._param = HestonProcessParam(
+                risk_free_rate=process_param.risk_free_rate,spot=underlying_price, 
+                spot_var=max(consts.IMPLIED_VOL_FLOOR, underlyer_var), 
+                drift=process_param.risk_free_rate, dividend=self._underlying.get_dividend_yield(),
+                kappa=process_param.kappa, theta=process_param.theta, 
+                rho=process_param.rho, vov=process_param.vov, use_risk_free=True
+            )
+
     def get_sim_price(self) -> float:
         """price of simulated episode at current time
 
@@ -194,6 +269,9 @@ class VarianceSwap(Instrument):
             float: price
         """
         cur_time = get_cur_time()
+        if (self._cur_price[1] is None):
+            # first visit of this timestep, need set up pricing engine
+            self.set_pricing_engine()
         if cur_time < 1e-5: 
             # Time 0
             self._s_tm, _ = self._underlying.get_price()
@@ -208,7 +286,7 @@ class VarianceSwap(Instrument):
             self._s_tm = _s_t
         if abs(self._maturity - cur_time) < 1e-5:
             # expiry
-            return self._alpha*self._notional*(self._realized_var - self._strike)
+            return self._var_notional*(1e4*self._realized_var - self._var_strike)
         elif (self._maturity - cur_time) <= -1e-5:
             # past expiry
             return 0.
@@ -218,9 +296,18 @@ class VarianceSwap(Instrument):
             # future variance
             r = self._underlying.get_risk_free_rate()
             df = math.exp(-r*self.get_remaining_time())
-            fut_variance = self._compute_replication_portfolio(self._option_weights, self._options)
-            variance = cur_time*self._realized_var + self.get_remaining_time()*fut_variance
-            return df*self._alpha*self._notional*(variance/self._maturity - self._strike) 
+            if self._pricing_method == 'Replicating':
+                # Replicating
+                fut_variance = self._compute_replication_portfolio(self._option_weights, self._options)
+            else:
+                # Heston
+                fut_variance = self._heston_fut_var()
+            if self._excl_realized_var:
+                variance = cur_time*self._var_strike/1e4 + self.get_remaining_time()*fut_variance
+            else:
+                variance = cur_time*self._realized_var + self.get_remaining_time()*fut_variance
+            variance = variance/self._maturity
+            return df*self._var_notional*(1e4*variance- self._var_strike) 
 
     def get_is_physical_settle(self):
         return False
@@ -288,10 +375,10 @@ class VarianceSwap(Instrument):
         Returns:
             float: the realised variance in past
         """    
-        return self._realized_var
+        return self._realized_var*1e4
 
     def __repr__(self):
-        return f'Variance Swap {self._name}: \nunderlying=({str(self._underlying)})\nMaturity={get_period_str_from_time(self._maturity)}, VarStrike={self._strike}, VarNotional={self._alpha}'
+        return f'Variance Swap {self._name}: \nunderlying=({str(self._underlying)})\nMaturity={get_period_str_from_time(self._maturity)}, VarStrike={self._var_strike}, VarNotional={self._var_notional}'
 
 
 if __name__ == "__main__":
@@ -307,7 +394,7 @@ if __name__ == "__main__":
     )
     print(spx)
     spx_var_swap = InstrumentFactory.create(
-        'VarSwap AMZN 3M 0.04 1 (AMZN_VAR_SWAP)'
+        'VarSwap AMZN 3M 52 10000 (AMZN_VAR_SWAP)'
     ).underlying(spx)
     print(spx_var_swap)
     risk_free_rate = 0.015

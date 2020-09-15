@@ -34,15 +34,15 @@ class DeltaBotTest(unittest.TestCase):
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments([
                                                 'AMZN', 
-                                                'AMZN_OTC_1W_ATM_CALL',  
+                                                # 'AMZN_OTC_1W_ATM_CALL',  
                                                 # 'AMZN_OTC_1M_ATM_CALL', 
-                                                # 'AMZN_OTC_3M_ATM_CALL'
+                                                'AMZN_OTC_3M_ATM_CALL'
                                                 ]),
             holdings=[0., 
                     #   -10., 
                     #   -10., 
                       -10.],
-            name="AMZN and AMZN_1W_Call"
+            name="AMZN and AMZN_3M_Call"
         )
         self._set_up_greek_bot_test(market, portfolio)
 

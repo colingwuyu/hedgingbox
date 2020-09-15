@@ -61,16 +61,19 @@ class EuropeanOption(Instrument):
                     rho=process_param.rho, vov=process_param.vov, use_risk_free=True
                 )
             heston_process = create_heston_process(self._param)
-            bsm_process = create_gbm_process(
-                GBMProcessParam(
-                    risk_free_rate=process_param.risk_free_rate, spot=underlyer_price, 
-                    drift=process_param.risk_free_rate,
-                    dividend=self._underlying.get_dividend_yield(), 
-                    vol=underlyer_var**0.5, use_risk_free=True
-                )
-            )
+            # bsm_process = create_gbm_process(
+            #     GBMProcessParam(
+            #         risk_free_rate=process_param.risk_free_rate, spot=underlyer_price, 
+            #         drift=process_param.risk_free_rate,
+            #         dividend=self._underlying.get_dividend_yield(), 
+            #         vol=underlyer_var**0.5, use_risk_free=True
+            #     )
+            # )
             self._option.setPricingEngine(ql.AnalyticHestonEngine(ql.HestonModel(heston_process),0.01,1000))
-            self._back_up_pricing_engine = ql.AnalyticEuropeanEngine(bsm_process)
+            self._back_up_pricing_engine = ql.MCEuropeanHestonEngine(
+                heston_process, 'pr', timeSteps=days_from_time(self.get_remaining_time()) if self.get_remaining_time() > 0 else 1, requiredSamples=1_000
+            )
+            # self._back_up_pricing_engine = ql.AnalyticEuropeanEngine(bsm_process)
         elif isinstance(process_param, GBMProcessParam):
             # BSM Model
             self._param = GBMProcessParam(
@@ -107,9 +110,11 @@ class EuropeanOption(Instrument):
             # price before expiry
             try:
                 price = self._option.NPV()
-                # if self._back_up_pricing_engine:
-                #     self._option.setPricingEngine(self._back_up_pricing_engine)
-                #     print(get_date(), price, self._option.NPV(), price - self._option.NPV())
+                if self._back_up_pricing_engine:
+                    self._option.setPricingEngine(self._back_up_pricing_engine)
+                    with open('logger.csv', 'a') as logger:
+                        mc_price = self._option.NPV()
+                        logger.write(','.join([str(k) for k in [self.get_remaining_time(), price, mc_price, price/mc_price-1]])+'\n')
                 # if abs(price -blackscholes.price(True, self._param.spot, self._param.risk_free_rate, 
                 #                         self._param.dividend, self._param.vol, self._strike, 
                 #                         self.get_remaining_time(), self.get_remaining_time())) > 1e-5:

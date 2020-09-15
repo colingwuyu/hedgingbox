@@ -1,6 +1,7 @@
 from typing import List
 from hb.instrument.instrument import Instrument
 from hb.instrument.stock import Stock
+from hb.instrument.european_option import EuropeanOption
 from hb.utils.date import *
 import os
 

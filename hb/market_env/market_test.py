@@ -4,6 +4,7 @@ from hb.instrument.instrument_factory import InstrumentFactory
 from hb.market_env.rewardrules.pnl_reward import PnLReward
 from hb.market_env.market import Market
 from hb.market_env.portfolio import Portfolio
+from hb.utils.process import *
 
 class MarketTest(unittest.TestCase):
     def set_up_regression_bsm_market(self):
@@ -148,7 +149,7 @@ class MarketTest(unittest.TestCase):
 
     def set_up_heston_market(self):
         market = Market(reward_rule=PnLReward(),
-                        risk_free_rate=0.015,
+                        risk_free_rate=0.0223,
                         hedging_step_in_days=1,
                         vol_model='Heston',
                         name='Heston_AMZN_SPX',
@@ -197,66 +198,74 @@ class MarketTest(unittest.TestCase):
         # SPX
         # --------------------------------------------
         spx = InstrumentFactory.create(
-            'Stock SPX 3340.97 10 1.92 0.5'
+            'Stock SPX 100 10 1.92 0.5'
         )
-        maturity = ['1W', '2W', '3W', '4W', '7W', '2M', '3M']
-        strike = [3330, 3335, 3340, 3345, 3350, 3355]
-        iv = [  
-            [22.02,21.96,21.90,23.03,22.51,22.95],
-            [22.14,23.02,21.92,22.26,21.71,22.59],
-            [22.26,22.17,22.03,22.32,21.81,21.74],
-            [23.01,22.27,22.63,21.04,22.36,21.59],
-            [22.29,21.46,21.34,21.24,21.46,21.01],
-            [24.12,22.16,22.07,21.95,22.59,22.17],
-            [24.06,23.96,23.88,23.79,23.70,23.61]
-        ]
-        spx_listed_calls = []
-        n = 0
-        for i, m in enumerate(maturity):
-            spx_listed_calls_m = []
-            for j, s in enumerate(strike):
-                spx_listed_calls_m = spx_listed_calls_m \
-                        + [InstrumentFactory.create(
-                            f'EuroOpt SPX Listed {m} Call {s} {iv[i][j]} 0.5 (SPX_Call{n})'
-                        ).underlying(spx)] 
-                n += 1
-            spx_listed_calls.append(spx_listed_calls_m)
+        # maturity = ['1W', '2W', '3W', '4W', '7W', '2M', '3M']
+        # strike = [3330, 3335, 3340, 3345, 3350, 3355]
+        # iv = [  
+        #     [22.02,21.96,21.90,23.03,22.51,22.95],
+        #     [22.14,23.02,21.92,22.26,21.71,22.59],
+        #     [22.26,22.17,22.03,22.32,21.81,21.74],
+        #     [23.01,22.27,22.63,21.04,22.36,21.59],
+        #     [22.29,21.46,21.34,21.24,21.46,21.01],
+        #     [24.12,22.16,22.07,21.95,22.59,22.17],
+        #     [24.06,23.96,23.88,23.79,23.70,23.61]
+        # ]
+        # spx_listed_calls = []
+        # n = 0
+        # for i, m in enumerate(maturity):
+        #     spx_listed_calls_m = []
+        #     for j, s in enumerate(strike):
+        #         spx_listed_calls_m = spx_listed_calls_m \
+        #                 + [InstrumentFactory.create(
+        #                     f'EuroOpt SPX Listed {m} Call {s} {iv[i][j]} 0.5 (SPX_Call{n})'
+        #                 ).underlying(spx)] 
+        #         n += 1
+        #     spx_listed_calls.append(spx_listed_calls_m)
         
+        # Heston param from 
+        # heston_param = HestonProcessParam(
+        #     risk_free_rate = 0.0223, spot = spx.get_quote(), spot_var = 0.001006,
+        #     drift = spx.get_annual_yield(), dividend = spx.get_dividend_yield(),
+        #     kappa = 2.4056, theta = 0.04264, vov = 0.8121, rho = -0.7588,
+        #     use_risk_free = False
+        # )
+        heston_param = HestonProcessParam(
+            risk_free_rate=0.015,
+            spot=spx.get_quote(), 
+            drift=spx.get_annual_yield(), 
+            dividend=spx.get_dividend_yield(),
+            spot_var=0.096024, kappa=6.288453, theta=0.397888, 
+            rho=-0.696611, vov=0.753137, use_risk_free=False
+        )
         market.calibrate(underlying=spx,
-                         listed_options=spx_listed_calls)
-        
-        otc_atm_1w_call = InstrumentFactory.create(
-                                f'EuroOpt SPX OTC 1W Call 3425 28.99 3.5 (SPX_OTC_1W_ATM_CALL)'
-                            ).underlying(spx)
-        otc_atm_1m_call = InstrumentFactory.create(
-                                f'EuroOpt SPX OTC 4W Call 3425 25.96 3.5 (SPX_OTC_1M_ATM_CALL)'
-                            ).underlying(spx)
-        otc_atm_3m_call = InstrumentFactory.create(
-                                f'EuroOpt SPX OTC 3M Call 3425 27.87 3.5 (SPX_OTC_3M_ATM_CALL)'
-                            ).underlying(spx)
-        market.add_instruments([otc_atm_1w_call, otc_atm_1m_call, otc_atm_3m_call])
-        listed_3m_put_1 = InstrumentFactory.create(
-                                f'EuroOpt SPX Listed 3M Put 3330 26.48 0.5 (SPX_Listed_3M_PUT1)'
-                            ).underlying(spx)
-        listed_3m_put_2 = InstrumentFactory.create(
-                                f'EuroOpt SPX Listed 3M Put 3335 26.39 0.5 (SPX_Listed_3M_PUT2)'
-                            ).underlying(spx)
-        listed_3m_put_3 = InstrumentFactory.create(
-                                f'EuroOpt SPX Listed 3M Put 3340 25.91 0.5 (SPX_Listed_3M_PUT3)'
-                            ).underlying(spx)
-        market.add_instruments([listed_3m_put_1, listed_3m_put_2, listed_3m_put_3])
-        variance_swap_opt_hedging = market.get_instruments(['SPX_Listed_3M_PUT1',
-                                                            'SPX_Listed_3M_PUT2',
-                                                            'SPX_Listed_3M_PUT3',
-                                                            'SPX_Call38',
-                                                            'SPX_Call39',
-                                                            'SPX_Call40',
-                                                            'SPX_Call41',
-                                                            ])
+                         param=heston_param)
+        # List of OTM options for variance swap replication
+        k0 = 100
+        call_strikes = range(k0, 150, 30)
+        put_strikes = range(k0, 50, -30)
+        replicating_opts = []
+        for i, strike in enumerate(put_strikes):
+            # OTM put
+            otm_put = InstrumentFactory.create(
+                            f'EuroOpt SPX Listed 3M Put {strike} 25 0. (SPX_Listed_3M_PUT{i})'
+                        ).underlying(spx)
+            market.add_instruments([otm_put])
+            replicating_opts += [f'SPX_Listed_3M_PUT{i}']
+        for i, strike in enumerate(call_strikes):
+            # OTM call
+            otm_call = InstrumentFactory.create(
+                            f'EuroOpt SPX Listed 3M Call {strike} 25 0. (SPX_Listed_3M_CALL{i})'
+                        ).underlying(spx)
+            market.add_instruments([otm_call])
+            replicating_opts += [f'SPX_Listed_3M_CALL{i}']
+        variance_swap_opt_hedging = market.get_instruments(replicating_opts)
                                                             
         variance_swap = InstrumentFactory.create(
-            f'VarSwap SPX 3M 25 1 100 (SPX_3M_VAR_SWAP)'
+            f'VarSwap SPX 3M 23 0.1 (SPX_3M_VAR_SWAP)'
         ).underlying(spx).replicating_opts(variance_swap_opt_hedging)
+        variance_swap.set_pricing_method('Replicating')
+        variance_swap.set_excl_realized_var(True)
         market.add_instruments([variance_swap])
         # Test Var Swap
         # test = InstrumentFactory.create(
