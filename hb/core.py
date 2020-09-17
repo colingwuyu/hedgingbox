@@ -236,9 +236,9 @@ class Predictor(core.Actor):
         measures['pnl_quantile_90'] = np.quantile(self._pred_pnls, 0.9)
         measures['pnl_quantile_95'] = np.quantile(self._pred_pnls, 0.95)
         measures['pnl_quantile_99'] = np.quantile(self._pred_pnls, 0.99)
-        measures['pnl_95VaR'] = measures['pnl_quantile_5']
+        measures['pnl_95VaR'] = self._pred_pnls[int(round(len(self._pred_pnls)*0.05))-1]
         measures['pnl_95CVaR'] = self._pred_pnls[:int(round(len(self._pred_pnls)*0.05))].mean()
-        measures['pnl_99VaR'] = measures['pnl_quantile_1']
+        measures['pnl_99VaR'] = self._pred_pnls[int(round(len(self._pred_pnls)*0.01))-1]
         measures['pnl_99CVaR'] = self._pred_pnls[:int(round(len(self._pred_pnls)*0.01))].mean()
         measures['pnl_mean'] = self._pred_pnls.mean()
         measures['pnl_std'] = self._pred_pnls.std()

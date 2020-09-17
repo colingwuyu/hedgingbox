@@ -235,6 +235,16 @@ class Market(dm_env.Environment):
         self._cash_account.add(-initial_cashflow)
         self._reward_rule.reset(self._portfolio)
         self._pnl_reward.reset(self._portfolio)
+        with open('logger.csv', 'a') as logger:
+            logger.write(','.join([str(k) for k in 
+                [get_cur_days(), 0., 100., 5, 
+                self._portfolio.get_hedging_portfolio()[0].get_instrument().get_price()[0], 
+                self._portfolio.get_hedging_portfolio()[0].get_holding(),
+                self._portfolio.get_liability_portfolio()[0].get_instrument().get_price(), 
+                self._portfolio.get_liability_portfolio()[0].get_holding(), 
+                self._cash_account.get_balance(), 
+                0., '', 0., '']])+'\n'
+            )
         return dm_env.restart(np.append(self._observation(), 0.))
 
     def step(self, action):
@@ -252,10 +262,6 @@ class Market(dm_env.Environment):
         # take action and rebalance hedging at Time t
         #   Cashflow at Time t
         #   Transaction Cost at Time t
-        cashflow, trans_cost = self._portfolio.rebalance(action)
-        trans_cost += self._event_trans_cost
-        # add any cashflow in/out to funding account
-        self._cash_account.add(cashflow)
         last_period_nav = self._portfolio.get_nav()
         # ==============================================
         # move to next day
@@ -266,6 +272,10 @@ class Market(dm_env.Environment):
         portfolio_pnl = next_period_nav - last_period_nav
         # cash interest from cash account Time t => t+1
         cash_interest = self._cash_account.accrue_interest()
+        cashflow, trans_cost = self._portfolio.rebalance(action)
+        trans_cost += self._event_trans_cost
+        # add any cashflow in/out to funding account
+        self._cash_account.add(cashflow)
         # event handling, i.e. option exercise 
         event_cashflows, self._event_trans_cost = self._portfolio.event_handler()
         self._cash_account.add(event_cashflows)
