@@ -78,6 +78,13 @@ class Portfolio():
             positions += [Position(instrument, holding)]
         return cls(positions, name)
 
+    def get_all_liability_expired(self) -> bool:
+        all_expired = True
+        for derivative in self._liability_portfolio:
+            if not derivative.get_instrument().get_is_expired():
+                all_expired = False
+        return all_expired
+
     def get_dir(self):
         return self._dir
 
@@ -186,7 +193,6 @@ class Portfolio():
             trans_cost = 0
         cashflow += proceeds
         return cashflow, trans_cost
-
 
     def dump_portfolio(self):
         """Dump portfolio at terminal step
