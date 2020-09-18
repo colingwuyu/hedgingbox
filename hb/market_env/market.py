@@ -257,33 +257,57 @@ class Market(dm_env.Environment):
         Returns:
             [dm_env.TimeStep]: MID or LAST TimeStep
         """
-        # ==============================================
-        # Time t
-        # take action and rebalance hedging at Time t
-        #   Cashflow at Time t
-        #   Transaction Cost at Time t
-        last_period_nav = self._portfolio.get_nav()
-        # ==============================================
-        # move to next day
-        # Time t+1
-        move_days(self._hedging_step_in_days)
-        next_period_nav = self._portfolio.get_nav()
-        # portfolio pnl from Time t => t+1
-        portfolio_pnl = next_period_nav - last_period_nav
-        # cash interest from cash account Time t => t+1
-        cash_interest = self._cash_account.accrue_interest()
-        cashflow, trans_cost = self._portfolio.rebalance(action)
-        trans_cost += self._event_trans_cost
-        # add any cashflow in/out to funding account
-        self._cash_account.add(cashflow)
-        # event handling, i.e. option exercise 
-        event_cashflows, self._event_trans_cost = self._portfolio.event_handler()
-        self._cash_account.add(event_cashflows)
-        # step pnl (reward) at Time t+1 includes 
-        #   + portfolio pnl from Time t => t+1
-        #   + interest from cash account from Time t => t+1 
-        #   - transaction cost caused by hedging action at Time t
-        step_pnl = portfolio_pnl + cash_interest - trans_cost
+        # ==============================================================#
+        # Time t                                                        #
+        # ==============================================================# 
+        
+        # ==============================================================#
+        # Action                                                        #
+        # Take action and rebalance hedging at Time t                   #
+        #   Cashflow at Time t                                          #
+        #   Transaction Cost at Time t.                                 #
+        # ==============================================================#
+        cashflow, trans_cost = self._portfolio.rebalance(action)        #
+        trans_cost += self._event_trans_cost                            #
+        # add any cashflow in/out to funding account                    #
+        self._cash_account.add(cashflow)                                #
+        # ==============================================================#
+        # end of action                                                 #
+        # ==============================================================#
+        
+        # ==============================================================#
+        # NAV at time t                                                 #
+        last_period_nav = self._portfolio.get_nav()                     #
+        # ==============================================================#
+        # End of Time t                                                 #
+        # ==============================================================#
+
+        # ==============================================================#
+        # Move to next day                                              #   
+        # Time t+1                                                      #
+        # ==============================================================#
+        move_days(self._hedging_step_in_days)                           #
+        # NAV at time t+1                                               #
+        next_period_nav = self._portfolio.get_nav()                     #
+        # Portfolio PnL from Time t => t+1                              #
+        portfolio_pnl = next_period_nav - last_period_nav               #
+        # Cash account interest from cash account Time t => t+1         #
+        cash_interest = self._cash_account.accrue_interest()            #
+        # Event handling, i.e. option exercise                          #
+        event_cashflows, self._event_trans_cost = self._portfolio.event_handler()      
+        # Add event cash flow into cash account                         #
+        self._cash_account.add(event_cashflows)                         #
+        # ==============================================================#
+
+        # ==============================================================#
+        # Step PnL (Reward) at Time t+1 includes                        #
+        #   + portfolio pnl from Time t => t+1                          #
+        #   + interest from cash account from Time t => t+1             #
+        #   - transaction cost caused by hedging action at Time t+1(t?) #
+        # ==============================================================#
+        step_pnl = portfolio_pnl + cash_interest - trans_cost           #
+        # ==============================================================#
+        
         # print(action, trans_cost)
         # with open('logger.csv', 'a') as logger:
         #     logger.write(','.join([str(k) for k in [get_cur_days(), action[0], self._portfolio.get_hedging_portfolio()[0].get_instrument().get_price()[0], 
@@ -293,16 +317,16 @@ class Market(dm_env.Environment):
         #         self._cash_account.get_balance(), 
         #         cash_interest, portfolio_pnl, trans_cost, step_pnl]])+'\n')
         if self._reach_terminal():
-            # last step at Time T
-            # dump whole portfolio
-            #   Cashflow at Time T
-            #   Transaction cost at Time T
+            # Last step at Time T
             if self._portfolio.get_all_liability_expired():
+                # Dump whole portfolio if all positions in liability portfolio expire
+                #   Cashflow at Time T
+                #   Transaction cost at Time T    
                 cashflow, trans_cost = self._portfolio.dump_portfolio()
-                # step pnl (reward) at Time T also includes
-                #   - transaction cost caused by dumping the portfolio at Time T
+                # Step pnl (reward) at Time T also includes
+                #   - Transaction cost caused by dumping the portfolio at Time T
                 step_pnl -= trans_cost
-                # add the cashflow at Time T into cash account
+                # Add the cashflow at Time T into cash account
                 self._cash_account.add(cashflow)
             # print("Cash account Balance: ", self._cash_account.get_balance())
             ret_step = dm_env.termination(

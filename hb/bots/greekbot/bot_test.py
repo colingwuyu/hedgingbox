@@ -198,8 +198,12 @@ class DeltaBotTest(unittest.TestCase):
         # we care about is that the agent runs without raising any errors.
         loop = acme.EnvironmentLoop(market, agent)
         loop.run(num_episodes=market.get_pred_episodes())
-        agent._predictor._update_progress_figures()
-        status = agent._predictor._progress_measures
+        predictor = agent.get_predictor()
+        predictor._update_progress_figures()
+        status = predictor._progress_measures
+        pnl = predictor._pred_pnls
+        import pandas as pd
+        pd.DataFrame(pnl).to_csv('Delta_PnL.csv', index=False)
         print("Greek Bot PnL mean %s" % str(status['pnl_mean']))
         print("Greek Bot PnL std %s" % str(status['pnl_std']))
         print("Greek Bot 95VaR %s" % status['pnl_95VaR'])

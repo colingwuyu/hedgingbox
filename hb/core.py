@@ -228,20 +228,20 @@ class Predictor(core.Actor):
     def _update_progress_figures(self):
         measures = dict()
         # pnl
-        self._pred_pnls = np.sort(self._pred_pnls, axis=None)
-        measures['pnl_quantile_1'] = np.quantile(self._pred_pnls, 0.01)
-        measures['pnl_quantile_5'] = np.quantile(self._pred_pnls, 0.05)
-        measures['pnl_quantile_10'] = np.quantile(self._pred_pnls, 0.1)
-        measures['pnl_quantile_50'] = np.quantile(self._pred_pnls, 0.5)
-        measures['pnl_quantile_90'] = np.quantile(self._pred_pnls, 0.9)
-        measures['pnl_quantile_95'] = np.quantile(self._pred_pnls, 0.95)
-        measures['pnl_quantile_99'] = np.quantile(self._pred_pnls, 0.99)
-        measures['pnl_95VaR'] = self._pred_pnls[int(round(len(self._pred_pnls)*0.05))-1]
-        measures['pnl_95CVaR'] = self._pred_pnls[:int(round(len(self._pred_pnls)*0.05))].mean()
-        measures['pnl_99VaR'] = self._pred_pnls[int(round(len(self._pred_pnls)*0.01))-1]
-        measures['pnl_99CVaR'] = self._pred_pnls[:int(round(len(self._pred_pnls)*0.01))].mean()
-        measures['pnl_mean'] = self._pred_pnls.mean()
-        measures['pnl_std'] = self._pred_pnls.std()
+        sorted_pnl = np.sort(self._pred_pnls, axis=None)
+        measures['pnl_quantile_1'] = np.quantile(sorted_pnl, 0.01)
+        measures['pnl_quantile_5'] = np.quantile(sorted_pnl, 0.05)
+        measures['pnl_quantile_10'] = np.quantile(sorted_pnl, 0.1)
+        measures['pnl_quantile_50'] = np.quantile(sorted_pnl, 0.5)
+        measures['pnl_quantile_90'] = np.quantile(sorted_pnl, 0.9)
+        measures['pnl_quantile_95'] = np.quantile(sorted_pnl, 0.95)
+        measures['pnl_quantile_99'] = np.quantile(sorted_pnl, 0.99)
+        measures['pnl_95VaR'] = sorted_pnl[int(round(len(sorted_pnl)*0.05))-1]
+        measures['pnl_95CVaR'] = sorted_pnl[:int(round(len(sorted_pnl)*0.05))].mean()
+        measures['pnl_99VaR'] = sorted_pnl[int(round(len(sorted_pnl)*0.01))-1]
+        measures['pnl_99CVaR'] = sorted_pnl[:int(round(len(sorted_pnl)*0.01))].mean()
+        measures['pnl_mean'] = sorted_pnl.mean()
+        measures['pnl_std'] = sorted_pnl.std()
         measures['mean-var'] = measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
         # reward
         measures['reward_mean'] = self._pred_rewards.mean()

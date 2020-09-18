@@ -14,3 +14,4 @@ docs/diagrams/ACME_DataSet.drawio
 
 *.csv
 *.pickle
+*.xlsx

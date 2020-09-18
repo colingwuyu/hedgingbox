@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NoHedgeBotTest(unittest.TestCase):
-    def test_regression_deltabot(self):
+    def test_regression_nohedgebot(self):
         market = MarketTest().set_up_regression_bsm_market()
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments([
@@ -42,8 +42,12 @@ class NoHedgeBotTest(unittest.TestCase):
         # we care about is that the agent runs without raising any errors.
         loop = acme.EnvironmentLoop(market, agent)
         loop.run(num_episodes=market.get_pred_episodes())
-        agent._predictor._update_progress_figures()
-        status = agent._predictor._progress_measures
+        predictor = agent.get_predictor()
+        predictor._update_progress_figures()
+        status = predictor._progress_measures
+        pnl = predictor._pred_pnls
+        import pandas as pd
+        pd.DataFrame(pnl).to_csv('NoHedge_PnL.csv', index=False)
         print("No Hedge Bot PnL mean %s" % str(status['pnl_mean']))
         print("No Hedge Bot PnL std %s" % str(status['pnl_std']))
         print("No Hedge Bot 95VaR %s" % status['pnl_95VaR'])
