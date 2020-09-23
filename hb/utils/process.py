@@ -10,6 +10,8 @@ import json
 class GBMProcessParam(object):
     __slots__ = ('risk_free_rate', 'spot', 'drift', 'dividend',
                  'vol', 'use_risk_free')
+    _fields = ('risk_free_rate', 'spot', 'drift', 'dividend',
+               'vol', 'use_risk_free')
 
     def __init__(self, risk_free_rate=None, spot=None, 
                  drift=None, dividend=None,
@@ -48,6 +50,8 @@ class GBMProcessParam(object):
 class HestonProcessParam(object):
     __slots__ = ('risk_free_rate', 'spot', 'spot_var', 'drift',
                  'dividend', 'kappa', 'theta', 'rho', 'vov', 'use_risk_free')
+    _fields = ('risk_free_rate', 'spot', 'spot_var', 'drift',
+               'dividend', 'kappa', 'theta', 'rho', 'vov', 'use_risk_free')
 
     def __init__(self, risk_free_rate=None,
                  spot=None, spot_var=None, drift=None,
