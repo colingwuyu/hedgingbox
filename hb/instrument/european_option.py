@@ -110,11 +110,11 @@ class EuropeanOption(Instrument):
             # price before expiry
             try:
                 price = self._option.NPV()
-                if self._back_up_pricing_engine:
-                    self._option.setPricingEngine(self._back_up_pricing_engine)
-                    with open('logger.csv', 'a') as logger:
-                        mc_price = self._option.NPV()
-                        logger.write(','.join([str(k) for k in [self.get_remaining_time(), price, mc_price, price/mc_price-1]])+'\n')
+                # if self._back_up_pricing_engine:
+                #     self._option.setPricingEngine(self._back_up_pricing_engine)
+                #     with open('logger.csv', 'a') as logger:
+                #         mc_price = self._option.NPV()
+                #         logger.write(','.join([str(k) for k in [self.get_remaining_time(), price, mc_price, price/mc_price-1]])+'\n')
                 # if abs(price -blackscholes.price(True, self._param.spot, self._param.risk_free_rate, 
                 #                         self._param.dividend, self._param.vol, self._strike, 
                 #                         self.get_remaining_time(), self.get_remaining_time())) > 1e-5:

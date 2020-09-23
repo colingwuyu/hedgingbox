@@ -115,6 +115,9 @@ class VarianceSwap(Instrument):
         self._options = np.append(self._calls, self._puts)
         return self
         
+    def get_replicating_ops(self):
+        return self._options
+
     def _compute_option_weights(self, strikes: List[float], is_call: bool) -> List[float]:
         """Compute the replicating weights of OTM options
             Derman's Method (Demeterfi et al., 1999)
@@ -233,10 +236,13 @@ class VarianceSwap(Instrument):
         underlying_price, _ = self._underlying.get_price()
         r = self._underlying.get_risk_free_rate()
         fwd = underlying_price*math.exp(r*self.get_remaining_time())
-        hedging_ratios = {self._underlying.get_name(): self._var_notional*1e4*2./self._maturity*(1/fwd-1/self._f)}
+        # hedging_ratios = {self._underlying.get_name(): self._var_notional*1e4*2./self.get_remaining_time()*(1/fwd-1/self._f)}
+        hedging_ratios = {}
+        hedging_opts = {}
         for opt, weight in zip(self._options, self._option_weights):
             hedging_ratios[opt.get_name()] = self._var_notional*1e4*weight*2./self._maturity
-        return hedging_ratios
+            hedging_opts[opt.get_name()] = opt
+        return hedging_ratios, hedging_opts
         
     def exercise(self) -> float:
         """ update the status to exercise. and returns the hedging position of underlying stocks
@@ -390,24 +396,42 @@ if __name__ == "__main__":
     import numpy as np
     
     spx = InstrumentFactory.create(
-        'Stock AMZN 3400 25 0 0.15'
+        f'Stock SPX 100 10 1.92 0.5'
     )
     print(spx)
+    k0 = 100
+    call_strikes = range(k0, 150, 5)
+    put_strikes = range(k0, 50, -5)
+    replicating_opts = []
+    for i, strike in enumerate(put_strikes):
+        # OTM put
+        otm_put = InstrumentFactory.create(
+                        f'EuroOpt SPX Listed 3M Put {strike} 25 0. (SPX_Listed_3M_PUT{i})'
+                    ).underlying(spx)
+        otm_put.set_trading_limit(25.)
+        replicating_opts += [otm_put]
+    for i, strike in enumerate(call_strikes):
+        # OTM call
+        otm_call = InstrumentFactory.create(
+                        f'EuroOpt SPX Listed 3M Call {strike} 25 0. (SPX_Listed_3M_CALL{i})'
+                    ).underlying(spx)
+        otm_call.set_trading_limit(25.)
+        replicating_opts += [otm_call]
     spx_var_swap = InstrumentFactory.create(
-        'VarSwap AMZN 3M 52 10000 (AMZN_VAR_SWAP)'
-    ).underlying(spx)
+        'VarSwap SPX 3M 10.65 0.1 (SPX_VAR_SWAP)'
+    ).underlying(spx).replicating_opts(replicating_opts)
     print(spx_var_swap)
-    risk_free_rate = 0.015
+    risk_free_rate = 0.0223
     heston_param = HestonProcessParam(
-            risk_free_rate=0.015,
+            risk_free_rate=0.0223,
             spot=spx.get_quote(), 
             drift=spx.get_annual_yield(), 
             dividend=spx.get_dividend_yield(),
-            spot_var=0.096024, kappa=6.288453, theta=0.397888, 
-            rho=-0.696611, vov=0.753137, use_risk_free=False
+            spot_var=0.001006, kappa=2.4056, theta=0.04264, 
+            rho=-0.7588, vov=0.8121, use_risk_free=False
         )
     
-    num_path = 1
+    num_path = 100
     num_step = 90    
     step_days = 1
     step_size = time_from_days(step_days)
@@ -415,7 +439,8 @@ if __name__ == "__main__":
     spx.set_pricing_engine(step_size, heston_param)
     heston_prices = np.zeros([num_path, num_step])
     times = np.zeros([num_step])
-    
+    spx_var_swap.set_pricing_method('Heston')
+        
     for i in range(num_path):
         for j in range(num_step):
             times[j] = get_cur_days()

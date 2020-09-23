@@ -1,12 +1,14 @@
-from typing import List
+from typing import List, Union
 from hb.instrument.instrument import Instrument
+from hb.instrument.instrument_factory import InstrumentFactory
 from hb.instrument.stock import Stock
 from hb.instrument.european_option import EuropeanOption
 from hb.utils.date import *
+import json
 import os
 
 class Position():
-    def __init__(self, instrument, holding=0.):
+    def __init__(self, instrument=None, holding=0.):
         self._instrument = instrument
         self._holding = holding
         self._init_holding = holding
@@ -18,8 +20,24 @@ class Position():
     def get_instrument(self):
         return self._instrument
 
+    def set_instrument(self, instrument):
+        self._instrument = instrument
+
+    def instrument(self, instrument):
+        self._instrument = instrument
+        return self
+
     def get_holding(self):
         return self._holding
+
+    def set_holding(self, holding):
+        self._holding = holding
+        self._init_holding = holding
+    
+    def holding(self, holding):
+        self._holding = holding
+        self._init_holding = holding
+        return self
 
     def get_init_holding(self):
         return self._init_holding
@@ -47,6 +65,14 @@ class Position():
 
     def get_market_value(self):
         return self._instrument.get_market_value(self._holding)
+
+    @classmethod
+    def load_json(cls, json_: Union[dict, str]):
+        if isinstance(json_, str):
+            dict_json = json.loads(json_)
+        else:
+            dict_json = json_
+        instrument = InstrumentFactory.create(dict_json["instrument"])
 
 
 class Portfolio():
@@ -209,3 +235,11 @@ class Portfolio():
             cashflows += proceeds
             trans_costs += trans_cost
         return cashflows, trans_costs
+
+    @classmethod
+    def load_json(cls, json_: Union[dict, str]):
+        if isinstance(json_, str):
+            dict_json = json.loads(json_)
+        else:
+            dict_json = json_
+        

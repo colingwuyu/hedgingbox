@@ -224,26 +224,26 @@ class MarketTest(unittest.TestCase):
         #     spx_listed_calls.append(spx_listed_calls_m)
         
         # Heston param from 
-        # heston_param = HestonProcessParam(
-        #     risk_free_rate = 0.0223, spot = spx.get_quote(), spot_var = 0.001006,
-        #     drift = spx.get_annual_yield(), dividend = spx.get_dividend_yield(),
-        #     kappa = 2.4056, theta = 0.04264, vov = 0.8121, rho = -0.7588,
-        #     use_risk_free = False
-        # )
         heston_param = HestonProcessParam(
-            risk_free_rate=0.015,
-            spot=spx.get_quote(), 
-            drift=spx.get_annual_yield(), 
-            dividend=spx.get_dividend_yield(),
-            spot_var=0.096024, kappa=6.288453, theta=0.397888, 
-            rho=-0.696611, vov=0.753137, use_risk_free=False
+            risk_free_rate = 0.0223, spot = spx.get_quote(), spot_var = 0.001006,
+            drift = spx.get_annual_yield(), dividend = spx.get_dividend_yield(),
+            kappa = 2.4056, theta = 0.04264, vov = 0.8121, rho = -0.7588,
+            use_risk_free = False
         )
+        # heston_param = HestonProcessParam(
+        #     risk_free_rate=0.015,
+        #     spot=spx.get_quote(), 
+        #     drift=spx.get_annual_yield(), 
+        #     dividend=spx.get_dividend_yield(),
+        #     spot_var=0.096024, kappa=6.288453, theta=0.397888, 
+        #     rho=-0.696611, vov=0.753137, use_risk_free=False
+        # )
         market.calibrate(underlying=spx,
                          param=heston_param)
         # List of OTM options for variance swap replication
         k0 = 100
-        call_strikes = range(k0, 150, 30)
-        put_strikes = range(k0, 50, -30)
+        call_strikes = range(k0, 150, 5)
+        put_strikes = range(k0, 50, -5)
         replicating_opts = []
         for i, strike in enumerate(put_strikes):
             # OTM put
@@ -262,10 +262,10 @@ class MarketTest(unittest.TestCase):
         variance_swap_opt_hedging = market.get_instruments(replicating_opts)
                                                             
         variance_swap = InstrumentFactory.create(
-            f'VarSwap SPX 3M 23 0.1 (SPX_3M_VAR_SWAP)'
+            f'VarSwap SPX 3M 10.65 0.1 (SPX_3M_VAR_SWAP)'
         ).underlying(spx).replicating_opts(variance_swap_opt_hedging)
-        variance_swap.set_pricing_method('Replicating')
-        variance_swap.set_excl_realized_var(True)
+        variance_swap.set_pricing_method('Heston')
+        # variance_swap.set_excl_realized_var(True)
         market.add_instruments([variance_swap])
         # Test Var Swap
         # test = InstrumentFactory.create(

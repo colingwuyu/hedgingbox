@@ -154,7 +154,7 @@ class DeltaBotTest(unittest.TestCase):
         market = MarketTest().set_up_heston_market()
         variance_swap_portfolio_instruments = market.get_instrument('SPX_3M_VAR_SWAP').get_hedging_instrument_names() + ['SPX_3M_VAR_SWAP']
         holdings = [0]*len(variance_swap_portfolio_instruments)
-        holdings[-1] = -1
+        holdings[-1] = 1
         portfolio = Portfolio.make_portfolio(
             instruments=market.get_instruments(variance_swap_portfolio_instruments),
             holdings=holdings,

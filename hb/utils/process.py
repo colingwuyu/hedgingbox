@@ -5,27 +5,96 @@ from hb.utils.date import *
 from hb.utils.termstructure import *
 import pandas as pd
 import os
+import json
 
-GBMProcessParam = namedtuple('GBMProcessParam',
-                             'risk_free_rate '
-                             'spot '
-                             'drift '
-                             'dividend '
-                             'vol '
-                             'use_risk_free '
-                             )
+class GBMProcessParam(object):
+    __slots__ = ('risk_free_rate', 'spot', 'drift', 'dividend',
+                 'vol', 'use_risk_free')
 
-HestonProcessParam = namedtuple('HestonProcessParam',
-                                'risk_free_rate '
-                                'spot '
-                                'spot_var '
-                                'drift '
-                                'dividend '
-                                'kappa '
-                                'theta '
-                                'rho '
-                                'vov '
-                                'use_risk_free ')
+    def __init__(self, risk_free_rate=None, spot=None, 
+                 drift=None, dividend=None,
+                 vol=None, use_risk_free=None):
+        self.risk_free_rate = risk_free_rate
+        self.spot = spot
+        self.drift = drift
+        self.dividend = dividend
+        self.vol = vol
+        self.use_risk_free = use_risk_free
+
+    @classmethod
+    def load_json(cls, json_: Union[str, dict]):
+        if isinstance(json_, str):
+            dict_json = json.loads(json_)
+        else:
+            dict_json = json_
+        ret_obj = cls()
+        ret_obj.spot = dict_json["spot"]
+        ret_obj.drift = dict_json["drift"]
+        ret_obj.dividend = dict_json["dividend"]
+        ret_obj.vol = dict_json["vol"]
+        return ret_obj
+
+    def jsonify_dict(self) -> dict:
+        dict_json = dict()
+        dict_json["spot"] = self.spot
+        dict_json["drift"] = self.drift
+        dict_json["dividend"] = self.dividend
+        dict_json["vol"] = self.vol
+        return dict_json
+
+    def __repr__(self):
+        return json.dumps(self.jsonify(), indent=4)
+
+class HestonProcessParam(object):
+    __slots__ = ('risk_free_rate', 'spot', 'spot_var', 'drift',
+                 'dividend', 'kappa', 'theta', 'rho', 'vov', 'use_risk_free')
+
+    def __init__(self, risk_free_rate=None,
+                 spot=None, spot_var=None, drift=None,
+                 dividend=None, kappa=None, theta=None, 
+                 rho=None, vov=None, use_risk_free=None):
+        self.risk_free_rate = risk_free_rate
+        self.spot = spot
+        self.spot_var = spot_var
+        self.drift = drift
+        self.dividend = dividend
+        self.kappa = kappa
+        self.theta = theta
+        self.rho = rho
+        self.vov = vov
+        self.use_risk_free = risk_free_rate
+
+    @classmethod
+    def load_json(cls, json_: Union[str, dict]):
+        if isinstance(json_, str):
+            dict_json = json.loads(json_)
+        else:
+            dict_json = json_
+        ret_obj = cls()
+        ret_obj.spot = dict_json["spot"]
+        ret_obj.spot_var = dict_json["spot_var"]
+        ret_obj.drift = dict_json["drift"]
+        ret_obj.dividend = dict_json["dividend"]
+        ret_obj.kappa = dict_json["kappa"]
+        ret_obj.theta = dict_json["theta"]
+        ret_obj.rho = dict_json["rho"]
+        ret_obj.vov = dict_json["vov"]
+        return ret_obj
+
+    def jsonify_dict(self) -> dict:
+        dict_json = dict()
+        dict_json["spot"] = self.spot
+        dict_json["spot_var"] = self.spot_var
+        dict_json["drift"] = self.drift
+        dict_json["dividend"] = self.dividend
+        dict_json["kappa"] = self.kappa
+        dict_json["theta"] = self.theta
+        dict_json["rho"] = self.rho
+        dict_json["vov"] = self.vov
+        return dict_json
+
+    def __repr__(self):
+        return json.dumps(self.jsonify(), indent=4)
 
 def save_process_param(dir_, param):
     """Save process parameter into directory as csv

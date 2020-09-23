@@ -3,7 +3,10 @@ from hb.utils.consts import *
 
 
 def time_between(d1: ql.Date, d2: ql.Date = None) -> float:
-    return day_count.yearFraction(d2, d1)
+    if d2:
+        return day_count.yearFraction(d2, d1)
+    else:
+        return day_count.yearFraction(ql.Settings.instance().getEvaluationDate(), d1)
 
 def days_between(d1: ql.Date, d2: ql.Date = None) -> int:
     if d2:
