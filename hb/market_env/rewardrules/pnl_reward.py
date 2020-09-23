@@ -14,7 +14,7 @@ class PnLReward(reward_rule.RewardRule):
         self._first_reward = True
 
     def step_reward(self, step_type: dm_env.StepType,
-                    step_pnl: float
+                    step_pnl: float, action: types.NestedArray
                     ) -> types.NestedArray:
         # interest from cash account
         return step_pnl

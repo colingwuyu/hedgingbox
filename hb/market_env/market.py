@@ -330,14 +330,14 @@ class Market(dm_env.Environment):
                 self._cash_account.add(cashflow)
             # print("Cash account Balance: ", self._cash_account.get_balance())
             ret_step = dm_env.termination(
-                reward=self._reward_rule.step_reward(dm_env.StepType.LAST, step_pnl),
+                reward=self._reward_rule.step_reward(dm_env.StepType.LAST, step_pnl, action),
                 observation=np.append(self._observation(),
-                                      self._pnl_reward.step_reward(dm_env.StepType.LAST, step_pnl)))
+                                      self._pnl_reward.step_reward(dm_env.StepType.LAST, step_pnl, action)))
         else:
             ret_step = dm_env.transition(
-                reward=self._reward_rule.step_reward(dm_env.StepType.MID, step_pnl),
+                reward=self._reward_rule.step_reward(dm_env.StepType.MID, step_pnl, action),
                 observation=np.append(self._observation(),
-                                      self._pnl_reward.step_reward(dm_env.StepType.MID, step_pnl)),
+                                      self._pnl_reward.step_reward(dm_env.StepType.MID, step_pnl, action)),
                 discount=0.)
         return ret_step
         
