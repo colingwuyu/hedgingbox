@@ -136,17 +136,19 @@ class EuropeanOption(Instrument):
             self.set_pricing_engine()
         return option_price
 
-    def get_pred_price(self) -> float:
+    def _get_pred_price(self) -> float:
         price = self.get_sim_price()
         return price
 
-    def _get_pred_price(self) -> float:
+    def get_pred_price(self) -> float:
         """Get the prediction price at timestep t
            This function will only be called once at each timestep
            The price will be cached into _cur_price and retrieved directly from get_price() method
         Returns:
             float: prediction price
         """
+        if self._cur_pred_file == "Pred":
+            return self.get_sim_price()
         self.set_pricing_engine()
         self._pred_ind += 1
         if self._cur_pred_path is None:
@@ -285,18 +287,18 @@ class EuropeanOption(Instrument):
             # past expiry, or exercised
             return 0.
         if use_bs or isinstance(self._param, GBMProcessParam):
-            if isinstance(self._param, GBMProcessParam):
-                delta_value = self._option.delta()
-                if np.isnan(delta_value):
-                    delta_value = blackscholes.delta_bk(True, self._param.spot, self._param.risk_free_rate, 
-                                                        self._param.dividend, self._strike, 
-                                                        self._param.vol, self.get_remaining_time(), 
-                                                        self.get_remaining_time())
-                return delta_value
-            else:
-                return self._delta(self._call, self._strike,
-                                   self._get_gbm_param(),
-                                   self._maturity_time-self._cur_price[0])
+            # if isinstance(self._param, GBMProcessParam):
+            #     delta_value = self._option.delta()
+            #     if np.isnan(delta_value):
+            #         delta_value = blackscholes.delta_bk(True, self._param.spot, self._param.risk_free_rate, 
+            #                                             self._param.dividend, self._strike, 
+            #                                             self._param.vol, self.get_remaining_time(), 
+            #                                             self.get_remaining_time())
+            #     return delta_value
+            # else:
+            return self._delta(self._call, self._strike,
+                                self._get_gbm_param(),
+                                self._maturity_time-self._cur_price[0])
         else:
             base_price = self.get_price()
             underlying_price, _ = self._underlying.get_price()
