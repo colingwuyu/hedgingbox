@@ -235,16 +235,16 @@ class Market(dm_env.Environment):
         self._cash_account.add(-initial_cashflow)
         self._reward_rule.reset(self._portfolio)
         self._pnl_reward.reset(self._portfolio)
-        with open('logger.csv', 'a') as logger:
-            logger.write(','.join([str(k) for k in 
-                [get_cur_days(), 0., 100., 5, 
-                self._portfolio.get_hedging_portfolio()[0].get_instrument().get_price()[0], 
-                self._portfolio.get_hedging_portfolio()[0].get_holding(),
-                self._portfolio.get_liability_portfolio()[0].get_instrument().get_price(), 
-                self._portfolio.get_liability_portfolio()[0].get_holding(), 
-                self._cash_account.get_balance(), 
-                0., '', 0., '']])+'\n'
-            )
+        # with open('logger.csv', 'a') as logger:
+        #     logger.write(','.join([str(k) for k in 
+        #         [get_cur_days(), 0., 100., 5, 
+        #         self._portfolio.get_hedging_portfolio()[0].get_instrument().get_price()[0], 
+        #         self._portfolio.get_hedging_portfolio()[0].get_holding(),
+        #         self._portfolio.get_liability_portfolio()[0].get_instrument().get_price(), 
+        #         self._portfolio.get_liability_portfolio()[0].get_holding(), 
+        #         self._cash_account.get_balance(), 
+        #         0., '', 0., '']])+'\n'
+        #     )
         return dm_env.restart(np.append(self._observation(), 0.))
 
     def step(self, action):

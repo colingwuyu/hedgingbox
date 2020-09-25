@@ -24,7 +24,7 @@ class DeltaBotTest(unittest.TestCase):
                       -10.],
             name="Three AMZN Calls"
         )
-        self._set_up_greek_bot_test(market, portfolio, scenario='VaR')
+        self._set_up_greek_bot_test(market, portfolio)
 
     def test_bs_deltabot_with_heston_amzn(self):
         # Create a GBM market

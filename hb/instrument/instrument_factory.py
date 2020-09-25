@@ -6,8 +6,8 @@ from hb.utils import date as date_util
 
 
 class InstrumentFactory():
-    @classmethod
-    def create(cls, str_instrument: str):
+    @staticmethod
+    def create(str_instrument: str):
         """Create instrument
 
         Args:

@@ -22,13 +22,13 @@ class MarketTest(unittest.TestCase):
             'Stock AMZN 100 10 0 0.'
         )
         otc_atm_1w_call = InstrumentFactory.create(
-                                f'EuroOpt AMZN OTC 1W Call 100.10 30.0 5 (AMZN_OTC_1W_ATM_CALL)'
+                                f'EuroOpt AMZN OTC 1W Call 100.10 45.0 5 (AMZN_OTC_1W_ATM_CALL)'
                             ).underlying(amzn)
         otc_atm_1m_call = InstrumentFactory.create(
-                                f'EuroOpt AMZN OTC 4W Call 100.30 30.0 5 (AMZN_OTC_1M_ATM_CALL)'
+                                f'EuroOpt AMZN OTC 4W Call 100.30 45.0 5 (AMZN_OTC_1M_ATM_CALL)'
                             ).underlying(amzn)
         otc_atm_3m_call = InstrumentFactory.create(
-                                f'EuroOpt AMZN OTC 3M Call 100.50 30.0 5 (AMZN_OTC_3M_ATM_CALL)'
+                                f'EuroOpt AMZN OTC 3M Call 100.50 45.0 5 (AMZN_OTC_3M_ATM_CALL)'
                             ).underlying(amzn)
         market.calibrate(underlying=amzn,
                          listed_options=otc_atm_3m_call)

@@ -1,9 +1,13 @@
 from typing import List, Union
 from hb.utils.process import *
+from hb.riskfactorsimulator.riskfactor import RiskFactorFactory, ImpliedVolRiskFactor
 import json
+import numpy as np
+from hb.utils.consts import np_dtype
 
 class Equity(object):
-    __slots__ = ["_name", "_riskfactors", "_process_param"]
+    __slots__ = ["_name", "_riskfactors", "_process_param", 
+                 "_impvol_maturities", "_impvol_strikes"]
 
     def set_name(self, name):
         self._name = name
@@ -17,6 +21,10 @@ class Equity(object):
 
     def set_riskfactors(self, riskfactors):
         self._riskfactors = riskfactors
+        self._maturities = set()
+        for rf in riskfactors:
+            if isinstance(rf, ImpliedVolRiskFactor):
+                ...
 
     def get_riskfactors(self):
         return self._riskfactors
@@ -36,10 +44,10 @@ class Equity(object):
         return self
 
     def get_implied_vol_surface_maturities(self):
-        ...
+        return self._impvol_maturities
 
     def get_implied_vol_surface_strikes(self):
-        ...
+        return self._impvol_strikes
 
     @classmethod
     def load_json(cls, json_: Union[str, dict]):
@@ -47,7 +55,8 @@ class Equity(object):
             dict_json = json.loads(json_)
         else:
             dict_json = json_
-        ret_equity_obj = cls().name(dict_json['name']).riskfactors(dict_json['riskfactors'])
+        ret_equity_obj = cls().name(dict_json['name'])\
+            .riskfactors([RiskFactorFactory.create_riskfactor(rf_name) for rf_name in dict_json['riskfactors']])
         param_values = dict_json["process_param"]["param"]
         if dict_json["process_param"]["process_type"] == "GBM":
             ret_equity_obj.set_process_param(
@@ -62,7 +71,7 @@ class Equity(object):
     def jsonify_dict(self) -> dict:
         dict_json = dict()
         dict_json["name"] = self._name
-        dict_json["riskfactors"] = self._riskfactors
+        dict_json["riskfactors"] = [str(rf) for rf in self._riskfactors]
         dict_json["process_param"] = dict() 
         if isinstance(self._process_param, GBMProcessParam):
             dict_json["process_param"]["process_type"] = "GBM"
@@ -73,7 +82,6 @@ class Equity(object):
 
     def __repr__(self):
         return json.dumps(self.jsonify_dict(), indent=4)
-
 
 class Correlation(object):
     __slots__ = ["_equity1", "_equity2", "_corr"]
