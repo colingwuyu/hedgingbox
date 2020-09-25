@@ -298,7 +298,8 @@ class EuropeanOption(Instrument):
             # else:
             return self._delta(self._call, self._strike,
                                 self._get_gbm_param(),
-                                self._maturity_time-self._cur_price[0])
+                                self._maturity_time-self._cur_price[0],
+                                self._cur_price[1])
         else:
             base_price = self.get_price()
             underlying_price, _ = self._underlying.get_price()
@@ -351,10 +352,7 @@ class EuropeanOption(Instrument):
 
     @classmethod
     def _create_euro_opt(cls, call, strike, param, tau_e, price=None):
-        if isinstance(param, GBMProcessParam):
-            bsm_process = create_process(param)
-        elif isinstance(param, HestonProcessParam):
-            assert price is not None, "HestonProcess requires option price to generate implied volatility"
+        if price:
             sigma = cls._implied_vol(call, strike, tau_e, price, 
                                     GBMProcessParam(
                                         risk_free_rate=param.risk_free_rate, spot=param.spot,
@@ -367,6 +365,9 @@ class EuropeanOption(Instrument):
                                     drift=param.drift, dividend=param.dividend, vol=sigma,
                                     use_risk_free=True
                                 ))
+        else:
+            assert isinstance(param, GBMProcessParam)
+            bsm_process = create_process(param)
         euro_opt = EuropeanOption("impl_vol", 'Call' if call else 'Put', strike,
                                 tau_e, False, reset_time=False)
         euro_opt._option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
