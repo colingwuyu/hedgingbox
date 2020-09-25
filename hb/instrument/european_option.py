@@ -147,7 +147,7 @@ class EuropeanOption(Instrument):
         Returns:
             float: prediction price
         """
-        if self._cur_pred_file == "Pred_price.csv":
+        if self._cur_pred_file == "pred_price.csv":
             return self.get_sim_price()
         self.set_pricing_engine()
         self._pred_ind += 1
