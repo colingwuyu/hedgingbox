@@ -82,8 +82,7 @@ class SimulatorTest(unittest.TestCase):
         plt.show()
         for path_i in range(1000):
             for step_i in range(90):
-                print(simulator.get_implied_vol_surface("AMZN", path_i=path_i, step_i=step_i).get_black_vol(t=90/360-step_i/360,k=100.))
-        plt.show()
+                print(path_i, step_i, simulator.get_implied_vol_surface("AMZN", path_i=path_i, step_i=step_i).get_black_vol(t=90/360-step_i/360,k=100.))
         print(simulator.get_spot("SPX",path_i=0,step_i=1))
         imp_vol_surf = simulator.get_implied_vol_surface("SPX",path_i=0,step_i=30)
         print(imp_vol_surf.get_black_vol(t=60/360,k=100.))
