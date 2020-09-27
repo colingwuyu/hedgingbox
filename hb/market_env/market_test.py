@@ -19,7 +19,7 @@ class MarketTest(unittest.TestCase):
         # AMZN
         # --------------------------------------------
         amzn = InstrumentFactory.create(
-            'Stock AMZN 100 10 0 0.'
+            'Stock AMZN 100 10 0 0'
         )
         otc_atm_1w_call = InstrumentFactory.create(
                                 f'EuroOpt AMZN OTC 1W Call 100.10 45.0 5 (AMZN_OTC_1W_ATM_CALL)'
@@ -242,8 +242,8 @@ class MarketTest(unittest.TestCase):
                          param=heston_param)
         # List of OTM options for variance swap replication
         k0 = 100
-        call_strikes = range(k0, 150, 5)
-        put_strikes = range(k0, 50, -5)
+        call_strikes = range(k0, 150, 30)
+        put_strikes = range(k0, 50, -30)
         replicating_opts = []
         for i, strike in enumerate(put_strikes):
             # OTM put

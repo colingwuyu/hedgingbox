@@ -145,15 +145,6 @@ class Portfolio():
             nav += position.get_market_value()
         return nav
 
-    def get_initial_cashflow(self):
-        cashflow = 0.
-        for position in self._positions:
-            cashflow -= position.get_market_value()
-            if position.get_instrument().get_is_tradable:
-                # add transaction cost
-                cashflow -= position.get_instrument().get_execute_cost(position.get_holding())
-        return nav
-
     def rebalance(self, actions):
         """Rebalance portfolio with hedging actions
            Also deal with the expiry events
