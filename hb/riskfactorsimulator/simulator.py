@@ -310,10 +310,10 @@ if __name__ == "__main__":
     print(simulator.get_spot("AMZN",path_i=0,step_i=1))
     imp_vol_surf = simulator.get_implied_vol_surface("AMZN",path_i=0,step_i=30)
     print(imp_vol_surf.get_black_vol(t=60/360,k=100.))
-    import matplotlib.pyplot as plt
-    for i in range(100):
-        plt.plot(simulator.get_spot("AMZN", path_i=i))
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # for i in range(100):
+    #     plt.plot(simulator.get_spot("AMZN", path_i=i))
+    # plt.show()
     for path_i in range(100):
         for step_i in range(90):
             print(simulator.get_implied_vol_surface("AMZN", path_i=path_i, step_i=step_i).get_black_vol(t=90/360-step_i/360,k=100.))

@@ -26,29 +26,19 @@ class ImpliedVolSurface(object):
                 implied_vol_matrix = tf.concat([implied_vol_matrix, implied_vol_matrix],-1)
             total_var_matrix = np.transpose(implied_vol_matrix.numpy()**2)*maturities
             total_var_matrix = total_var_matrix.numpy()
-            np_strikes = strikes.numpy()
-            np_maturities = maturities.numpy()
-            del_ind = []
+            self._strikes = strikes.numpy()
+            self._maturities = maturities.numpy()
             for m_i in range(total_var_matrix.shape[1]):
                 nans = np.isnan(total_var_matrix[:,m_i])
                 if nans.all():
-                    del_ind += [m_i]
-                elif nans.shape[0] > 1:
-                    fillna = interpolate.interp1d(np_strikes[~nans],total_var_matrix[~nans,m_i])
-                    total_var_matrix[nans.nonzero()[0],m_i] = fillna(np_strikes[nans])
-            total_var_matrix = np.delete(total_var_matrix,del_ind,1)
-            self._maturities = np_maturities
-            self._maturities = np.delete(self._maturities, del_ind, 0)
-            self._strikes = np_strikes
-            if self._maturities.shape[0] == 0:
-                self._implied_vol_surf =  backup_vol
-                self._scalar = True
-            if (self._maturities.shape[0] == 1) and (self._strikes.shape[0] == 1):
-                self._implied_vol_surf = implied_vol_matrix[0][0]
-                self._scalar = True
-            else:
-                self._implied_vol_surf = interpolate.interp2d(self._maturities,self._strikes,total_var_matrix)
-                self._scalar = False
+                    total_var_matrix[nans.nonzero()[0],m_i] = backup_vol
+                elif self._strikes[~nans].shape[0] > 1:
+                    fillna = interpolate.interp1d(self._strikes[~nans],total_var_matrix[~nans,m_i])
+                    total_var_matrix[nans.nonzero()[0],m_i] = fillna(self._strikes[nans])
+                else:
+                    total_var_matrix[nans.nonzero()[0],m_i] = total_var_matrix[~nans,m_i][0]
+            self._implied_vol_surf = interpolate.interp2d(self._maturities,self._strikes,total_var_matrix)
+            self._scalar = False
 
     def get_black_vol(self, t: float, k: float):
         if self._scalar:
