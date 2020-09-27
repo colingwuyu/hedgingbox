@@ -72,15 +72,15 @@ class SimulatorTest(unittest.TestCase):
         simulator.load_json_data(test_data)
         print(simulator)
 
-        simulator.generate_paths(100)
+        simulator.generate_paths(1000)
         print(simulator.get_spot("AMZN",path_i=0,step_i=1))
         imp_vol_surf = simulator.get_implied_vol_surface("AMZN",path_i=0,step_i=30)
         print(imp_vol_surf.get_black_vol(t=60/360,k=100.))
         import matplotlib.pyplot as plt
-        for i in range(100):
+        for i in range(1000):
             plt.plot(simulator.get_spot("AMZN", path_i=i))
         plt.show()
-        for path_i in range(100):
+        for path_i in range(1000):
             for step_i in range(90):
                 print(simulator.get_implied_vol_surface("AMZN", path_i=path_i, step_i=step_i).get_black_vol(t=90/360-step_i/360,k=100.))
         plt.show()

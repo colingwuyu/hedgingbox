@@ -59,7 +59,7 @@ class Correlation(object):
 
 class Simulator(object):
     __slots__ = ["_ir", "_equity", "_equity_map", "_correlation",
-                 "_num_steps", "_time_step",]
+                 "_num_steps", "_time_step", "_implied_vol_surfaces"]
 
     def set_ir(self, ir: float):
         self._ir = ir
@@ -135,6 +135,7 @@ class Simulator(object):
             seed (int, optional): RNG seed. Defaults to 1234.
         """
         times = np.linspace(self._time_step, self._num_steps*self._time_step, self._num_steps)
+        self._implied_vol_surfaces = dict()
         for eq in self._equity:
             process = eq.get_process()
             paths = process.sample_paths(
@@ -147,16 +148,21 @@ class Simulator(object):
             )
             eq.set_generated_paths(paths, self._time_step)
             eq.set_cur_impvol_path(-1)
+            self._implied_vol_surfaces[eq.get_name()] = dict()
 
     def get_spot(self, equity_name, path_i, step_i=None):
         return self._equity_map[equity_name].get_spot(path_i, step_i)
 
     def get_implied_vol_surface(self, equity_name, path_i, step_i):
         eq = self._equity_map[equity_name]
+        vol_key = f"{path_i}_{step_i}"
+        vol_surface_cache = self._implied_vol_surfaces[equity_name]
+        if vol_key in vol_surface_cache:
+            return vol_surface_cache[vol_key] 
         if eq.get_cur_impvol_path() == np.infty:
-            return eq.get_impvol(path_i, step_i)
+            vol_surface_cache[vol_key] = eq.get_impvol(path_i, step_i)
         elif path_i == eq.get_cur_impvol_path():
-            return eq.get_impvol(path_i, step_i)
+            vol_surface_cache[vol_key] = eq.get_impvol(path_i, step_i)
         else:
             # generate impvol for path_i
             if eq.get_process_param()["process_type"] == "GBM":
@@ -204,7 +210,8 @@ class Simulator(object):
                     dtype=np_dtype)  
             eq.set_impvols(implied_vols)
             eq.set_cur_impvol_path(path_i)
-            return eq.get_impvol(path_i, step_i)
+            vol_surface_cache[vol_key] = eq.get_impvol(path_i, step_i)
+        return vol_surface_cache[vol_key] 
 
     @classmethod
     def load_json(cls, json_: Union[dict, str]):
@@ -310,7 +317,6 @@ if __name__ == "__main__":
     for path_i in range(100):
         for step_i in range(90):
             print(simulator.get_implied_vol_surface("AMZN", path_i=path_i, step_i=step_i).get_black_vol(t=90/360-step_i/360,k=100.))
-    plt.show()
     print(simulator.get_spot("SPX",path_i=0,step_i=1))
     imp_vol_surf = simulator.get_implied_vol_surface("SPX",path_i=0,step_i=30)
     print(imp_vol_surf.get_black_vol(t=60/360,k=100.))
