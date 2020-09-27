@@ -38,7 +38,7 @@ class ImpliedVolSurface(object):
             self._maturities = np_maturities
             self._maturities = np.delete(self._maturities, del_ind, 0)
             self._strikes = np_strikes
-            self._implied_vol_surf = interpolate.interp2d(maturities,strikes,total_var_matrix)
+            self._implied_vol_surf = interpolate.interp2d(self._maturities,self._strikes,total_var_matrix)
 
     def get_black_vol(self, t: float, k: float):
         if self._scalar:
