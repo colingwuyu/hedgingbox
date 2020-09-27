@@ -16,4 +16,3 @@ docs/diagrams/ACME_DataSet.drawio
 *.pickle
 *.xlsx
 *.json
-hb/riskfactorsimulator/impliedvolsurface.py
