@@ -260,7 +260,12 @@ class Equity(object):
         else:
             # impvol already generated
             vol_matrix = self._impvols[:,:,step_i]
-        return ImpliedVolSurface(self._impvol_maturities, self._impvol_strikes, vol_matrix)
+        if self._process_param["process_type"] == "GBM":
+            backup_vol = self._process_param["param"]["vol"]
+        else:
+            backup_vol = self._vars[path_i, step_i]**0.5
+        return ImpliedVolSurface(self._impvol_maturities, self._impvol_strikes, vol_matrix, 
+                                 backup_vol=backup_vol)
 
     @classmethod
     def load_json(cls, json_: Union[str, dict]):

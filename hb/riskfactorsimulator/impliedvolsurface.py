@@ -10,12 +10,14 @@ class ImpliedVolSurface(object):
     def __init__(self,
                  maturities,
                  strikes,
-                 implied_vol_matrix):
+                 implied_vol_matrix,
+                 backup_vol):
         if (maturities.shape[0] == 1) and (strikes.shape[0] == 1):
             self._implied_vol_surf = implied_vol_matrix[0][0]
+            self._maturities = maturities
+            self._strikes = strikes
             self._scalar = True
         else:
-            self._scalar = False
             if maturities.shape[0] == 1:
                 maturities = tf.concat([maturities, maturities*1.1],-1)
                 implied_vol_matrix = tf.concat([implied_vol_matrix, implied_vol_matrix],-1)
@@ -38,7 +40,15 @@ class ImpliedVolSurface(object):
             self._maturities = np_maturities
             self._maturities = np.delete(self._maturities, del_ind, 0)
             self._strikes = np_strikes
-            self._implied_vol_surf = interpolate.interp2d(self._maturities,self._strikes,total_var_matrix)
+            if self._maturities.shape[0] == 0:
+                self._implied_vol_surf =  backup_vol
+                self._scalar = True
+            if (self._maturities.shape[0] == 1) and (self._strikes.shape[0] == 1):
+                self._implied_vol_surf = implied_vol_matrix[0][0]
+                self._scalar = True
+            else:
+                self._implied_vol_surf = interpolate.interp2d(self._maturities,self._strikes,total_var_matrix)
+                self._scalar = False
 
     def get_black_vol(self, t: float, k: float):
         if self._scalar:
