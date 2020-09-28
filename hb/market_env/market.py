@@ -304,6 +304,8 @@ class Market(dm_env.Environment):
             [dm_env.TimeStep]: FIRST TimeStep
         """
         reset_date()
+        self._current_counter_handler.get_obj().inc_step_counter()
+        self._current_counter_handler.get_obj().inc_path_counter() 
         self._portfolio.reset()
         self._cash_account.reset()
         initial_cashflow = self._portfolio.get_nav()
@@ -311,8 +313,6 @@ class Market(dm_env.Environment):
         self._cash_account.add(-initial_cashflow)
         self._reward_rule.reset(self._portfolio)
         self._pnl_reward.reset(self._portfolio)
-        self._current_counter_handler.get_obj().inc_step_counter()
-        self._current_counter_handler.get_obj().inc_path_counter() 
         # with open('logger.csv', 'a') as logger:
         #     logger.write(','.join([str(k) for k in 
         #         [get_cur_days(), 0., 100., 5, 

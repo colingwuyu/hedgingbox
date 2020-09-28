@@ -33,7 +33,8 @@ class ImpliedVolSurface(object):
                 if nans.all():
                     total_var_matrix[nans.nonzero()[0],m_i] = backup_vol
                 elif self._strikes[~nans].shape[0] > 1:
-                    fillna = interpolate.interp1d(self._strikes[~nans],total_var_matrix[~nans,m_i])
+                    fillna = interpolate.interp1d(self._strikes[~nans],total_var_matrix[~nans,m_i],bounds_error=False,
+                                                  fill_value=(total_var_matrix[~nans,m_i][0],total_var_matrix[~nans,m_i][-1]))
                     total_var_matrix[nans.nonzero()[0],m_i] = fillna(self._strikes[nans])
                 else:
                     total_var_matrix[nans.nonzero()[0],m_i] = total_var_matrix[~nans,m_i][0]

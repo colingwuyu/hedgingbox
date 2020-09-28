@@ -309,11 +309,12 @@ class VarianceSwap(Instrument):
         return self._realized_var*1e4
 
     def __repr__(self):
-        return "VarSwap {underlying_name} {maturity}, {vol_strike:.2f}, {var_notional:.2f}"\
+        return "VarSwap {underlying_name} {maturity} {vol_strike:.2f} {var_notional:.2f} ({name})"\
                 .format(underlying_name=self._underlying.get_name(),
                         maturity=get_period_str_from_time(self._maturity),
                         vol_strike=self._var_strike**0.5,
-                        var_notional=self._var_notional)
+                        var_notional=self._var_notional,
+                        name=self._name)
 
 if __name__ == "__main__":
     from hb.transaction_cost.percentage_transaction_cost import PercentageTransactionCost

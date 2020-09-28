@@ -1,8 +1,9 @@
 import QuantLib as ql
 from hb.instrument.instrument import Instrument
 from hb.transaction_cost.transaction_cost import TransactionCost
-from hb.utils.process import *
+from hb.utils.termstructure import *
 from hb.utils.date import *
+from hb.utils.consts import *
 from hb.pricing import blackscholes
 from hb.utils import consts
 import numpy as np
@@ -16,12 +17,34 @@ class EuropeanOption(Instrument):
                  transaction_cost: TransactionCost = None,
                  underlying = None, 
                  trading_limit: float = 1e10):
+        payoff = ql.PlainVanillaPayoff(ql.Option.Call if option_type=="Call" else ql.Option.Put, 
+                                       strike)
+        exercise = ql.EuropeanExercise(add_time(maturity))
+        self._option = ql.VanillaOption(payoff, exercise)
         self._maturity_time = maturity
         self._call = option_type=="Call"
         self._strike = strike
         super().__init__(name=name, tradable=tradable, 
                          transaction_cost=transaction_cost, 
                          underlying=underlying, trading_limit=trading_limit)
+
+    def set_simulator(self, simulator_handler, counter_handler):
+        super().set_simulator(simulator_handler, counter_handler)
+        ir = self._simulator_handler.get_obj().get_ir()
+        spot = 100
+        dividend = self._underlying.get_dividend_yield()
+        vol = 0.2
+        flat_ts = create_flat_forward_ts(ir)
+        dividend_ts = create_flat_forward_ts(dividend)
+        self._spot_handle = ql.RelinkableQuoteHandle(ql.SimpleQuote(spot))
+        self._flat_vol_ts_handle = ql.RelinkableBlackVolTermStructureHandle(
+            ql.BlackConstantVol(get_date(), calendar, vol, day_count)
+        )
+        bsm_process = ql.BlackScholesMertonProcess(self._spot_handle, 
+                                                   dividend_ts, 
+                                                   flat_ts, 
+                                                   self._flat_vol_ts_handle)
+        self._option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
 
     def get_strike(self) -> float:
         return self._strike
@@ -96,32 +119,44 @@ class EuropeanOption(Instrument):
         return imp_vol_surf.get_black_vol(t=self.get_remaining_time(),k=self._strike).numpy()
 
     def _get_price(self, path_i: int, step_i: int) -> float:
-        spot = self._underlying.get_price()
-        tau_e = self.get_remaining_time()
-        r = self._simulator_handler.get_obj().get_ir()
-        q = self._underlying.get_dividend_yield()
-        vol = self.get_implied_vol(path_i, step_i)
-        return blackscholes.price(
-                        sigma=vol,
-                        strike=self._strike,
-                        tau_e=tau_e, tau_d=tau_e,
-                        s0=spot, r=r, q=q,
-                        call=self._call)
+        if (abs(self._maturity_time-get_cur_time()) < 1e-5) and (not self._exercised):
+            # expiry, not exercised
+            option_price = self.get_intrinsic_value()
+        elif (self._maturity_time-get_cur_time() < 1e-5) or (self._exercised):
+            # past expiry, or exercised
+            option_price = 0.
+        else:
+            spot = float(self._underlying._get_price(path_i, step_i))
+            vol = float(self.get_implied_vol(path_i, step_i))
+            self._spot_handle.linkTo(ql.SimpleQuote(spot))
+            self._flat_vol_ts_handle.linkTo(
+                ql.BlackConstantVol(get_date(), calendar, vol, day_count)
+            )
+            option_price = self._option.NPV()
+        return option_price
 
     def get_delta(self, path_i: int=None, step_i: int=None) -> float:
+        if (abs(self._maturity_time-get_cur_time()) < 1e-5) and (not self._exercised):
+            # expiry, not exercised
+            spot = self._underlying.get_price()
+            if self._call:
+                delta = 0. if spot <= self._strike else 1.
+            else:
+                delta = 0. if spot >= self._strike else -1.
+            return delta
+        elif (self._maturity_time-get_cur_time() < 1e-5) or (self._exercised):
+            # past expiry, or exercised
+            return 0.
         if (path_i is None) or (step_i is None):
             path_i, step_i = self._counter_handler.get_obj().get_path_step()
-        spot = self._underlying.get_price()
-        tau_e = self.get_remaining_time()
-        r = self._simulator_handler.get_obj().get_ir()
-        q = self._underlying.get_dividend_yield()
-        vol = self.get_implied_vol(path_i, step_i)
-        return blackscholes.delta(
-            call=self._call, s0=spot, r=r, q=q, 
-            strike=self._strike, sigma=vol, tau_e=tau_e, tau_d=tau_e
+        spot = float(self._underlying._get_price(path_i, step_i))
+        vol = float(self.get_implied_vol(path_i, step_i))
+        self._spot_handle.linkTo(ql.SimpleQuote(spot))
+        self._flat_vol_ts_handle.linkTo(
+            ql.BlackConstantVol(get_date(), calendar, vol, day_count)
         )
+        return self._option.delta()
         
-
     def __repr__(self):
         return 'EuroOpt {underlying_name} {list_otc} {maturity} {call_put} {strike:.2f} {transaction_cost} {trading_limit:.2f} ({name})' \
                 .format(underlying_name=self._underlying.get_name(),
