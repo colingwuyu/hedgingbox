@@ -226,7 +226,7 @@ class VarianceSwap(Instrument):
             float: [description]
         """
         super().exercise()
-        delivery = -1.
+        delivery = 0.
         return delivery
 
     def _get_price(self, path_i: int, step_i: int) -> float:

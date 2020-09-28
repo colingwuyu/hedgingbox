@@ -110,7 +110,12 @@ class EuropeanOption(Instrument):
             return -self._strike
 
     def get_is_physical_settle(self):
-        return True
+        """Assume Listed European Option is cash settled, and OTC is physical settled
+
+        Returns:
+            bool: option is physical settled or cash settled 
+        """
+        return not self._tradable
 
     def get_implied_vol(self, path_i:int=None, step_i:int=None) -> float:
         if (path_i is None) or (step_i is None):

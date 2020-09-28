@@ -171,7 +171,7 @@ class Portfolio():
     def event_handler(self):
         cashflows = 0.
         trans_costs = 0.
-        for derivative in self._liability_portfolio:
+        for derivative in self._positions:
             if abs(derivative.get_instrument().get_remaining_time()-0.0) < 1e-5:
                 # position expired
                 derivative_cash_flow, trans_cost = self.derivative_exercise_event(derivative)
