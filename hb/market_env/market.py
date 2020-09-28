@@ -498,6 +498,12 @@ class Market(dm_env.Environment):
     def get_total_episodes(self):
         return self._current_counter_handler.get_obj().get_total_paths()
 
+    def get_validation_episodes(self):
+        return self._validation_counter.get_total_paths()
+
+    def get_scenario_episodes(self):
+        return self._scenario_counter.get_total_paths()
+
 if __name__ == "__main__":
     market = Market.load_market_file('Markets/Market_Example/market.json')
     print(market)
