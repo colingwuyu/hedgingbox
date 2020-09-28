@@ -16,10 +16,10 @@ class GreekHedgeActor(core.Actor):
     and outputs hedging actions. 
     """
 
-    def __init__(self, portfolio: Portfolio, use_bs_delta: bool,
+    def __init__(self, portfolio: Portfolio,
                  action_spec: specs.BoundedArray):
         self._strategies = [
-            EuroDeltaHedgingStrategy(portfolio, use_bs_delta, action_spec),
+            EuroDeltaHedgingStrategy(portfolio, action_spec),
             VarianceSwapReplicatingStrategy(portfolio, action_spec)
         ]
         self._actions = np.zeros(action_spec.shape)

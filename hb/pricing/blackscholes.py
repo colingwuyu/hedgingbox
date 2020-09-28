@@ -21,7 +21,7 @@ def price(call, s0, r, q, sigma, strike, tau_e, tau_d):
     cnd2 = norm.cdf(d2)
     return df * ((fwd*cnd1*m) - (strike*cnd2*m))
 
-def delta_bk(call, s0, r, q, strike, sigma, tau_e, tau_d):
+def delta(call, s0, r, q, strike, sigma, tau_e, tau_d):
     m = 1. if call else -1.
     if tau_e < 1e-6:
         return 0.

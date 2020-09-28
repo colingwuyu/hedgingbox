@@ -13,9 +13,9 @@ class InstrumentFactory():
         Args:
             str_instrument (str): 
                 Stock:
-                    'Stock Ticker Quote annual_yield% dividend_yield% transaction_cost%'  
+                    'Stock Ticker annual_yield% dividend_yield% transaction_cost% trading_limit'  
                 European Option:
-                    'EuroOpt Ticker OTC/Listed Maturity Call/Put Strike IV% transaction_cost% (ShortName)'
+                    'EuroOpt Ticker OTC/Listed Maturity Call/Put Strike transaction_cost% trading_limit (ShortName)'
                 Variance Swap:
                     'VarSwap Ticker Maturity VolStrike VarNotional (ShortName)'
         """
@@ -23,24 +23,26 @@ class InstrumentFactory():
         if params[0] == 'Stock':
             return Stock(
                 name=params[1],
-                quote=float(params[2]),
-                annual_yield=float(params[3])/100.,
-                dividend_yield=float(params[4])/100.,
-                transaction_cost=PercentageTransactionCost(float(params[5])/100.)
+                annual_yield=float(params[2])/100.,
+                dividend_yield=float(params[3])/100.,
+                transaction_cost=PercentageTransactionCost(float(params[4])/100.),
+                trading_limit=float(params[5])
             )
         if params[0] == 'EuroOpt':
             return EuropeanOption(
                 name=params[-1][1:-1],
+                underlying=params[1],
                 option_type=params[4],
                 maturity=date_util.get_period_from_str(params[3]),
                 strike=float(params[5]),
                 tradable=True if params[2]=='Listed' else False,
-                quote=float(params[6])/100.,
-                transaction_cost=PercentageTransactionCost(float(params[7])/100.)
+                transaction_cost=PercentageTransactionCost(float(params[6])/100.),
+                trading_limit=float(params[7])
             )
         if params[0] == 'VarSwap':
             return VarianceSwap(
                 name=params[-1][1:-1],
+                underlying=params[1],
                 vol_strike=float(params[3]),
                 maturity=date_util.get_period_from_str(params[2]),
                 var_notional=float(params[4])

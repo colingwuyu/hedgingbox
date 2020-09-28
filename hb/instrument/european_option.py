@@ -7,36 +7,21 @@ from hb.pricing import blackscholes
 from hb.utils import consts
 import numpy as np
 import math
-import tf_quant_finance as tff
+import tf_quant_finance as tff 
 
 
 class EuropeanOption(Instrument):
     def __init__(self, name: str, option_type: str, strike: float, 
-                 maturity: float, tradable: bool, quote: float = None,
+                 maturity: float, tradable: bool,
                  transaction_cost: TransactionCost = None,
-                 underlying: Instrument = None, trading_limit: float = 1e10, 
-                 reset_time=True):
-        payoff = ql.PlainVanillaPayoff(ql.Option.Call if option_type=="Call" else ql.Option.Put, 
-                                       strike)
-        exercise = ql.EuropeanExercise(add_time(maturity))
-        self._option = ql.VanillaOption(payoff, exercise)
+                 underlying = None, 
+                 trading_limit: float = 1e10):
         self._maturity_time = maturity
         self._call = option_type=="Call"
         self._strike = strike
-        self._back_up_pricing_engine = None
-        self._param = None
-        self._pred_ind = 0
-        super().__init__(name, tradable, quote, transaction_cost, underlying, trading_limit, reset_time=reset_time)
-
-    def get_quote(self) -> float:
-        return self._quote
-    
-    def set_quote(self, quote: float):
-        self._quote = quote
-    
-    def quote(self, quote: float):
-        self._quote = quote
-        return self
+        super().__init__(name=name, tradable=tradable, 
+                         transaction_cost=transaction_cost, 
+                         underlying=underlying, trading_limit=trading_limit)
 
     def get_strike(self) -> float:
         return self._strike
@@ -44,48 +29,6 @@ class EuropeanOption(Instrument):
     def get_is_call(self) -> bool:
         return self._call
     
-    def get_risk_free_rate(self):
-        return self._param.risk_free_rate
-
-    def set_pricing_engine(self, spot_price=None):
-        process_param = self._underlying.get_process_param()
-        price, underlyer_var = self._underlying.get_price()
-        underlyer_price = price
-        if spot_price:
-            underlyer_price = spot_price
-        if isinstance(process_param, HestonProcessParam):
-            # Heston model
-            self._param = HestonProcessParam(
-                    risk_free_rate=process_param.risk_free_rate,spot=underlyer_price, spot_var=max(consts.IMPLIED_VOL_FLOOR, underlyer_var), 
-                    drift=process_param.risk_free_rate, dividend=self._underlying.get_dividend_yield(),
-                    kappa=process_param.kappa, theta=process_param.theta, 
-                    rho=process_param.rho, vov=process_param.vov, use_risk_free=True
-                )
-            heston_process = create_heston_process(self._param)
-            # bsm_process = create_gbm_process(
-            #     GBMProcessParam(
-            #         risk_free_rate=process_param.risk_free_rate, spot=underlyer_price, 
-            #         drift=process_param.risk_free_rate,
-            #         dividend=self._underlying.get_dividend_yield(), 
-            #         vol=underlyer_var**0.5, use_risk_free=True
-            #     )
-            # )
-            self._option.setPricingEngine(ql.AnalyticHestonEngine(ql.HestonModel(heston_process),0.01,1000))
-            self._back_up_pricing_engine = ql.MCEuropeanHestonEngine(
-                heston_process, 'pr', timeSteps=days_from_time(self.get_remaining_time()) if self.get_remaining_time() > 0 else 1, requiredSamples=1_000
-            )
-            # self._back_up_pricing_engine = ql.AnalyticEuropeanEngine(bsm_process)
-        elif isinstance(process_param, GBMProcessParam):
-            # BSM Model
-            self._param = GBMProcessParam(
-                    risk_free_rate=process_param.risk_free_rate, spot=underlyer_price, 
-                    drift=process_param.risk_free_rate, 
-                    dividend=self._underlying.get_dividend_yield(), 
-                    vol=process_param.vol, use_risk_free=True
-                )
-            bsm_process = create_gbm_process(self._param)        
-            self._option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
-
     def get_is_expired(self) -> bool:
         """check if instrument expires
 
@@ -94,100 +37,16 @@ class EuropeanOption(Instrument):
         """
         return (self._maturity_time-get_cur_time()) <= 1e-5
 
-    def get_sim_price(self, spot_price=None):
-        if (self._cur_price[1] is None):
-            # first visit of this timestep, need set up pricing engine
-            self.set_pricing_engine()
-        if spot_price:
-            # use to calculate perturb spot price
-            self.set_pricing_engine(spot_price)
-        if (abs(self._maturity_time-get_cur_time()) < 1e-5) and (not self._exercised):
-            # expiry, not exercised
-            option_price = self.get_intrinsic_value()
-        elif (self._maturity_time-get_cur_time() < 1e-5) or (self._exercised):
-            # past expiry, or exercised
-            option_price = 0.
-        else:
-            # price before expiry
-            try:
-                price = self._option.NPV()
-                # if self._back_up_pricing_engine:
-                #     self._option.setPricingEngine(self._back_up_pricing_engine)
-                #     with open('logger.csv', 'a') as logger:
-                #         mc_price = self._option.NPV()
-                #         logger.write(','.join([str(k) for k in [self.get_remaining_time(), price, mc_price, price/mc_price-1]])+'\n')
-                # if abs(price -blackscholes.price(True, self._param.spot, self._param.risk_free_rate, 
-                #                         self._param.dividend, self._param.vol, self._strike, 
-                #                         self.get_remaining_time(), self.get_remaining_time())) > 1e-5:
-                #     print(get_date(),
-                #         self._param,
-                #         price, 
-                #         blackscholes.price(True, self._param.spot, self._param.risk_free_rate, 
-                #                             self._param.dividend, self._param.vol, self._strike, 
-                #                             self.get_remaining_time(), self.get_remaining_time()))
-                if price - self.get_intrinsic_value() < -1e-5:
-                    raise Exception("Less than intrinsic price")
-                option_price = price
-            except:
-                self._option.setPricingEngine(self._back_up_pricing_engine)
-                option_price = self._option.NPV()
-        if spot_price:
-            # reset pricing engine with current spot
-            self.set_pricing_engine()
-        return option_price
-
-    def _get_pred_price(self) -> float:
-        price = self.get_sim_price()
-        return price
-
-    def get_pred_price(self) -> float:
-        """Get the prediction price at timestep t
-           This function will only be called once at each timestep
-           The price will be cached into _cur_price and retrieved directly from get_price() method
-        Returns:
-            float: prediction price
-        """
-        if self._cur_pred_file == "pred_price.csv":
-            return self.get_sim_price()
-        self.set_pricing_engine()
-        self._pred_ind += 1
-        if self._cur_pred_path is None:
-            self._cur_pred_path = -1
-        if (abs(self._cur_price[0]-0.0) < 1e-5):
-            # start of a new episode
-            if self._cur_pred_path == self._pred_episodes:
-                # run out all episodes, start repeating
-                self._cur_pred_path = 0
-            else:
-                # continue next path
-                if (self._cur_pred_file is None) and (self._cur_pred_path != -1):
-                    self._pred_price_path += [[]]
-                self._cur_pred_path += 1
-            self._pred_ind = 0
-        if self._cur_pred_file:
-            # use loaded pred episodes
-            price = self._pred_price_path[self._cur_pred_path][self._pred_ind]
-        else:
-            # simulate pred episodes
-            price = self.get_sim_price()
-            self._pred_price_path[self._cur_pred_path] = self._pred_price_path[self._cur_pred_path] + [price]
-            if (self._pred_ind == self._num_steps) and \
-                ((self._cur_pred_path + 1) == self._pred_episodes):
-                # save pred episodes:
-                self.save_pred_episodes(self._underlying._cur_pred_file)
-
-        return price
-
     def get_intrinsic_value(self):
         """The discounted intrinsic value
 
         Returns:
             float: The discounted intrinsic value
         """
-        spot, _ = self._underlying.get_price()
+        spot = self._underlying.get_price()
         tau_e = self.get_remaining_time()
-        r = self._param.risk_free_rate
-        q = self._param.dividend
+        r = self._simulator_handler.get_obj().get_ir()
+        q = self._underlying.get_dividend_yield()
         fwd = spot*math.exp((r-q)*tau_e)
         if self._call:
             intrinsic_value = 0. if fwd <= self._strike else fwd - self._strike
@@ -206,7 +65,7 @@ class EuropeanOption(Instrument):
 
     def exercise(self) -> float:
         super().exercise()
-        spot, _ = self._underlying.get_price()
+        spot = self._underlying.get_price()
         if self._call:
             delivery = 0. if spot <= self._strike else 1.
         else:
@@ -230,167 +89,49 @@ class EuropeanOption(Instrument):
     def get_is_physical_settle(self):
         return True
 
-    def get_implied_vol(self) -> float:
-        if isinstance(self._param, GBMProcessParam):
-            return self._param.vol
-        else:
-            return self._implied_vol(
-                self._call, self._strike, self.get_remaining_time(),
-                self.get_price(),
-                GBMProcessParam(
-                                risk_free_rate=self._param.risk_free_rate, 
-                                spot=self._param.spot,
-                                drift=self._param.drift, dividend=self._param.dividend, 
-                                vol=0.2,
-                                use_risk_free=True
-                               )
-            )
+    def get_implied_vol(self, path_i:int=None, step_i:int=None) -> float:
+        if (path_i is None) or (step_i is None):
+            path_i, step_i = self._counter_handler.get_obj().get_path_step()
+        imp_vol_surf = self._simulator_handler.get_obj().get_implied_vol_surface(self._underlying.get_name(), path_i, step_i)
+        return imp_vol_surf.get_black_vol(t=self.get_remaining_time(),k=self._strike).numpy()
 
-    def _get_gbm_param(self) -> GBMProcessParam:
-        if isinstance(self._param, GBMProcessParam):
-            return self._param
-        else:
-            return GBMProcessParam(
-                                risk_free_rate=self._param.risk_free_rate, 
-                                spot=self._param.spot,
-                                drift=self._param.drift, dividend=self._param.dividend, 
-                                vol=self.get_implied_vol(),
-                                use_risk_free=True
-                            )
+    def _get_price(self, path_i: int, step_i: int) -> float:
+        spot = self._underlying.get_price()
+        tau_e = self.get_remaining_time()
+        r = self._simulator_handler.get_obj().get_ir()
+        q = self._underlying.get_dividend_yield()
+        vol = self.get_implied_vol(path_i, step_i)
+        return blackscholes.price(
+                        sigma=vol,
+                        strike=self._strike,
+                        tau_e=tau_e, tau_d=tau_e,
+                        s0=spot, r=r, q=q,
+                        call=self._call)
 
-    def get_delta(self, use_bs=True) -> float:
-        """Delta
-            Black-Scholes delta: 
-                If underlying follows BSM, then directly use BS delta formula
-                If underlying follows Heston, then implied vol is calculated from option price, and then use BS delta formula
-            Heston delta:
-                Numeric method
-                    delta = (Price(S+delta_S) - Price(delta_S)) / delta_S
-                    delta_S = 1%*S
-
-
-        Args:
-            use_bs (bool, optional): Use BS Delta or delta from Underlying process. Defaults to True.
-
-        Returns:
-            float: [description]
-        """
-        if (abs(self._maturity_time-get_cur_time()) < 1e-5) and (not self._exercised):
-            # expiry, not exercised
-            spot, _ = self._underlying.get_price()
-            if self._call:
-                delta = 0. if spot <= self._strike else 1.
-            else:
-                delta = 0. if spot >= self._strike else -1.
-            return delta
-        elif (self._maturity_time-get_cur_time() < 1e-5) or (self._exercised):
-            # past expiry, or exercised
-            return 0.
-        if use_bs or isinstance(self._param, GBMProcessParam):
-            # if isinstance(self._param, GBMProcessParam):
-            #     delta_value = self._option.delta()
-            #     if np.isnan(delta_value):
-            #         delta_value = blackscholes.delta_bk(True, self._param.spot, self._param.risk_free_rate, 
-            #                                             self._param.dividend, self._strike, 
-            #                                             self._param.vol, self.get_remaining_time(), 
-            #                                             self.get_remaining_time())
-            #     return delta_value
-            # else:
-            return self._delta(self._call, self._strike,
-                                self._get_gbm_param(),
-                                self._maturity_time-self._cur_price[0],
-                                self._cur_price[1])
-        else:
-            base_price = self.get_price()
-            underlying_price, _ = self._underlying.get_price()
-            pertub = underlying_price*0.01
-            pertub_spot = underlying_price + pertub
-            pertub_price = self.get_sim_price(spot_price=pertub_spot)
-            return (pertub_price - base_price) / pertub
-
-
-    def get_gamma(self) -> float:
-        """BS Gamma
-
-        Returns:
-            float: BlackScholes Model Gamma
-        """
-        if (self._maturity_time-get_cur_time() <= -1e-5) or (self._exercised):
-            # past expiry / exercised
-            return 0.
-        if isinstance(self._param, GBMProcessParam):
-            return self._option.gamma()
-        else:
-            return self._gamma(self._call, self._strike,
-                               self._get_gbm_param(),
-                               self._maturity_time-self._cur_price[0])
-
-    def get_vega(self) -> float:
-        """BS Vega
-
-        Returns:
-            float: BlackScholes Model Vega
-        """
-        if (self._maturity_time-get_cur_time() <= -1e-5) or (self._exercised):
-            # past expiry / exercised
-            return 0.
-        if isinstance(self._param, GBMProcessParam):
-            return self._option.vega()
-        else:
-            return self._vega(self._call, self._strike,
-                              self._get_gbm_param(),
-                              self._maturity_time-self._cur_price[0])
-    @classmethod
-    def _implied_vol(cls, call, strike, tau_e, option_price, gbm_param):
-        euro_opt = cls("impl_vol", 'Call' if call else 'Put', strike,
-                       tau_e, False, reset_time=False)
-        process = create_process(gbm_param)
-        try:
-            return euro_opt._option.impliedVolatility(option_price, process)
-        except:
-            return consts.IMPLIED_VOL_FLOOR
-
-    @classmethod
-    def _create_euro_opt(cls, call, strike, param, tau_e, price=None):
-        if price:
-            sigma = cls._implied_vol(call, strike, tau_e, price, 
-                                    GBMProcessParam(
-                                        risk_free_rate=param.risk_free_rate, spot=param.spot,
-                                        drift=param.drift, dividend=param.dividend, vol=0.2,
-                                        use_risk_free=True
-                                    ))
-            bsm_process = create_process(
-                                GBMProcessParam(
-                                    risk_free_rate=param.risk_free_rate, spot=param.spot,
-                                    drift=param.drift, dividend=param.dividend, vol=sigma,
-                                    use_risk_free=True
-                                ))
-        else:
-            assert isinstance(param, GBMProcessParam)
-            bsm_process = create_process(param)
-        euro_opt = EuropeanOption("impl_vol", 'Call' if call else 'Put', strike,
-                                tau_e, False, reset_time=False)
-        euro_opt._option.setPricingEngine(ql.AnalyticEuropeanEngine(bsm_process))
-        return euro_opt
-
-    @classmethod
-    def _delta(cls, call, strike, param, tau_e, price=None):
-        delta_value = cls._create_euro_opt(call, strike, param, tau_e, price)._option.delta()
-        if np.isnan(delta_value):
-            delta_value = blackscholes.delta_bk(True, param.spot, param.risk_free_rate, param.dividend, strike, param.vol, tau_e, tau_e)
-        return delta_value
-    
-    @classmethod
-    def _gamma(cls, call, strike, param, tau_e, price=None):
-        return cls._create_euro_opt(call, strike, param, tau_e, price)._option.gamma()
-
-    @classmethod
-    def _vega(cls, call, strike, param, tau_e, price=None):
-        return cls._create_euro_opt(call, strike, param, tau_e, price)._option.vega()
-
+    def get_delta(self, path_i: int=None, step_i: int=None) -> float:
+        if (path_i is None) or (step_i is None):
+            path_i, step_i = self._counter_handler.get_obj().get_path_step()
+        spot = self._underlying.get_price()
+        tau_e = self.get_remaining_time()
+        r = self._simulator_handler.get_obj().get_ir()
+        q = self._underlying.get_dividend_yield()
+        vol = self.get_implied_vol(path_i, step_i)
+        return blackscholes.delta(
+            call=self._call, s0=spot, r=r, q=q, 
+            strike=self._strike, sigma=vol, tau_e=tau_e, tau_d=tau_e
+        )
+        
 
     def __repr__(self):
-        return f'European Option {self._name}: \nunderlying=({str(self._underlying)})\noption_type={self._call}, strike={self._strike}, maturity={get_period_str_from_time(self._maturity_time)}, tradable={self._tradable}, iv={self._quote}, transaction_cost={str(self._transaction_cost)}'
+        return 'EuroOpt {underlying_name} {list_otc} {maturity} {call_put} {strike:.2f} {transaction_cost} {trading_limit:.2f} ({name})' \
+                .format(underlying_name=self._underlying.get_name(),
+                        list_otc="Listed" if self._tradable else "OTC",
+                        maturity=get_period_str_from_time(self._maturity_time),
+                        call_put="Call" if self._call else "Put",
+                        strike=self._strike, 
+                        transaction_cost=self._transaction_cost.get_percentage_cost()*100,
+                        trading_limit=self._trading_limit,
+                        name=self._name)
 
 
 if __name__ == "__main__":

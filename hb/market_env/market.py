@@ -5,121 +5,209 @@ from hb.instrument.cash_account import CashAccount
 from hb.market_env.rewardrules.pnl_reward import PnLReward
 from hb.market_env import market_specs
 from hb.market_env.rewardrules import reward_rule
+from hb.market_env.rewardrules.reward_rule_factory import RewardRuleFactory
 from hb.utils.date import *
 from hb.utils.process import *
 from hb.utils.heston_calibration import *
+from hb.utils.consts import *
 from hb.market_env.portfolio import Portfolio
+from hb.riskfactorsimulator.simulator import Simulator
+from hb.utils.handler import Handler
 import math
 from typing import List, Union
 import numpy as np
 import dm_env
 from dm_env import specs
 from os.path import join as pjoin
+import json
 
+
+class EpisodeCounter:
+    def __init__(self, total_paths=None, total_steps=None):
+        """episode path and step counter
+
+        Args:
+            total_paths (float, optional): total paths. Defaults to None.
+            total_steps (float, optional): total steps including time 0 in an episode. Defaults to None.
+        """
+        self._path_counter = -1
+        self._step_counter = -1
+        self._total_paths = total_paths
+        self._total_steps = total_steps
+        
+    def set_total_paths(self, total_paths):
+        self._total_paths = total_paths
+    
+    def get_total_paths(self):
+        return self._total_paths
+    
+    def total_paths(self, total_paths):
+        self._total_paths = total_paths
+        return self
+
+    def set_total_steps(self, total_steps):
+        self._total_steps = total_steps
+
+    def get_total_steps(self):
+        return self._total_steps
+    
+    def total_steps(self, total_steps):
+        self._total_steps = total_steps
+        return self
+
+    def inc_path_counter(self):
+        self._path_counter += 1
+        
+    def inc_step_counter(self):
+        self._step_counter += 1
+        
+    def get_path_step(self):
+        return self._path_counter % self._total_paths, self._step_counter % self._total_steps
+    
+    def reset(self):
+        self._path_counter = -1
+        self._step_counter = -1
 
 class Market(dm_env.Environment):
+    __slots__ = ["_name", 
+                 "_training_simulator", "_validation_simulator", "_scenario_simulator", "_current_simulator_handler",
+                 "_training_counter", "_validation_counter", "_scenario_counter", "_current_counter_handler",
+                 "_cash_account", "_pnl_reward", "_reward_rule", "_hedging_step_in_days",
+                 "_portfolio", "_event_trans_cost"]
+
     """Market Environment
     """
-    def __init__(
-            self,
-            reward_rule: reward_rule.RewardRule=PnLReward(),  
-            risk_free_rate: float=0.01,
-            hedging_step_in_days: int=1,
-            vol_model: str = 'BSM', 
-            name: str = 'Market',
-            dir_: str = 'Market'
-        ):
-        reset_date()
-        self._risk_free_rate = risk_free_rate
-        self._underlying_processes = dict()
-        self._underlying_processes_param = dict()
-        self._tradable_products = np.array([])
-        self._tradable_products_map = dict()
-        self._exotic_products = np.array([])
-        self._exotic_products_map = dict()
-        self._cash_account = CashAccount(interest_rates=risk_free_rate)
-        self._pnl_reward = PnLReward()
-        self._reward_rule = reward_rule
-        self._hedging_step_in_days = hedging_step_in_days
-        self._num_steps = 0
-        self._portfolio = None
-        self._pred_episodes = None
-        self._vol_model = vol_model
-        self._name = name
-        self._event_trans_cost = 0.
-        self._dir = pjoin(dir_, "Market_" + name + "_VolModel_" + vol_model)
 
-    def get_dir(self):
-        return self._dir
-    
-    def set_pred_mode(self, pred_mode: bool):
-        """Set market to prediction mode
-           Prediction Mode will generate a fixed pred_episodes
-
+    @classmethod
+    def load_json(cls, json_: Union[dict, str]):
+        """Constructor of market environment
+        example:
+        {
+            "name": "BSM_AMZN_SPX",
+            "reward_rule": "PnLReward",
+            "hedging_step_in_days": 1,
+            "validation_rng_seed": 1234,
+            "training_episodes": 10000,
+            "validation_episodes": 1000,
+            "riskfactorsimulator": {
+                "ir": 0.015,
+                "equity": [
+                    {
+                        "name": "AMZN",
+                        "riskfactors": ["Spot", 
+                                        "Vol 3Mx100",
+                                        "Vol 2Mx100", 
+                                        "Vol 4Wx100"],
+                        "process_param": {
+                            "process_type": "Heston",
+                            "param": {
+                                "spot": 100,
+                                "spot_var": 0.096024,
+                                "drift": 0.25,
+                                "dividend": 0.0,
+                                "kappa": 6.288453,
+                                "theta": 0.397888,
+                                "epsilon": 0.753137,
+                                "rho": -0.696611
+                            } 
+                        }
+                    },
+                    {
+                        "name": "SPX",
+                        "riskfactors": ["Spot", "Vol 3Mx100"],
+                        "process_param": {
+                            "process_type": "GBM",
+                            "param": {
+                                "spot": 100,
+                                "drift": 0.10,
+                                "dividend": 0.01933,
+                                "vol": 0.25
+                            } 
+                        }
+                    }
+                ],
+                "correlation": [
+                    {
+                        "equity1": "AMZN",
+                        "equity2": "SPX",
+                        "corr": 0.8
+                    }
+                ]
+            }
+        }
         Args:
-            pred_mode (bool): True - set to prediction mode
-                              False - set to non-prediction mode
+            json_ (Union[dict, str]): market environment in json
         """
-        for position in self._portfolio.get_portfolio_positions():
-            position.get_instrument().set_pred_mode(pred_mode)
-
-    def get_num_steps(self):
-        return self._num_steps
-
-    def set_num_steps(self, num_steps: int):
-        self._num_steps = num_steps
-        for position in self._portfolio.get_portfolio_positions():
-            position.get_instrument().set_num_steps(self._num_steps)
-
-    def get_pred_episodes(self):
-        return self._pred_episodes
-
-    def set_pred_episodes(self, pred_episodes):
-        self._pred_episodes = pred_episodes
-        for instrument in self._tradable_products:
-            instrument.set_pred_episodes(pred_episodes)
-        for instrument in self._exotic_products:
-            instrument.set_pred_episodes(pred_episodes)
-
-    def add_instrument(self, instrument: Instrument):
-        """add instrument into market, which will be available to construct portfolio
-
-        Args:
-            instrument (Instrument): Instrument add to market
-        """
-        if isinstance(instrument, Stock):
-            instrument.set_pred_episodes(self._pred_episodes)
-        if instrument.get_is_tradable():
-            self._tradable_products = np.append(self._tradable_products, instrument)
-            self._tradable_products_map[instrument.get_name()] = instrument
+        if isinstance(json_, str):
+            dict_json = json.loads(json_)
         else:
-            self._exotic_products = np.append(self._exotic_products, instrument)
-            self._exotic_products_map[instrument.get_name()] = instrument
+            dict_json = json_
+        market = cls()
+        market._name = dict_json["name"]
+        market._training_simulator = Simulator.load_json(dict_json["riskfactorsimulator"])
+        market._training_counter = EpisodeCounter(dict_json["training_episodes"], dict_json["num_steps_per_episode"]+1)
+        market._validation_simulator = Simulator.load_json(dict_json["riskfactorsimulator"]).rng_seed(dict_json["validation_rng_seed"])
+        market._validation_counter = EpisodeCounter(dict_json["validation_episodes"], dict_json["num_steps_per_episode"]+1)
+        market._scenario_simulator = Simulator.load_json(dict_json["riskfactorsimulator"])
+        market._scenario_counter = EpisodeCounter()
+        market._current_simulator_handler = Handler(market._training_simulator)
+        market._current_counter_handler = Handler(market._training_counter)
+        market._cash_account = CashAccount(interest_rates=market._training_simulator.get_ir())
+        market._pnl_reward = PnLReward()
+        market._reward_rule = RewardRuleFactory.create(dict_json["reward_rule"])
+        market._hedging_step_in_days = dict_json["hedging_step_in_days"]
+        market._training_simulator = market._training_simulator.time_step(market._hedging_step_in_days/DAYS_PER_YEAR)\
+                                                               .num_steps(dict_json["num_steps_per_episode"]+1)
+        market._validation_simulator = market._validation_simulator.time_step(market._hedging_step_in_days/DAYS_PER_YEAR)\
+                                                                   .num_steps(dict_json["num_steps_per_episode"]+1)
+        market._portfolio = None
+        market._event_trans_cost = 0.
+        return market
+        
+    def jsonify_dict(self) -> dict:
+        dict_json = dict()
+        dict_json["name"] = self._name
+        dict_json["reward_rule"] = str(self._reward_rule)
+        dict_json["hedging_step_in_days"] = self._hedging_step_in_days
+        dict_json["num_steps_per_episode"] = self._training_counter.get_total_steps() - 1
+        dict_json["validation_rng_seed"] = self._validation_simulator.get_rng_seed()
+        dict_json["training_episodes"] = self._training_counter.get_total_paths()
+        dict_json["validation_episodes"] = self._validation_counter.get_total_paths()
+        dict_json["riskfactorsimulator"] = self._training_simulator.jsonify_dict()
+        return dict_json
 
-    def add_instruments(self, instruments: List[Instrument]):
-        """add a list of instruments into market, which will be available to construct portfolio
-
+    def set_mode(self, mode: str, continue_counter: bool=False):
+        """Switch market riskfactor mode
+           Training Mode - use _training_simulator
+           Validation Mode - use _validation_simulator
+           Scenario Mode - use _scenario_simulator
+        
+        Default training mode is set when constructed
         Args:
-            instruments (List[Instrument]): A list of instruments add to market
+            mode (str): training - set to training mode
+                        validation - set to validation mode
+                        scenario - set to scenario mode
+            continue_counter (bool): True - continue counter
+                                     False - reset counter
         """
-        for i in instruments:
-            self.add_instrument(i)
-    
-    def set_vol_model(self, vol_model: str):
-        """vol_model setter
-
-        Args:
-            vol_model (str): Volatility model - "Heston", or "BSM"
-        """
-        self._vol_model = vol_model
-    
-    def get_vol_model(self):
-        return self._vol_model
+        if mode == "training":
+            self._current_simulator_handler.set_obj(self._training_simulator)
+            self._current_counter_handler.set_obj(self._training_counter)
+        elif mode == "validation":
+            self._current_simulator_handler.set_obj(self._validation_simulator)
+            self._current_counter_handler.set_obj(self._validation_counter)
+        elif mode == "scenario":
+            self._current_simulator_handler.set_obj(self._scenario_simulator)
+            self._current_counter_handler.set_obj(self._scenario_counter)
+        for position in self._portfolio.get_portfolio_positions():
+            position.get_instrument().set_simulator(self._current_simulator_handler, self._current_counter_handler)
+        if not continue_counter:
+            self._current_counter_handler.get_obj().reset()
 
     def calibrate(self,  
                   underlying: Stock, 
                   listed_options: Union[EuropeanOption, List[List[EuropeanOption]]]=[],
-                  param: Union[GBMProcessParam, HestonProcessParam]=None):
+                  model: str="Heston"):
         """Calibrate volatility model by given instruments
 
         Args:
@@ -128,24 +216,23 @@ class Market(dm_env.Environment):
                                 European Options used to calibrate the volatility model
                                 Heston model: a matrix of European Calls that compose a implied volatility surface
                                 BSM:          one European Call (its implied vol will used as GBM's diffusion coefficient)
-
+            model (str): "Heston" or "BSM"
         Raises:
             NotImplementedError: vol_model other than "Heston" or "BSM" is not implemented
         """
-        if param is None:
-            if self._vol_model == 'BSM':
-                param = GBMProcessParam(
-                    risk_free_rate=self._risk_free_rate,
-                    spot=underlying.get_quote(), 
-                    drift=underlying.get_annual_yield(), 
-                    dividend=underlying.get_dividend_yield(), 
-                    vol=listed_options.get_quote(),
-                    use_risk_free=False
-                )
-            elif self._vol_model == 'Heston':
-                param = heston_calibration(self._risk_free_rate, underlying, listed_options)
-            else:
-                raise NotImplementedError(f'{vol_model} is not supported')
+        if model == 'BSM':
+            param = GBMProcessParam(
+                risk_free_rate=self._training_simulator.get_ir(),
+                spot=underlying.get_quote(), 
+                drift=underlying.get_annual_yield(), 
+                dividend=underlying.get_dividend_yield(), 
+                vol=listed_options.get_quote(),
+                use_risk_free=False
+            )
+        elif model == 'Heston':
+            param = heston_calibration(self._training_simulator.get_ir(), underlying, listed_options)
+        else:
+            raise NotImplementedError(f'{model} is not supported')
             # param = HestonProcessParam(
             #     risk_free_rate=0.015,
             #     spot=100, 
@@ -154,71 +241,60 @@ class Market(dm_env.Environment):
             #     spot_var=0.096024, kappa=6.288453, theta=0.397888, 
             #     rho=-0.696611, vov=0.753137, use_risk_free=False
             # )
-        underlying.set_process_param(param)
-        self.add_instrument(underlying)
-        self.add_instruments(np.array(listed_options).flatten())
-
-    def get_instrument(self, instrument_name: str) -> Instrument:
-        """Get instrument from the market
-
-        Args:
-            instrument_name (str): name of the instrument
-
-        Returns:
-            Instrument: Instrument object
-        """
-        if instrument_name in self._tradable_products_map:
-            return self._tradable_products_map[instrument_name]
-        else:
-            return self._exotic_products_map[instrument_name]
-
-    def get_instruments(self, instrument_names: List[str]) -> List[Instrument]:
-        """Get a list of instruments from the market
-
-        Args:
-            instrument_names (List[str]): a list of instrument names
-
-        Returns:
-            List[Instrument]: a list of Instrument objects
-        """
-        return [self.get_instrument(i) for i in instrument_names]
-
-    def init_portfolio(self, portfolio: Portfolio):
-        """Initialize the trading portfolio in the market
+        return param
+        
+    def set_portfolio(self, portfolio: Portfolio):
+        """set the trading portfolio into market
 
         Args:
             portfolio (Portfolio): A portfolio that contains a list of exotic instruments (liabilities) 
                                    and a list of eligible hedging instruments
         """
-        self._num_steps = 0
+        num_steps = 0
         for derivative in portfolio.get_liability_portfolio():
             num_steps_to_maturity = int(days_from_time(derivative.get_instrument().get_maturity_time()) / self._hedging_step_in_days)
-            self._num_steps = max(self._num_steps, num_steps_to_maturity)
+            num_steps = max(num_steps, num_steps_to_maturity)
         self._portfolio = portfolio 
-        self.set_num_steps(self._num_steps)
-        for position in portfolio.get_portfolio_positions():
-            if isinstance(position.get_instrument(), Stock):
-                # set up Stock evolving process by step size 
-                position.get_instrument().set_pricing_engine(time_from_days(self._hedging_step_in_days))
-        self._portfolio.set_market_dir(self._dir)
+        num_steps = min(self._training_counter.get_total_steps(), num_steps + 1)
+        self._training_counter.set_total_steps(num_steps)
+        self._training_simulator.set_num_steps(num_steps)
+        self._training_simulator.generate_paths(self._training_counter.get_total_paths())
+        self._validation_counter.set_total_steps(num_steps)
+        self._validation_simulator.set_num_steps(num_steps)
+        self._validation_simulator.generate_paths(self._validation_counter.get_total_paths())
+        for position in self._portfolio.get_portfolio_positions():
+            position.get_instrument().set_simulator(self._current_simulator_handler, self._current_counter_handler)
         
-    def load_scenario(self, scenario_name: str):
-        """Load scenario path of instruments to the market
+    def load_scenario(self, scenario_json: Union[List[dict], str]):
+        """Load scenario data
+        example:
+        [
+            {
+                "name": "AMZN",
+                "data": {
+                            "time_step_day": 1,
+                            "Spot": [3400,3414.063507540342,3360.1097430892696,3514.713081433771,3399.4403346846934,3388.775188349936,3296.0554086124134,3330.74487143777],
+                            "Vol 3Mx100": [0.3321,0.3321,0.3321,0.3321,0.3321,0.3321,0.3321,0.3321],
+                            "Vol 2Mx100": [0.3321,0.3321,0.3321,0.3321,0.3321,0.3321,0.3321,0.3321],
+                            "Vol 4Wx100": [0.3321,0.3321,0.3321,0.3321,0.3321,0.3321,0.3321,0.3321]
+                        }
+            }
+            {
+                "name": "SPX",
+                "data": {
+                            "time_step_day": 1,
+                            "Spot": [3400,3414.063507540342,3360.1097430892696,3514.713081433771,3399.4403346846934,3388.775188349936,3296.0554086124134,3330.74487143777],
+                            "Vol 3Mx100": [0.3321,0.3321,0.3321,0.3321,0.3321,0.3321,0.3321,0.3321]
+                        }
+            }
+        ]
 
         Args:
-            scenario_name (str): the scenario file name of instruments
+            scenario_json (Union[List[dict], str]): the scenario data in str or list of dict
         """
-        for position in self._portfolio.get_portfolio_positions():
-            instrument = position.get_instrument()
-            if isinstance(instrument, Stock):
-                self._pred_episodes, self._num_steps = \
-                    instrument.load_pred_episodes(pred_file=scenario_name+'_price.csv', 
-                                                  pred_vol_file=scenario_name+'_vol.csv')
-            else:
-                instrument.load_pred_episodes(pred_file=scenario_name+'_price.csv')
-        self.set_pred_mode(True)
-        self.set_pred_episodes(self._pred_episodes)
-        self.set_num_steps(self._num_steps)
+        self._scenario_simulator.load_json_data(scenario_json)
+        self._scenario_counter.set_total_paths(self._scenario_simulator.get_num_paths())
+        self._scenario_counter.set_total_steps(self._scenario_simulator.get_num_steps())
 
     def reset(self):
         """dm_env interface
@@ -235,6 +311,8 @@ class Market(dm_env.Environment):
         self._cash_account.add(-initial_cashflow)
         self._reward_rule.reset(self._portfolio)
         self._pnl_reward.reset(self._portfolio)
+        self._current_counter_handler.get_obj().inc_step_counter()
+        self._current_counter_handler.get_obj().inc_path_counter() 
         # with open('logger.csv', 'a') as logger:
         #     logger.write(','.join([str(k) for k in 
         #         [get_cur_days(), 0., 100., 5, 
@@ -287,6 +365,7 @@ class Market(dm_env.Environment):
         # Time t+1                                                      #
         # ==============================================================#
         move_days(self._hedging_step_in_days)                           #
+        self._current_counter_handler.get_obj().inc_step_counter()      #
         # NAV at time t+1                                               #
         next_period_nav = self._portfolio.get_nav()                     #
         # Portfolio PnL from Time t => t+1                              #
@@ -349,7 +428,7 @@ class Market(dm_env.Environment):
         Returns:
             bool: True if current time reaches terminal step of the episode
         """
-        return (self._num_steps * self._hedging_step_in_days) == get_cur_days()
+        return ((self._current_counter_handler.get_obj().get_total_steps()-1) * self._hedging_step_in_days) == get_cur_days()
 
     def _observation(self):
         """Construct state observation
@@ -362,10 +441,7 @@ class Market(dm_env.Environment):
         """
         market_observations = np.array([], dtype=np.float)
         for position in self._portfolio.get_hedging_portfolio():
-            if isinstance(position.get_instrument(), Stock):
-                price, _ = position.get_instrument().get_price()
-            else:
-                price = position.get_instrument().get_price()
+            price = position.get_instrument().get_price()
             # add position's price and holding
             market_observations = np.append(market_observations, [price, position.get_holding()])
         for position in self._portfolio.get_liability_portfolio():
@@ -404,26 +480,50 @@ class Market(dm_env.Environment):
         )
 
     def __repr__(self):
-        market_str = 'Market Information: \n'
-        market_str += '     Risk Free Rate: \n'
-        market_str += f'        {self._risk_free_rate}\n'
-        market_str += '     Hedging Step in Days: \n'
-        market_str += f'        {self._hedging_step_in_days}\n'
-        market_str += '     Reward Rule: \n'
-        market_str += f'        {type(self._reward_rule)}\n'
-        market_str += f'    Instruments: \n'
-        market_str += '         Tradable:\n'
-        for i in self._tradable_products:
-            market_str += f'            {str(i)}\n'
-        market_str += '         Exotic:\n'
-        for i in self._exotic_products:
-            market_str += f'            {str(i)}\n'
-        market_str += f'    Portfolio: \n'
-        if self._portfolio is None:
-            market_str += '         Not initialized'
-        else:
-            for position in self._portfolio.get_portfolio_positions():
-                market_str += f'         {position.get_instrument().get_name()} Holding {position.get_holding()}\n'
-        return market_str
+        return json.dumps(self.jsonify_dict(), indent=4)
+
+    @staticmethod
+    def load_market_file(market_file_name):
+        market_json = open(market_file_name)
+        market_dict = json.load(market_json)
+        market_json.close()
+        return Market.load_json(market_dict)
+
+    def load_scenario_file(scenario_file_name):
+        scenario_json = open(scenario_file_name)
+        scenario_dict = json.load(scenario_json)
+        scenario_json.close()
+        self.load_scenario(scenario_dict)
+
+    def get_total_episodes(self):
+        return self._current_counter_handler.get_obj().get_total_paths()
+
+if __name__ == "__main__":
+    market = Market.load_market_file('Markets/Market_Example/market.json')
+    print(market)
+    portfolio = Portfolio.load_portfolio_file('Markets/Market_Example/varswap_portfolio.json')
+    print(portfolio)
+    market.set_portfolio(portfolio)
+    market.set_mode("training")
+    stock_prices = np.zeros((100,91))
+    call_prices = np.zeros((100,91))
+    for i in range(100):
+        j=0
+        timestep = market.reset()
+        stock_prices[i, j] = timestep.observation[0]
+        call_prices[i, j] = timestep.observation[4]
+        while not timestep.last():
+            j += 1
+            timestep = market.step([0]*5)
+            stock_prices[i, j] = timestep.observation[0]
+            call_prices[i, j] = timestep.observation[4]
+    import matplotlib.pyplot as plt
+    for i in range(100):
+        plt.plot(stock_prices[i,:])
+    plt.show()
+    for i in range(100):
+        plt.plot(call_prices[i,:])
+    plt.show()
+        
 
     

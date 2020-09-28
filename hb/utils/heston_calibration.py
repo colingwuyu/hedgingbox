@@ -11,6 +11,7 @@ class MyBounds(object):
      def __init__(self, xmin=[0.,0.01,0.01,-1,0], xmax=[1,15,1,1,1.0] ):
          self.xmax = np.array(xmax)
          self.xmin = np.array(xmin)
+         
      def __call__(self, **kwargs):
          x = kwargs["x_new"]
          tmax = bool(np.all(x <= self.xmax))
@@ -105,14 +106,16 @@ def heston_calibration(risk_free_rate, stock,
     print(stock.get_name(), "Calibrated Heston Parameters: theta = %f, kappa = %f, vov = %f, rho = %f, spot_var = %f" % \
         (theta, kappa, sigma, rho, v0))
     error = calibration_report(heston_helpers, grid_data)
-    return HestonProcessParam(
-                risk_free_rate=risk_free_rate,
-                spot=_spot, 
-                drift=stock.get_annual_yield(), 
-                dividend=stock.get_dividend_yield(),
-                spot_var=v0, kappa=kappa, theta=theta, rho=rho, vov=sigma,
-                use_risk_free=False
-            )
+    return {
+                "spot": _spot, 
+                "drift": stock.get_annual_yield(), 
+                "dividend": stock.get_dividend_yield(),
+                "spot_var": v0, 
+                "kappa": kappa, 
+                "theta": theta, 
+                "rho": rho, 
+                "epsilon": sigma
+            }
 
 if __name__ == "__main__":
     from hb.transaction_cost.percentage_transaction_cost import PercentageTransactionCost

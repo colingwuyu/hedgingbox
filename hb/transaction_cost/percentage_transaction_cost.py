@@ -24,3 +24,6 @@ class PercentageTransactionCost(TransactionCost):
 
     def __repr__(self):
         return f'percentage transaction cost({self._percentage_cost})'
+
+    def get_percentage_cost(self):
+        return self._percentage_cost

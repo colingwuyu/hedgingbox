@@ -5,6 +5,7 @@ from hb.market_env.rewardrules.pnl_reward import PnLReward
 from hb.market_env.market import Market
 from hb.market_env.portfolio import Portfolio
 from hb.utils.process import *
+import json
 
 class MarketTest(unittest.TestCase):
     def set_up_regression_bsm_market(self):

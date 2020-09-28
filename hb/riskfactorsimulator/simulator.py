@@ -58,8 +58,9 @@ class Correlation(object):
         return json.dumps(self.jsonify_dict(), indent=4)
 
 class Simulator(object):
-    __slots__ = ["_ir", "_equity", "_equity_map", "_correlation",
-                 "_num_steps", "_time_step", "_implied_vol_surfaces"]
+    __slots__ = ["_ir", "_equity", "_equity_map", "_correlation", "_num_paths",
+                 "_num_steps", "_time_step", "_implied_vol_surfaces",
+                 "_rng_seed"]
 
     def set_ir(self, ir: float):
         self._ir = ir
@@ -75,8 +76,8 @@ class Simulator(object):
         self._equity = equity
         self._equity_map = {eq.get_name(): eq for eq in equity}
 
-    def get_equity(self):
-        return self._equity
+    def get_equity(self, equity_name):
+        return self._equity_map[equity_name]
 
     def equity(self, equity):
         self.set_equity(equity)
@@ -101,6 +102,16 @@ class Simulator(object):
     def num_steps(self, num_steps):
         self._num_steps = num_steps
         return self
+
+    def set_num_paths(self, num_paths):
+        self._num_paths = num_paths
+    
+    def get_num_paths(self):
+        return self._num_paths
+
+    def num_paths(self, num_paths):
+        self._num_paths = num_paths
+        return self
     
     def set_time_step(self, time_step):
         self._time_step = time_step
@@ -112,28 +123,45 @@ class Simulator(object):
         self._time_step = time_step
         return self
 
+    def set_rng_seed(self, rng_seed):
+        self._rng_seed = rng_seed
+    
+    def get_rng_seed(self):
+        return self._rng_seed
+    
+    def rng_seed(self, rng_seed):
+        self._rng_seed = rng_seed
+        return self
+
     def load_json_data(self, json_: Union[List[dict], str]):
         if isinstance(json_, str):
             eq_list_json = json.loads(json_)
         else:
             eq_list_json = json_
-        num_steps = 0; num_paths = 0
+        num_steps = 0; num_paths = 0; time_step = 0;
         for eq_dict in eq_list_json:
             eq = self._equity_map[eq_dict["name"]]
             eq.load_json_data(eq_dict["data"])
             if num_steps == 0:
                 num_steps = eq.get_num_steps()
                 num_paths = eq.get_num_paths()
+                time_step = eq.get_time_step()
             assert eq.get_num_paths() == num_paths
             assert eq.get_num_steps() == num_steps
+            assert eq.get_time_step() == time_step
+        self._num_paths = num_paths
+        self._num_steps = num_steps
+        self._time_step = time_step
 
-    def generate_paths(self, num_paths: float, seed: int=1234):
+    def generate_paths(self, num_paths: float, seed: int=None):
         """Generate paths
             TODO: add correlation.
         Args:
             num_paths (float): number of paths
-            seed (int, optional): RNG seed. Defaults to 1234.
+            seed (int, optional): RNG seed. Defaults to None.
         """
+        if seed is None:
+            seed = self._rng_seed
         times = np.linspace(self._time_step, self._num_steps*self._time_step, self._num_steps)
         self._implied_vol_surfaces = dict()
         for eq in self._equity:
@@ -225,7 +253,7 @@ class Simulator(object):
         correlations = []
         for corr in dict_json["correlation"]:
             correlations += [Correlation.load_json(corr)]
-        return cls().ir(dict_json["ir"]).equity(equities).correlation(correlations)
+        return cls().ir(dict_json["ir"]).equity(equities).correlation(correlations).rng_seed(4321)
 
     def jsonify_dict(self) -> dict:
         dict_json = dict()
@@ -287,8 +315,6 @@ if __name__ == "__main__":
     }
     """
     simulator = Simulator.load_json(test_json)
-    simulator.set_time_step(1/360)
-    simulator.set_num_steps(90)
     with open("sim.json", 'w') as sim_file:
         sim_file.write(str(simulator))
     test_data = json.loads("""
@@ -305,7 +331,8 @@ if __name__ == "__main__":
     """)
     simulator.load_json_data(test_data)
     print(simulator)
-
+    simulator.set_time_step(1/360)
+    simulator.set_num_steps(90)
     simulator.generate_paths(100)
     print(simulator.get_spot("AMZN",path_i=0,step_i=1))
     imp_vol_surf = simulator.get_implied_vol_surface("AMZN",path_i=0,step_i=30)

@@ -18,4 +18,4 @@ class RewardRuleFactory():
         if str_reward_rule == "PnLReward":
             return PnLReward()
         if "SPR" == params[0]:
-            return SquarePenaltyReward(cls.create(params[1]), float(params[2]))
+            return SquarePenaltyReward(RewardRuleFactory.create(params[1]), float(params[2]))

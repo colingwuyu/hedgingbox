@@ -3,6 +3,7 @@ from hb.instrument.instrument import Instrument
 from hb.instrument.instrument_factory import InstrumentFactory
 from hb.instrument.stock import Stock
 from hb.instrument.european_option import EuropeanOption
+from hb.instrument.variance_swap import VarianceSwap
 from hb.utils.date import *
 import json
 import os
@@ -72,8 +73,16 @@ class Position():
             dict_json = json.loads(json_)
         else:
             dict_json = json_
-        instrument = InstrumentFactory.create(dict_json["instrument"])
+        return cls().holding(dict_json["holding"]).instrument(InstrumentFactory.create(dict_json["instrument"]))
 
+    def jsonify_dict(self) -> dict:
+        dict_json = dict()
+        dict_json["holding"] = self._holding
+        dict_json["instrument"] = str(self._instrument)
+        return dict_json
+
+    def __repr__(self):
+        return json.dumps(self.jsonify_dict(), indent=4)
 
 class Portfolio():
     def __init__(self, 
@@ -85,7 +94,6 @@ class Portfolio():
         self._liability_portfolio = []
         self._liability_portfolio_map = dict()
         self._name = name
-        self._dir = None
         for position in positions:
             if position.get_instrument().get_is_tradable():
                 self._hedging_portfolio += [position]
@@ -111,21 +119,6 @@ class Portfolio():
                 all_expired = False
         return all_expired
 
-    def get_dir(self):
-        return self._dir
-
-    def set_market_dir(self, market_dir):
-        """Set market directory for saving data
-
-        Args:
-            market_dir (str): Director of market
-        """
-        self._dir = os.path.join(market_dir, "Portfolio_"+self._name)
-        if not os.path.exists(self._dir):
-            os.makedirs(self._dir)
-        for position in self._positions:
-            position.get_instrument().set_portfolio_dir(self._dir)
-
     def get_hedging_portfolio(self):
         return self._hedging_portfolio
 
@@ -134,6 +127,12 @@ class Portfolio():
 
     def get_portfolio_positions(self):
         return self._positions
+
+    def get_position(self, instrument_name: str):
+        if instrument_name in self._hedging_portfolio_map:
+            return self._hedging_portfolio_map[instrument_name]
+        elif instrument_name in self._liability_portfolio_map:
+            return self._liability_portfolio_map[instrument_name]
 
     def reset(self):
         for position in self._positions:
@@ -233,4 +232,57 @@ class Portfolio():
             dict_json = json.loads(json_)
         else:
             dict_json = json_
-        
+        portfolio = cls(positions=[Position.load_json(pos) for pos in dict_json["positions"]],
+                        name=dict_json["name"])
+        for position in portfolio.get_portfolio_positions():
+            instrument = position.get_instrument()
+            if not isinstance(instrument, Stock):
+                instrument.set_underlying(
+                    portfolio.get_position(instrument.get_underlying_name()).get_instrument()
+                )
+        if "extra" in dict_json:
+            extras = dict_json["extra"]
+            for extra in extras:
+                instrument = portfolio.get_position(extra["instrument"]).get_instrument()
+                if isinstance(instrument, VarianceSwap):
+                    repliacting_portfolio = [portfolio.get_position(opts).get_instrument() for opts in extra["replicating_opts"]]
+                    instrument.replicating_opts(repliacting_portfolio)
+                    instrument.set_excl_realized_var(extra["excl_realized_var"])
+        return portfolio
+
+    def jsonify_dict(self) -> dict:
+        dict_json = dict()
+        dict_json["name"] = self._name
+        dict_json["positions"] = [position.jsonify_dict() for position in self._positions]
+        for position in self._positions:
+            if isinstance(position.get_instrument(), VarianceSwap):
+                varswap_extra_dict = {
+                    "instrument": position.get_instrument().get_name(),
+                    "replicating_opts": position.get_instrument().get_hedging_instrument_names(),
+                    "excl_realized_var": position.get_instrument().get_excl_realized_var()
+                }
+                if "extra" in dict_json:
+                    dict_json["extra"] += [varswap_extra_dict]
+                else:
+                    dict_json["extra"] = [varswap_extra_dict]
+        return dict_json
+
+    def __repr__(self):
+        return json.dumps(self.jsonify_dict(), indent=4)
+    
+    @staticmethod
+    def load_portfolio_file(portfolio_file_name):
+        portfolio_json = open(portfolio_file_name)
+        portfolio_dict = json.load(portfolio_json)
+        portfolio_json.close()
+        return Portfolio.load_json(portfolio_dict)
+
+if __name__ == "__main__":
+    with open('Markets/Market_Example/portfolio.json') as json_file:
+        portfolio_dict = json.load(json_file)
+        loaded_portfolio = Portfolio.load_json(portfolio_dict)
+        print(loaded_portfolio)
+    with open('Markets/Market_Example/varswap_portfolio.json') as json_file:
+        portfolio_dict = json.load(json_file)
+        loaded_portfolio = Portfolio.load_json(portfolio_dict)
+        print(loaded_portfolio)

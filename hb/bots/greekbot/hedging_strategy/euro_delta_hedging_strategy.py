@@ -15,9 +15,8 @@ class EuroDeltaHedgingStrategy:
     and outputs hedging actions. 
     """
 
-    def __init__(self, portfolio: Portfolio, use_bs_delta: bool,
+    def __init__(self, portfolio: Portfolio,
                  action_spec: specs.BoundedArray):
-        self._use_bs_delta = use_bs_delta
         self._min_action = action_spec.minimum
         self._max_action = action_spec.maximum
         self._option_positions = []
@@ -42,7 +41,7 @@ class EuroDeltaHedgingStrategy:
         # calculate option's delta
         for option_position in self._option_positions:
             hedging_name = option_position.get_instrument().get_underlying_name()
-            delta_map[hedging_name] = delta_map[hedging_name] + option_position.get_instrument().get_delta(use_bs=self._use_bs_delta) \
+            delta_map[hedging_name] = delta_map[hedging_name] + option_position.get_instrument().get_delta() \
                                                                 * option_position.get_holding()  
         
         # calculate the buy/sell action from delta        

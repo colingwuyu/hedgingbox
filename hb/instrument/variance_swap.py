@@ -14,9 +14,9 @@ from typing import List
 
 class VarianceSwap(Instrument):
     def __init__(self, name: str, vol_strike: float, 
-                 maturity: float, var_notional: float=None, vega_notional: float=None,
-                 underlying: Stock = None,
-                 replicating_portfolio: List[EuropeanOption] = [],
+                 maturity: float, var_notional: float=None, 
+                 vega_notional: float=None,
+                 underlying = None,
                  dk: float = 5.):
         """Variance Swap
            For a variance swap, the environment needs be daily evolving, 
@@ -48,31 +48,7 @@ class VarianceSwap(Instrument):
         self._put_strikes = np.array([])
         self._calls = np.array([])
         self._call_strikes = np.array([])
-        if len(replicating_portfolio) != 0:
-            for euro_opt in replicating_portfolio:
-                if euro_opt.get_maturity_time() != self._maturity:
-                    # hedging options need have the same maturity
-                    continue
-                if euro_opt.get_is_call() and (euro_opt.get_strike() not in self._call_strikes):
-                    self._calls = np.append(self._calls, euro_opt)
-                    self._call_strikes = np.append(self._call_strikes, euro_opt.get_strike())
-                elif euro_opt.get_strike() not in self._put_strikes:
-                    self._puts = np.append(self._puts, euro_opt)
-                    self._put_strikes = np.append(self._put_strikes, euro_opt.get_strike())
-            call_order = np.argsort(self._call_strikes)
-            put_order = np.argsort(self._put_strikes)[::-1]
-            self._calls = self._calls[call_order]
-            self._call_strikes = self._call_strikes[call_order]
-            self._puts = self._puts[put_order]
-            self._put_strikes = self._put_strikes[put_order]
-            # assure the strike boundary is same for call and put options
-            assert abs(self._call_strikes[0]-self._put_strikes[0]) < 1e-5
-            self._f = self._call_strikes[0]
-            self._call_weights = self._compute_option_weights(self._call_strikes, True)
-            self._put_weights = self._compute_option_weights(self._put_strikes, False)
-            self._option_weights = np.append(self._put_weights, self._call_weights)
-            self._options = np.append(self._puts, self._calls)
-        super().__init__(name, False, None, None, underlying, None)
+        super().__init__(name=name, tradable=False, underlying=underlying)
 
     def replicating_opts(self, repliacting_portfolio: List[EuropeanOption]):
         """Add a portfolio of OTM options for replicating variance swap
@@ -115,6 +91,32 @@ class VarianceSwap(Instrument):
         self._options = np.append(self._calls, self._puts)
         return self
         
+    def get_var_strike(self) -> float:
+        return self._var_strike
+
+    def get_hedging_instrument_names(self):
+        hedging_names = [self._underlying.get_name()]
+        for opt in self._options:
+            hedging_names += [opt.get_name()]
+        return hedging_names
+
+    def get_var_notional(self):
+        return self._var_notional
+
+    def get_vega_notional(self):
+        return self._var_notional*2*self._var_strike**0.5
+
+    def set_excl_realized_var(self, excl_realized_var: bool):
+        """For testing purpose only
+
+        Args:
+            excl_realized_var (bool): True - to exclude realized variance from price
+        """
+        self._excl_realized_var = excl_realized_var
+
+    def get_excl_realized_var(self) -> bool:
+        return self._excl_realized_var
+
     def get_replicating_ops(self):
         return self._options
 
@@ -163,11 +165,10 @@ class VarianceSwap(Instrument):
 
     def _compute_replication_portfolio(self, option_weights: List[float], options: List[EuropeanOption]) -> float:
         options_value = 0.
-        spot, _ = self._underlying.get_price()
-        r = self._underlying.get_risk_free_rate()
+        spot = self._underlying.get_price()
+        r = self._simulator_handler.get_obj().get_ir()
         df = math.exp(-r*self.get_remaining_time())
         fwd = spot/df
-        process_param = self._underlying.get_process_param()
         for option_i in range(len(option_weights)):
             option_price = options[option_i].get_price()
             weight = option_weights[option_i]
@@ -193,32 +194,6 @@ class VarianceSwap(Instrument):
                  (self._param.spot_var-self._param.theta)/self._param.kappa/tau 
                  * (1- math.exp(-self._param.kappa*tau)))
 
-    def get_strike(self) -> float:
-        return self._var_strike
-
-    def set_pricing_engine(self):
-        pass
-
-    def get_hedging_instrument_names(self):
-        hedging_names = [self._underlying.get_name()]
-        for opt in self._options:
-            hedging_names += [opt.get_name()]
-        return hedging_names
-
-    def get_var_notional(self):
-        return self._var_notional
-
-    def get_vega_notional(self):
-        return self._var_notional*2*self._var_strike**0.5
-
-    def set_pricing_method(self, pricing_method: str):
-        """Pricing method
-
-        Args:
-            pricing_method (str): 'Replicating' (default in constructor) or 'Heston'
-        """
-        self._pricing_method = pricing_method
-
     def set_excl_realized_var(self, excl_realized_var: bool):
         """For testing purpose only
 
@@ -233,8 +208,8 @@ class VarianceSwap(Instrument):
                 - underlying share: -1
                 - replicating options: option_weight
         """
-        underlying_price, _ = self._underlying.get_price()
-        r = self._underlying.get_risk_free_rate()
+        underlying_price = self._underlying.get_price()
+        r = self._simulator_handler.get_obj().get_ir()
         fwd = underlying_price*math.exp(r*self.get_remaining_time())
         # hedging_ratios = {self._underlying.get_name(): self._var_notional*1e4*2./self.get_remaining_time()*(1/fwd-1/self._f)}
         hedging_ratios = {}
@@ -251,41 +226,24 @@ class VarianceSwap(Instrument):
             float: [description]
         """
         super().exercise()
-        spot, _ = self._underlying.get_price()
         delivery = -1.
         return delivery
 
-    def set_pricing_engine(self):
-        process_param = self._underlying.get_process_param()
-        underlying_price, underlyer_var = self._underlying.get_price()
-        assert isinstance(process_param, HestonProcessParam), "Market volatility model has to be dynamic vol (i.e. Heston) for pricing variance swap."
-        # Heston model
-        self._param = HestonProcessParam(
-                risk_free_rate=process_param.risk_free_rate,spot=underlying_price, 
-                spot_var=max(consts.IMPLIED_VOL_FLOOR, underlyer_var), 
-                drift=process_param.risk_free_rate, dividend=self._underlying.get_dividend_yield(),
-                kappa=process_param.kappa, theta=process_param.theta, 
-                rho=process_param.rho, vov=process_param.vov, use_risk_free=True
-            )
-
-    def get_sim_price(self) -> float:
+    def _get_price(self, path_i: int, step_i: int) -> float:
         """price of simulated episode at current time
 
         Returns:
             float: price
         """
         cur_time = get_cur_time()
-        if (self._cur_price[1] is None):
-            # first visit of this timestep, need set up pricing engine
-            self.set_pricing_engine()
         if cur_time < 1e-5: 
             # Time 0
-            self._s_tm, _ = self._underlying.get_price()
+            self._s_tm = self._underlying.get_price()
             self._tm = 0.
             self._realized_var = 0.
         else:
             # update realised variance
-            _s_t, _ = self._underlying.get_price()
+            _s_t = self._underlying.get_price()
             self._realized_var = 1/cur_time * (self._tm*self._realized_var + \
                                                (math.log(_s_t/self._s_tm))**2) 
             self._tm = cur_time
@@ -300,14 +258,14 @@ class VarianceSwap(Instrument):
             # price contains two parts
             # realised variance and future variance expectation
             # future variance
-            r = self._underlying.get_risk_free_rate()
+            r = self._simulator_handler.get_obj().get_ir()
             df = math.exp(-r*self.get_remaining_time())
-            if self._pricing_method == 'Replicating':
-                # Replicating
-                fut_variance = self._compute_replication_portfolio(self._option_weights, self._options)
-            else:
-                # Heston
-                fut_variance = self._heston_fut_var()
+            # if self._pricing_method == 'Replicating':
+            # Replicating
+            fut_variance = self._compute_replication_portfolio(self._option_weights, self._options)
+            # else:
+            #     # Heston
+            #     fut_variance = self._heston_fut_var()
             if self._excl_realized_var:
                 variance = cur_time*self._var_strike/1e4 + self.get_remaining_time()*fut_variance
             else:
@@ -317,39 +275,6 @@ class VarianceSwap(Instrument):
 
     def get_is_physical_settle(self):
         return False
-
-    def get_pred_price(self) -> float:
-        """price of prediction episode at current time
-        Returns:
-            float: price
-        """
-        self._pred_ind += 1
-        if self._cur_pred_path is None:
-            self._cur_pred_path = -1
-        if (abs(self._cur_price[0]-0.0) < 1e-5):
-            # start of a new episode
-            if self._cur_pred_path == self._pred_episodes:
-                # run out all episodes, start repeating
-                self._cur_pred_path = 0
-            else:
-                # continue next path
-                if (self._cur_pred_file is None) and (self._cur_pred_path != -1):
-                    self._pred_price_path += [[]]
-                self._cur_pred_path += 1
-            self._pred_ind = 0
-        if self._cur_pred_file:
-            # use loaded pred episodes
-            price = self._pred_price_path[self._cur_pred_path][self._pred_ind]
-        else:
-            # simulate pred episodes
-            price = self.get_sim_price()
-            self._pred_price_path[self._cur_pred_path] = self._pred_price_path[self._cur_pred_path] + [price]
-            if (self._pred_ind == self._num_steps) and \
-                ((self._cur_pred_path + 1) == self._pred_episodes):
-                # save pred episodes:
-                self.save_pred_episodes(self._underlying._cur_pred_file)
-
-        return price
 
     def get_maturity_time(self) -> float:
         """maturity time of the instrument from inception
@@ -384,8 +309,11 @@ class VarianceSwap(Instrument):
         return self._realized_var*1e4
 
     def __repr__(self):
-        return f'Variance Swap {self._name}: \nunderlying=({str(self._underlying)})\nMaturity={get_period_str_from_time(self._maturity)}, VarStrike={self._var_strike}, VarNotional={self._var_notional}'
-
+        return "VarSwap {underlying_name} {maturity}, {vol_strike:.2f}, {var_notional:.2f}"\
+                .format(underlying_name=self._underlying.get_name(),
+                        maturity=get_period_str_from_time(self._maturity),
+                        vol_strike=self._var_strike**0.5,
+                        var_notional=self._var_notional)
 
 if __name__ == "__main__":
     from hb.transaction_cost.percentage_transaction_cost import PercentageTransactionCost

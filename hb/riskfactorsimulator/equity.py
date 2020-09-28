@@ -141,6 +141,16 @@ class Equity(object):
         self._spots = spots
         return self
 
+    def get_time_step(self):
+        return self._time_step
+    
+    def set_time_step(self, time_step):
+        self._time_step = time_step
+    
+    def time_step(self, time_step):
+        self._time_step = time_step
+        return self
+
     def set_num_paths(self, num_paths):
         self._num_paths = num_paths
 

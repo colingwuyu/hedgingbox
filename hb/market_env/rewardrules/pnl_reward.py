@@ -22,6 +22,9 @@ class PnLReward(reward_rule.RewardRule):
     def reset(self, reset_observation):
         pass
 
+    def __repr__(self):
+        return "PnLReward"
+
 class PnLRewardNoPremium(reward_rule.RewardRule):
     def __init__(self):
         self._this_step_obs = None
