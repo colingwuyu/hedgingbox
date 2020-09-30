@@ -141,8 +141,8 @@ class DeltaBotTest(unittest.TestCase):
         self._set_up_greek_bot_test(market, portfolio, scenario='SVaR')
 
     def test_variance_swap_hedge_heston(self):
-        market = Market.load_market_file("Markets/Market_Example/market.json")
-        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/varswap_portfolio.json")
+        market = Market.load_market_file("Markets/Market_Example/varswap_test1/market.json")
+        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/varswap_test1/portfolio.json")
         self._set_up_greek_bot_test(market, portfolio)
 
     def test_deltabot_with_bsm_spx_amzn(self):

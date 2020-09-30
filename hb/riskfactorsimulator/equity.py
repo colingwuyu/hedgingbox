@@ -19,7 +19,7 @@ class Equity(object):
                  "_impvol_maturities", "_impvol_strikes",
                  "_str_impvol_maturities", "_str_impvol_strikes",
                  "_impvols", "_spots", "_vars", "_num_paths", "_num_steps",
-                 "_cur_impvol_path", "_time_step"]
+                 "_time_step"]
 
     def set_name(self, name):
         self._name = name
@@ -95,21 +95,59 @@ class Equity(object):
         elif self._process_param["process_type"] == "Heston":
             return np.array([np.log(param["spot"]), param["spot_var"]])
 
-    def set_generated_paths(self, paths, time_step):
+    def set_generated_paths(self, paths, time_step, rate=None):
         param = self._process_param["param"]
         self._num_paths = paths.shape[0]
         self._num_steps = paths.shape[1]
         self._time_step = time_step
         if self._process_param["process_type"] == "GBM":
             self._spots = tf.math.exp(paths[:,:,0])
+            implied_vols = np.zeros((self._impvol_maturities.shape[0],
+                                     self._impvol_strikes.shape[0]),
+                                    dtype=np_dtype)
+            implied_vols[:] = param["vol"]
+            implied_vols = tf.constant(implied_vols, dtype=np_dtype)
         elif self._process_param["process_type"] == "Heston":
             stocks_no_drift = tf.math.exp(paths[:,:,0])
             times = np.linspace(self._time_step, self._num_steps*self._time_step, self._num_steps, dtype=np_dtype)
             self._vars = paths[:,:,1]
             self._spots = stocks_no_drift*tf.exp((param["drift"]-param["dividend"])*times)
             self._vars = tf.concat([np.array([[param["spot_var"]]]*self._vars.shape[0]),self._vars],-1)
+            mesh_strikes, mesh_maturities = tf.meshgrid(self._impvol_strikes,self._impvol_maturities)
+            initial_volatilities = 0.5
+            implied_vols = np.zeros(mesh_strikes.shape+self._spots.shape)
+            for mesh_maturity_i in range(mesh_strikes.shape[0]):
+                for mesh_strike_i in range(mesh_strikes.shape[1]):
+                    dfs = tf.exp(-(rate-param["dividend"])*mesh_maturities[mesh_maturity_i][mesh_strike_i])
+                    fwds = self._spots/dfs
+                    prices = tff.models.heston.approximations.european_option_price(
+                        variances=vars,
+                        strikes=mesh_strikes[mesh_maturity_i][mesh_strike_i],
+                        expiries=mesh_maturities[mesh_maturity_i][mesh_strike_i],
+                        forwards=fwds,
+                        is_call_options=True,
+                        kappas=param["kappa"],
+                        thetas=param["theta"],
+                        sigmas=param["epsilon"],
+                        rhos=param["rho"],
+                        discount_factors=dfs,
+                        dtype=np_dtype)
+                    implied_vol_slice = tff.black_scholes.implied_vol(
+                        prices=prices,
+                        strikes=mesh_strikes[mesh_maturity_i][mesh_strike_i],
+                        expiries=mesh_maturities[mesh_maturity_i][mesh_strike_i],
+                        forwards=fwds,
+                        discount_factors=dfs,
+                        is_call_options=True,
+                        initial_volatilities=initial_volatilities,
+                        validate_args=True,
+                        tolerance=1e-9,
+                        max_iterations=400,
+                        name=None,
+                        dtype=None)
+                    implied_vols[mesh_maturity_i, mesh_strike_i,:,:] = implied_vol_slice
+        self._impvols = implied_vols
         self._spots = tf.concat([np.array([[param["spot"]]]*self._spots.shape[0]),self._spots],-1)
-        
 
     def get_impvol_maturities(self):
         return self._impvol_maturities
@@ -181,16 +219,6 @@ class Equity(object):
         self._impvols = impvols
         return self
 
-    def set_cur_impvol_path(self, cur_impvol_path):
-        self._cur_impvol_path = cur_impvol_path
-    
-    def get_cur_impvol_path(self):
-        return self._cur_impvol_path
-
-    def cur_impvol_path(self, cur_impvol_path):
-        self._cur_impvol_path = cur_impvol_path
-        return self
-
     def load_json_data(self, json_: Union[str, dict]):
         """Load spot and implied vol surface data
         create _impvols rank 4 array from data
@@ -223,7 +251,6 @@ class Equity(object):
         self._impvols = tf.constant(self._impvols, dtype=np_dtype)
         self._spots = tf.constant(self._spots, dtype=np_dtype)
         self._time_step = dict_json["time_step_day"]/DAYS_PER_YEAR
-        self._cur_impvol_path = np.infty
 
     def get_spot(self, path_i: int, step_i: int=None):
         """Get the spot price for path_i and step_i
@@ -264,15 +291,13 @@ class Equity(object):
         Returns:
             ImpliedVolSurface: Implied Vol Surface at path_i and step_i
         """
-        if self._cur_impvol_path == np.infty:
-            # loaded impvol
-            vol_matrix = self._impvols[:,:,path_i,step_i]
-        else:
-            # impvol already generated
-            vol_matrix = self._impvols[:,:,step_i]
         if self._process_param["process_type"] == "GBM":
+            # loaded impvol
+            vol_matrix = self._impvols
             backup_vol = self._process_param["param"]["vol"]
         else:
+            # impvol already generated
+            vol_matrix = self._impvols[:,:,path_i,step_i]
             backup_vol = self._vars[path_i, step_i]**0.5
         return ImpliedVolSurface(self._impvol_maturities, self._impvol_strikes, vol_matrix, 
                                  backup_vol=backup_vol)

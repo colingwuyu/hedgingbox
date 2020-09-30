@@ -187,58 +187,7 @@ class Simulator(object):
         vol_surface_cache = self._implied_vol_surfaces[equity_name]
         if vol_key in vol_surface_cache:
             return vol_surface_cache[vol_key] 
-        if eq.get_cur_impvol_path() == np.infty:
-            vol_surface_cache[vol_key] = eq.get_impvol(path_i, step_i)
-        elif path_i == eq.get_cur_impvol_path():
-            vol_surface_cache[vol_key] = eq.get_impvol(path_i, step_i)
-        else:
-            # generate impvol for path_i
-            if eq.get_process_param()["process_type"] == "GBM":
-                implied_vols = np.zeros((eq.get_impvol_maturities().shape[0],
-                                         eq.get_impvol_strikes().shape[0], self._num_steps),
-                                         dtype=np_dtype)
-                implied_vols[:] = eq.get_process_param()["param"]["vol"]
-                implied_vols = tf.constant(implied_vols, dtype=np_dtype)
-            elif eq.get_process_param()["process_type"] == "Heston":
-                strikes = eq.get_impvol_strikes()
-                maturities = eq.get_impvol_maturities()
-                rate = self._ir
-                param = eq.get_process_param()["param"]
-                mesh_strikes, mesh_maturities, mesh_s0s = tf.meshgrid(strikes,
-                                                                      maturities,
-                                                                      eq.get_spot(path_i))
-                _, _, mesh_vars = tf.meshgrid(strikes,maturities,eq.get_var(path_i))
-                dfs = tf.exp(-(rate-param["dividend"])*mesh_maturities)
-                mesh_fwds = mesh_s0s/dfs
-                prices = tff.models.heston.approximations.european_option_price(
-                    variances=mesh_vars,
-                    strikes=mesh_strikes,
-                    expiries=mesh_maturities,
-                    forwards=mesh_fwds,
-                    is_call_options=True,
-                    kappas=param["kappa"],
-                    thetas=param["theta"],
-                    sigmas=param["epsilon"],
-                    rhos=param["rho"],
-                    discount_factors=dfs,
-                    dtype=np_dtype)
-                initial_volatilities = 0.5
-                implied_vols = tff.black_scholes.implied_vol(
-                    prices=prices,
-                    strikes=mesh_strikes,
-                    expiries=mesh_maturities,
-                    forwards=mesh_fwds,
-                    discount_factors=dfs,
-                    is_call_options=True,
-                    initial_volatilities=initial_volatilities,
-                    validate_args=True,
-                    tolerance=1e-9,
-                    max_iterations=400,
-                    name=None,
-                    dtype=np_dtype)  
-            eq.set_impvols(implied_vols)
-            eq.set_cur_impvol_path(path_i)
-            vol_surface_cache[vol_key] = eq.get_impvol(path_i, step_i)
+        vol_surface_cache[vol_key] = eq.get_impvol(path_i, step_i)
         return vol_surface_cache[vol_key] 
 
     @classmethod
