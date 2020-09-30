@@ -175,7 +175,6 @@ class Simulator(object):
                 seed=seed
             )
             eq.set_generated_paths(paths, self._time_step, self._ir)
-            eq.set_cur_impvol_path(-1)
             self._implied_vol_surfaces[eq.get_name()] = dict()
 
     def get_spot(self, equity_name, path_i, step_i=None):
