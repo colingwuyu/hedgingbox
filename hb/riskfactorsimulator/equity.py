@@ -121,7 +121,7 @@ class Equity(object):
                     dfs = tf.exp(-(rate-param["dividend"])*mesh_maturities[mesh_maturity_i][mesh_strike_i])
                     fwds = self._spots/dfs
                     prices = tff.models.heston.approximations.european_option_price(
-                        variances=vars,
+                        variances=self._vars,
                         strikes=mesh_strikes[mesh_maturity_i][mesh_strike_i],
                         expiries=mesh_maturities[mesh_maturity_i][mesh_strike_i],
                         forwards=fwds,
