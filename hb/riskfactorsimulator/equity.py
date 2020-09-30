@@ -149,7 +149,7 @@ class Equity(object):
                         name=None,
                         dtype=None)
                     implied_vols[mesh_maturity_i, mesh_strike_i,:,:] = implied_vol_slice
-        self._impvols = implied_vols
+        self._impvols = tf.constant(implied_vols, dtype=np_dtype)
         
 
     def get_impvol_maturities(self):
