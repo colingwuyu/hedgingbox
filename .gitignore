@@ -12,6 +12,8 @@ zerotradingcost_cost.png
 zerotradingcost_qtable.pickle
 docs/diagrams/ACME_DataSet.drawio
 
+nn_model/
+
 *.csv
 *.pickle
 *.xlsx

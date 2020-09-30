@@ -120,6 +120,7 @@ class Equity(object):
             implied_vols = np.zeros(mesh_strikes.shape+self._spots.shape)
             for mesh_maturity_i in range(mesh_strikes.shape[0]):
                 for mesh_strike_i in range(mesh_strikes.shape[1]):
+                    print(f"generating implied vols for strike={mesh_strikes[mesh_maturity_i][mesh_strike_i]:.0f}, maturity={mesh_maturities[mesh_maturity_i][mesh_strike_i]:.0f}")
                     dfs = tf.exp(-(rate-param["dividend"])*mesh_maturities[mesh_maturity_i][mesh_strike_i])
                     fwds = self._spots/dfs
                     prices = tff.models.heston.approximations.european_option_price(
