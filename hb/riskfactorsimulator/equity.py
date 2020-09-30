@@ -102,6 +102,7 @@ class Equity(object):
         self._time_step = time_step
         if self._process_param["process_type"] == "GBM":
             self._spots = tf.math.exp(paths[:,:,0])
+            self._spots = tf.concat([np.array([[param["spot"]]]*self._spots.shape[0]),self._spots],-1)
             implied_vols = np.zeros((self._impvol_maturities.shape[0],
                                      self._impvol_strikes.shape[0]),
                                     dtype=np_dtype)
@@ -112,6 +113,7 @@ class Equity(object):
             times = np.linspace(self._time_step, self._num_steps*self._time_step, self._num_steps, dtype=np_dtype)
             self._vars = paths[:,:,1]
             self._spots = stocks_no_drift*tf.exp((param["drift"]-param["dividend"])*times)
+            self._spots = tf.concat([np.array([[param["spot"]]]*self._spots.shape[0]),self._spots],-1)
             self._vars = tf.concat([np.array([[param["spot_var"]]]*self._vars.shape[0]),self._vars],-1)
             mesh_strikes, mesh_maturities = tf.meshgrid(self._impvol_strikes,self._impvol_maturities)
             initial_volatilities = 0.5
@@ -147,7 +149,7 @@ class Equity(object):
                         dtype=None)
                     implied_vols[mesh_maturity_i, mesh_strike_i,:,:] = implied_vol_slice
         self._impvols = implied_vols
-        self._spots = tf.concat([np.array([[param["spot"]]]*self._spots.shape[0]),self._spots],-1)
+        
 
     def get_impvol_maturities(self):
         return self._impvol_maturities
