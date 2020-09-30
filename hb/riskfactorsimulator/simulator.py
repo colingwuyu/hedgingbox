@@ -174,7 +174,7 @@ class Simulator(object):
                 random_type=random.RandomType.PSEUDO_ANTITHETIC,
                 seed=seed
             )
-            eq.set_generated_paths(paths, self._time_step)
+            eq.set_generated_paths(paths, self._time_step, self._ir)
             eq.set_cur_impvol_path(-1)
             self._implied_vol_surfaces[eq.get_name()] = dict()
 
