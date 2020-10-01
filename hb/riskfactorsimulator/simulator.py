@@ -138,7 +138,7 @@ class Simulator(object):
             eq_list_json = json.loads(json_)
         else:
             eq_list_json = json_
-        num_steps = 0; num_paths = 0; time_step = 0;
+        num_steps = 0; num_paths = 0; time_step = 0
         for eq_dict in eq_list_json:
             eq = self._equity_map[eq_dict["name"]]
             eq.load_json_data(eq_dict["data"])
@@ -163,7 +163,12 @@ class Simulator(object):
         if seed is None:
             seed = self._rng_seed
         times = np.linspace(self._time_step, self._num_steps*self._time_step, self._num_steps)
-        self._implied_vol_surfaces = dict()
+        if hasattr(self, "_implied_vol_surfaces"):
+            if self._implied_vol_surfaces is None:
+                self._implied_vol_surfaces = dict()
+        else:
+            self._implied_vol_surfaces = dict()
+
         for eq in self._equity:
             process = eq.get_process()
             paths = process.sample_paths(
@@ -174,14 +179,14 @@ class Simulator(object):
                 random_type=random.RandomType.PSEUDO_ANTITHETIC,
                 seed=seed
             )
-            try:
+            if hasattr(eq, "_spots"):
                 if eq.get_spots() is None:
                     eq.set_generated_paths(paths, self._time_step, self._ir)
                     self._implied_vol_surfaces[eq.get_name()] = dict()
-            except: 
+            else:
                 eq.set_generated_paths(paths, self._time_step, self._ir)
                 self._implied_vol_surfaces[eq.get_name()] = dict()
-
+           
     def get_spot(self, equity_name, path_i, step_i=None):
         return self._equity_map[equity_name].get_spot(path_i, step_i)
 
