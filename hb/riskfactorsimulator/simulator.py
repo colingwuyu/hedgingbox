@@ -174,8 +174,13 @@ class Simulator(object):
                 random_type=random.RandomType.PSEUDO_ANTITHETIC,
                 seed=seed
             )
-            eq.set_generated_paths(paths, self._time_step, self._ir)
-            self._implied_vol_surfaces[eq.get_name()] = dict()
+            try:
+                if eq.get_spots() is None:
+                    eq.set_generated_paths(paths, self._time_step, self._ir)
+                    self._implied_vol_surfaces[eq.get_name()] = dict()
+            except: 
+                eq.set_generated_paths(paths, self._time_step, self._ir)
+                self._implied_vol_surfaces[eq.get_name()] = dict()
 
     def get_spot(self, equity_name, path_i, step_i=None):
         return self._equity_map[equity_name].get_spot(path_i, step_i)

@@ -62,7 +62,7 @@ class EpisodeCounter:
         self._step_counter += 1
         
     def get_path_step(self):
-        return self._path_counter % self._total_paths, self._step_counter % self._total_steps
+        return self._path_counter % self._total_paths, self._step_counter % (self._total_steps+1)
     
     def reset(self):
         self._path_counter = -1
@@ -169,7 +169,7 @@ class Market(dm_env.Environment):
         dict_json["name"] = self._name
         dict_json["reward_rule"] = str(self._reward_rule)
         dict_json["hedging_step_in_days"] = self._hedging_step_in_days
-        dict_json["num_steps_per_episode"] = self._training_counter.get_total_steps() - 1
+        dict_json["num_steps_per_episode"] = self._training_counter.get_total_steps()
         dict_json["validation_rng_seed"] = self._validation_simulator.get_rng_seed()
         dict_json["training_episodes"] = self._training_counter.get_total_paths()
         dict_json["validation_episodes"] = self._validation_counter.get_total_paths()
@@ -193,9 +193,11 @@ class Market(dm_env.Environment):
         if mode == "training":
             self._current_simulator_handler.set_obj(self._training_simulator)
             self._current_counter_handler.set_obj(self._training_counter)
+            self._training_simulator.generate_paths(self._training_counter.get_total_paths())
         elif mode == "validation":
             self._current_simulator_handler.set_obj(self._validation_simulator)
             self._current_counter_handler.set_obj(self._validation_counter)
+            self._validation_simulator.generate_paths(self._validation_counter.get_total_paths())
         elif mode == "scenario":
             self._current_simulator_handler.set_obj(self._scenario_simulator)
             self._current_counter_handler.set_obj(self._scenario_counter)
@@ -255,13 +257,13 @@ class Market(dm_env.Environment):
             num_steps_to_maturity = int(days_from_time(derivative.get_instrument().get_maturity_time()) / self._hedging_step_in_days)
             num_steps = max(num_steps, num_steps_to_maturity)
         self._portfolio = portfolio 
-        num_steps = min(self._training_counter.get_total_steps(), num_steps + 1)
+        num_steps = min(self._training_counter.get_total_steps(), num_steps)
         self._training_counter.set_total_steps(num_steps)
         self._training_simulator.set_num_steps(num_steps)
-        self._training_simulator.generate_paths(self._training_counter.get_total_paths())
+        # self._training_simulator.generate_paths(self._training_counter.get_total_paths())
         self._validation_counter.set_total_steps(num_steps)
         self._validation_simulator.set_num_steps(num_steps)
-        self._validation_simulator.generate_paths(self._validation_counter.get_total_paths())
+        # self._validation_simulator.generate_paths(self._validation_counter.get_total_paths())
         for position in self._portfolio.get_portfolio_positions():
             position.get_instrument().set_simulator(self._current_simulator_handler, self._current_counter_handler)
         
@@ -428,7 +430,7 @@ class Market(dm_env.Environment):
         Returns:
             bool: True if current time reaches terminal step of the episode
         """
-        return ((self._current_counter_handler.get_obj().get_total_steps()-1) * self._hedging_step_in_days) == get_cur_days()
+        return ((self._current_counter_handler.get_obj().get_total_steps()) * self._hedging_step_in_days) == get_cur_days()
 
     def _observation(self):
         """Construct state observation
@@ -505,9 +507,9 @@ class Market(dm_env.Environment):
         return self._scenario_counter.get_total_paths()
 
 if __name__ == "__main__":
-    market = Market.load_market_file('Markets/Market_Example/market.json')
+    market = Market.load_market_file('Markets/Market_Example/varswap_test1/market.json')
     print(market)
-    portfolio = Portfolio.load_portfolio_file('Markets/Market_Example/varswap_portfolio.json')
+    portfolio = Portfolio.load_portfolio_file('Markets/Market_Example/varswap_test1/portfolio.json')
     print(portfolio)
     market.set_portfolio(portfolio)
     market.set_mode("training")
