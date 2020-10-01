@@ -86,8 +86,6 @@ class Instrument(abc.ABC):
         Returns:
             float: price
         """
-        if self._exercised:
-            return 0.0
         path_i, step_i = self._counter_handler.get_obj().get_path_step()
         if f"{path_i}_{step_i}" in self._price_cache:
             return self._price_cache[f"{path_i}_{step_i}"]

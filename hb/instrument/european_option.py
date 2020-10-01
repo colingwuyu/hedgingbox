@@ -124,10 +124,10 @@ class EuropeanOption(Instrument):
         return imp_vol_surf.get_black_vol(t=self.get_remaining_time(),k=self._strike).numpy()
 
     def _get_price(self, path_i: int, step_i: int) -> float:
-        if (abs(self._maturity_time-get_cur_time()) < 1e-5) and (not self._exercised):
+        if (abs(self._maturity_time-get_cur_time()) < 1e-5):
             # expiry, not exercised
             option_price = self.get_intrinsic_value()
-        elif (self._maturity_time-get_cur_time() < 1e-5) or (self._exercised):
+        elif (self._maturity_time-get_cur_time() < 1e-5):
             # past expiry, or exercised
             option_price = 0.
         else:
@@ -141,7 +141,7 @@ class EuropeanOption(Instrument):
         return option_price
 
     def get_delta(self, path_i: int=None, step_i: int=None) -> float:
-        if (abs(self._maturity_time-get_cur_time()) < 1e-5) and (not self._exercised):
+        if (abs(self._maturity_time-get_cur_time()) < 1e-5):
             # expiry, not exercised
             spot = self._underlying.get_price()
             if self._call:
@@ -149,7 +149,7 @@ class EuropeanOption(Instrument):
             else:
                 delta = 0. if spot >= self._strike else -1.
             return delta
-        elif (self._maturity_time-get_cur_time() < 1e-5) or (self._exercised):
+        elif (self._maturity_time-get_cur_time() < 1e-5):
             # past expiry, or exercised
             return 0.
         if (path_i is None) or (step_i is None):
