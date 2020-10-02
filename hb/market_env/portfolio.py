@@ -86,12 +86,12 @@ class Position():
         return - self._instrument.get_market_value(shares) - trans_cost, trans_cost
 
     def get_market_value(self):
-        if (abs(self._holding - self._holding_constraints[0]) < 1e-5) or \
-            (abs(self._holding - self._holding_constraints[1]) < 1e-5):
-            # 
-            return np.nan
-        else:
-            return self._instrument.get_market_value(self._holding)
+        # if (abs(self._holding - self._holding_constraints[0]) < 1e-5) or \
+        #     (abs(self._holding - self._holding_constraints[1]) < 1e-5):
+        #     # 
+        #     return np.nan
+        # else:
+        return self._instrument.get_market_value(self._holding)
 
     @classmethod
     def load_json(cls, json_: Union[dict, str]):

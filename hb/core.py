@@ -70,6 +70,7 @@ class Predictor(core.Actor):
         self._episode_pnl_path = np.array([])
         self._episode_reward_path = np.array([])
         self._episode_hedging_price = np.array([])
+        self._episode_hedging_holding = np.array([])
         self._episode_derivative_price = np.array([])
         self._episode_action = np.array([])
         self._last_pred_rewards = self._pred_rewards
@@ -78,6 +79,7 @@ class Predictor(core.Actor):
         self._last_episode_pnl_path = self._episode_pnl_path
         self._last_episode_reward_path = self._episode_reward_path
         self._last_episode_derivative_price = self._episode_derivative_price
+        self._last_episode_derivative_holding = self._episode_derivative_holding
         self._last_episode_hedging_price = self._episode_hedging_price
         self._last_episode_action = self._episode_action
         self._num_train_per_pred = num_train_per_pred
@@ -143,6 +145,9 @@ class Predictor(core.Actor):
     def get_episode_hedging_price(self):
         return self._last_episode_hedging_price
 
+    def get_episode_hedging_holding(self):
+        return self._last_episode_hedging_holding
+
     def get_episode_derivative_price(self):
         return self._last_episode_derivative_price
 
@@ -160,6 +165,8 @@ class Predictor(core.Actor):
             self._num_derivatives = int((num_obs - 2*self._num_hedgings)/2)
             self._episode_hedging_price = np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2],
                                                      (self._num_hedgings,1))
+            self._episode_hedging_holding = np.reshape(next_timestep.observation[1:(2*self._num_hedgings+1):2],
+                                                     (self._num_hedgings,1))
             self._episode_derivative_price = np.reshape(next_timestep.observation[(2*self._num_hedgings):(2*(self._num_hedgings+self._num_derivatives)):2],
                                                         (self._num_derivatives,1))
             self._episode_action = np.reshape(action, (len(action),1))
@@ -167,6 +174,11 @@ class Predictor(core.Actor):
             self._episode_hedging_price = np.append(
                 self._episode_hedging_price, 
                 np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2], (self._num_hedgings,1)),
+                axis=1
+            )
+            self._episode_hedging_holding = np.append(
+                self._episode_hedging_holding, 
+                np.reshape(next_timestep.observation[1:(2*self._num_hedgings+1):2], (self._num_hedgings,1)),
                 axis=1
             )
             self._episode_derivative_price = np.append(
@@ -196,6 +208,7 @@ class Predictor(core.Actor):
                 perf_log_measures = {'pnl': self._episode_pnl_path,
                                     'reward': self._episode_reward_path,
                                     'hedging_price': self._episode_hedging_price,
+                                    'hedging_holding': self._episode_hedging_holding,
                                     'derivative_price': self._episode_derivative_price,
                                     'action': self._episode_action}
                 for measure_name, measure in perf_log_measures.items():
@@ -217,11 +230,13 @@ class Predictor(core.Actor):
             self._last_episode_pnl_path = self._episode_pnl_path
             self._last_episode_reward_path = self._episode_reward_path
             self._last_episode_hedging_price = self._episode_hedging_price
+            self._last_episode_hedging_holding = self._episode_hedging_holding
             self._last_episode_action = self._episode_action
             self._last_episode_derivative_price = self._episode_derivative_price
             self._episode_pnl_path = np.array([])
             self._episode_reward_path = np.array([])
             self._episode_hedging_price = np.array([])
+            self._episode_hedging_holding = np.array([])
             self._episode_action = np.array([])
             self._episode_derivative_price = np.array([])
 

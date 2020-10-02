@@ -371,10 +371,10 @@ class Market(dm_env.Environment):
         # NAV at time t+1                                               #
         next_period_nav = self._portfolio.get_nav()                     #
         # Portfolio PnL from Time t => t+1                              #
-        if (np.isnan(next_period_nav)) or (np.isnan(last_period_nav)):  #
-            portfolio_pnl = LARGE_NEG_VALUE                             #
-        else:                                                           #
-            portfolio_pnl = next_period_nav - last_period_nav           #
+        # if (np.isnan(next_period_nav)) or (np.isnan(last_period_nav)):  #
+        #     portfolio_pnl = LARGE_NEG_VALUE                             #
+        # else:                                                           #
+        portfolio_pnl = next_period_nav - last_period_nav           #
         # Cash account interest from cash account Time t => t+1         #
         cash_interest = self._cash_account.accrue_interest()            #
         # Event handling, i.e. option exercise                          #
