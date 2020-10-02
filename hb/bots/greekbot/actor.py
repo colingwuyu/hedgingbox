@@ -17,10 +17,11 @@ class GreekHedgeActor(core.Actor):
     """
 
     def __init__(self, portfolio: Portfolio,
-                 action_spec: specs.BoundedArray):
+                 action_spec: specs.BoundedArray,
+                 strategies = [EuroDeltaHedgingStrategy, VarianceSwapReplicatingStrategy]
+                 ):
         self._strategies = [
-            EuroDeltaHedgingStrategy(portfolio, action_spec),
-            VarianceSwapReplicatingStrategy(portfolio, action_spec)
+            strategy(portfolio, action_spec) for strategy in strategies
         ]
         self._actions = np.zeros(action_spec.shape)
 

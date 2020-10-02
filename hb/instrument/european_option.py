@@ -162,6 +162,23 @@ class EuropeanOption(Instrument):
         )
         return self._option.delta()
         
+    def get_gamma(self, path_i: int=None, step_i: int=None) -> float:
+        if (abs(self._maturity_time-get_cur_time()) < 1e-5):
+            # expiry, not exercised
+            return 0
+        elif (self._maturity_time-get_cur_time() < 1e-5):
+            # past expiry, or exercised
+            return 0.
+        if (path_i is None) or (step_i is None):
+            path_i, step_i = self._counter_handler.get_obj().get_path_step()
+        spot = float(self._underlying._get_price(path_i, step_i))
+        vol = float(self.get_implied_vol(path_i, step_i))
+        self._spot_handle.linkTo(ql.SimpleQuote(spot))
+        self._flat_vol_ts_handle.linkTo(
+            ql.BlackConstantVol(get_date(), calendar, vol, day_count)
+        )
+        return self._option.gamma()
+
     def __repr__(self):
         return 'EuroOpt {underlying_name} {list_otc} {maturity} {call_put} {strike:.2f} {transaction_cost} {trading_limit:.2f} ({name})' \
                 .format(underlying_name=self._underlying.get_name(),

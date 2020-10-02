@@ -4,15 +4,24 @@ from hb.instrument.instrument_factory import InstrumentFactory
 from hb.instrument.stock import Stock
 from hb.instrument.european_option import EuropeanOption
 from hb.instrument.variance_swap import VarianceSwap
+from hb.utils.consts import *
 from hb.utils.date import *
 import json
 import os
 
 class Position():
-    def __init__(self, instrument=None, holding=0.):
+    def __init__(self, instrument=None, holding=0., holding_constraints=None):
+        """[summary]
+
+        Args:
+            instrument (Instrument, optional): holding instrument. Defaults to None.
+            holding (float, optional): initial holding. Defaults to 0..
+            holding_constraints (List[float], optional): holding_constraints, first item is lower bound, second item is upper bound. Defaults to None.
+        """
         self._instrument = instrument
         self._holding = holding
         self._init_holding = holding
+        self._holding_constraints = holding_constraints
        
     def reset(self):
         self._holding = self._init_holding
@@ -40,6 +49,16 @@ class Position():
         self._init_holding = holding
         return self
 
+    def get_holding_constraints(self):
+        return self._holding_constraints
+
+    def set_holding_constraints(self, holding_constraints):
+        self._holding_constraints = holding_constraints
+
+    def holding_constraints(self, holding_constraint):
+        self._holding_constraints = holding_constraints
+        return self
+
     def get_init_holding(self):
         return self._init_holding
 
@@ -60,12 +79,19 @@ class Position():
                                 transaction cost is always negative cashflow
             transaction cost (float): the transaction cost for buying shares
         """
-        self._holding += shares
+        prev_holding = self._holding
+        self._holding = max(self._holding_constraints[0],min(prev_holding+shares, self._holding_constraints[1]))
+        shares = self._holding - prev_holding
         trans_cost = self._instrument.get_execute_cost(shares)
         return - self._instrument.get_market_value(shares) - trans_cost, trans_cost
 
     def get_market_value(self):
-        return self._instrument.get_market_value(self._holding)
+        if (abs(self._holding - self._holding_constraints[0]) < 1e-5) or \
+            (abs(self._holding - self._holding_constraints[1]) < 1e-5):
+            # 
+            return np.nan
+        else:
+            return self._instrument.get_market_value(self._holding)
 
     @classmethod
     def load_json(cls, json_: Union[dict, str]):
@@ -73,7 +99,12 @@ class Position():
             dict_json = json.loads(json_)
         else:
             dict_json = json_
-        return cls().holding(dict_json["holding"]).instrument(InstrumentFactory.create(dict_json["instrument"]))
+        ret_pos = cls().holding(dict_json["holding"]).instrument(InstrumentFactory.create(dict_json["instrument"]))
+        if "holding_constraints" in dict_json:
+            ret_pos.set_holding_constraints(dict_json["holding_constraints"])
+        else:
+            ret_pos.set_holding_constraints([MIN_FLT_VALUE, MAX_FLT_VALUE])
+        return ret_pos
 
     def jsonify_dict(self) -> dict:
         dict_json = dict()
@@ -164,7 +195,7 @@ class Portfolio():
         for action, hedging_position in zip(actions, self._hedging_portfolio):
             # rebalance hedging positions
             proceeds, trans_cost = hedging_position.buy(action)
-            cashflows += proceeds
+            cashflows += proceeds if not np.isnan(proceeds) else LARGE_NEG_VALUE
             trans_costs += trans_cost
         return cashflows, trans_costs
     

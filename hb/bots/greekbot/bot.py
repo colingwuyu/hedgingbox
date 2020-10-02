@@ -3,6 +3,7 @@ from acme.utils import loggers
 from hb.bots import bot
 from hb.bots.greekbot import actor as greek_hedge_actor
 from hb.bots.greekbot import predictor as greek_hedge_predictor
+from hb.bots.greekbot.hedging_strategy import *
 from hb.bots import fake_learner
 from hb.market_env.portfolio import Portfolio
 
@@ -15,6 +16,7 @@ class GreekHedgeBot(bot.Bot):
 
     def __init__(self, portfolio: Portfolio,
                  environment_spec: specs.EnvironmentSpec,
+                 hedging_strategies = [EuroDeltaHedgingStrategy, VarianceSwapReplicatingStrategy],
                  pred_dir: str = '~/acme/',
                  pred_episode: int = 1_000 
                  ):
@@ -25,7 +27,7 @@ class GreekHedgeBot(bot.Bot):
             environment_spec (specs.EnvironmentSpec): description of the actions, observations, etc.
         """
         # Create the actor
-        actor = greek_hedge_actor.GreekHedgeActor(portfolio, environment_spec.actions)
+        actor = greek_hedge_actor.GreekHedgeActor(portfolio, environment_spec.actions, hedging_strategies)
         predictor = greek_hedge_predictor.GreekHedgePredictor(actor, logger_dir=pred_dir)
         learner = fake_learner.FakeLeaner()
 

@@ -1,2 +1,3 @@
 from hb.bots.greekbot.hedging_strategy.euro_delta_hedging_strategy import EuroDeltaHedgingStrategy
 from hb.bots.greekbot.hedging_strategy.variance_swap_replicating_strategy import VarianceSwapReplicatingStrategy
+from hb.bots.greekbot.hedging_strategy.euro_gamma_hedging_strategy import EuroGammaHedgingStrategy

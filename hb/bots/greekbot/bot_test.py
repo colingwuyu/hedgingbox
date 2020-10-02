@@ -5,6 +5,7 @@ from acme import specs
 from hb.bots.greekbot.bot import GreekHedgeBot 
 from hb.market_env.market import Market
 from hb.market_env.portfolio import Portfolio
+from hb.bots.greekbot.hedging_strategy import *
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,6 +16,12 @@ class DeltaBotTest(unittest.TestCase):
         market = Market.load_market_file("Markets/Market_Example/market.json")
         portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/portfolio.json")
         self._set_up_greek_bot_test(market, portfolio)
+
+    def test_gammahedging(self):
+        market = Market.load_market_file("Markets/Market_Example/market.json")
+        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/portfolio.json")
+        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroGammaHedgingStrategy])
+
 
     def test_bs_deltabot_with_heston_amzn(self):
         # Create a GBM market
@@ -162,7 +169,7 @@ class DeltaBotTest(unittest.TestCase):
         )
         self._set_up_greek_bot_test(market, portfolio)
 
-    def _set_up_greek_bot_test(self, market, portfolio, use_bs_delta=True, scenario=None):
+    def _set_up_greek_bot_test(self, market, portfolio, use_bs_delta=True, scenario=None, strategies=None):
         market.set_portfolio(portfolio)
         if scenario:
             market.load_scenario(scenario)
@@ -172,10 +179,17 @@ class DeltaBotTest(unittest.TestCase):
         spec = specs.make_environment_spec(market)
         
         # Construct the agent.
-        agent = GreekHedgeBot(
-            portfolio=portfolio,
-            environment_spec=spec
-        )
+        if strategies:
+            agent = GreekHedgeBot(
+                portfolio=portfolio,
+                environment_spec=spec,
+                hedging_strategies=strategies
+            )
+        else:
+            agent = GreekHedgeBot(
+                portfolio=portfolio,
+                environment_spec=spec
+            )
         # Try running the environment loop. We have no assertions here because all
         # we care about is that the agent runs without raising any errors.
         loop = acme.EnvironmentLoop(market, agent)
