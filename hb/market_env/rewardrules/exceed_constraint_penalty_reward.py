@@ -9,10 +9,10 @@ import numpy as np
 
 
 class ExceedConstraintPenaltyRewardReward(reward_rule.RewardRule):
-    def __init__(self):
+    def __init__(self, exceed_penalty: float=20):
         self._this_step_obs = None
         self._first_reward = True
-        self._exceed_penalty = 1e9
+        self._exceed_penalty = exceed_penalty
 
     def step_reward(self, step_type: dm_env.StepType,
                     step_pnl: float, 
@@ -29,4 +29,4 @@ class ExceedConstraintPenaltyRewardReward(reward_rule.RewardRule):
         pass
 
     def __repr__(self):
-        return "ExceedConstraintPenaltyRewardReward"
+        return f"ExceedConstraintPenaltyRewardReward {self._exceed_penalty:.2f}"

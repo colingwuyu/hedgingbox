@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 
 class DeltaBotTest(unittest.TestCase):
     def test_regression_deltabot(self):
-        market = Market.load_market_file("Markets/Market_Example/market.json")
+        market = Market.load_market_file("Markets/Market_Example/spx_market.json")
         portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/portfolio.json")
-        self._set_up_greek_bot_test(market, portfolio)
+        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroDeltaHedgingStrategy])
 
     def test_gammahedging(self):
         market = Market.load_market_file("Markets/Market_Example/spx_market.json")

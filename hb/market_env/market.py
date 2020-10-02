@@ -442,6 +442,7 @@ class Market(dm_env.Environment):
            Now the observation includes
                 - all hedging positions' price, holding in the portfolio
                 - all derivative positions' price, remaining times in the portfolio
+                - all hedging positions' holding constraint breaching indicator in the portfolio
 
         Returns:
             market_observations [np.darray]: a list of state observation
@@ -454,6 +455,9 @@ class Market(dm_env.Environment):
         for position in self._portfolio.get_liability_portfolio():
             market_observations = np.append(market_observations, [position.get_instrument().get_price(), 
                                                                   position.get_instrument().get_remaining_time()])
+        for position in self._portfolio.get_hedging_portfolio():
+            breach_constraint = position.get_breach_holding_constraint()
+            market_observations = np.append(market_observations, [1.0 if breach_constraint else 0.0])
         return market_observations
     
     def observation_spec(self):
@@ -462,12 +466,13 @@ class Market(dm_env.Environment):
            Now the observation includes
                 - all hedging positions' price, holding in the portfolio
                 - all derivative positions' price, remaining times in the portfolio
+                - all hedging positions' holding constraint breaching indicator in the portfolio
 
         Returns:
             [dm_env.specs.Array]: observation specification
         """
         # positions' price, holding; current time; derivatives' remaining times; cash account balance
-        num_obs = 2*len(self._portfolio.get_portfolio_positions())
+        num_obs = 2*len(self._portfolio.get_portfolio_positions()) + len(self._portfolio.get_hedging_portfolio())
         obs_shape = (num_obs, )
         return specs.Array(
             shape=obs_shape, dtype=float, name="market_observations"

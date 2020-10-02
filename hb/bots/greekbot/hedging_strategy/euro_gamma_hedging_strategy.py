@@ -63,14 +63,14 @@ class EuroGammaHedgingStrategy:
             gamma_hedging_option = self._hedging_option_positions[underlying]
             gamma_hedging_name = gamma_hedging_option.get_instrument().get_name()
             hedging_gamma = gamma_hedging_option.get_instrument().get_gamma()
-            gamma_hedging_shares = 0.5 * gamma / hedging_gamma if hedging_gamma != 0 else np.infty
+            gamma_hedging_shares = gamma / hedging_gamma if hedging_gamma != 0 else np.infty
             gamma_hedging_holding_obs_index = self._holding_obs_index_map[gamma_hedging_name]
             gamma_hedging_cur_holding = observations[gamma_hedging_holding_obs_index]
             gamma_hedging_action_index = self._action_index_map[gamma_hedging_name]
             action = np.clip(- gamma_hedging_shares - gamma_hedging_cur_holding, self._min_action[gamma_hedging_action_index], self._max_action[gamma_hedging_action_index])
             actions[gamma_hedging_action_index] += action
-            # gamma_hedging_delta = -(gamma_hedging_cur_holding+action)*gamma_hedging_option.get_instrument().get_delta()
-            delta = delta_map[underlying]
+            gamma_hedging_delta = -(gamma_hedging_cur_holding+action)*gamma_hedging_option.get_instrument().get_delta()
+            delta = delta_map[underlying] - gamma_hedging_delta
             underlying_holding_obs_index = self._holding_obs_index_map[underlying]
             underlying_cur_holding = observations[underlying_holding_obs_index]
             underlying_action_index = self._action_index_map[underlying]
