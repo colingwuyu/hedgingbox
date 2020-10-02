@@ -79,8 +79,8 @@ class Predictor(core.Actor):
         self._last_episode_pnl_path = self._episode_pnl_path
         self._last_episode_reward_path = self._episode_reward_path
         self._last_episode_derivative_price = self._episode_derivative_price
-        self._last_episode_derivative_holding = self._episode_derivative_holding
         self._last_episode_hedging_price = self._episode_hedging_price
+        self._last_episode_hedging_holding = self._episode_hedging_holding
         self._last_episode_action = self._episode_action
         self._num_train_per_pred = num_train_per_pred
         self._progress_logger = hb_loggers.CSVLogger(logger_dir, label + '/progress')
