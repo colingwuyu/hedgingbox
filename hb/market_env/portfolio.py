@@ -85,6 +85,9 @@ class Position():
         trans_cost = self._instrument.get_execute_cost(shares)
         return - self._instrument.get_market_value(shares) - trans_cost, trans_cost
 
+    def get_breach_holding_constraint(self):
+        return (abs(self._holding - self._holding_constraints[0]) < 1e-5) or (abs(self._holding - self._holding_constraints[1]) < 1e-5) 
+
     def get_market_value(self):
         # if (abs(self._holding - self._holding_constraints[0]) < 1e-5) or \
         #     (abs(self._holding - self._holding_constraints[1]) < 1e-5):
@@ -164,6 +167,12 @@ class Portfolio():
             return self._hedging_portfolio_map[instrument_name]
         elif instrument_name in self._liability_portfolio_map:
             return self._liability_portfolio_map[instrument_name]
+
+    def get_breach_holding_constraint(self):
+        breach = False
+        for pos in self._hedging_portfolio:
+            breach = breach or pos.get_breach_holding_constraint()
+        return breach
 
     def reset(self):
         for position in self._positions:

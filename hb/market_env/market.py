@@ -358,6 +358,8 @@ class Market(dm_env.Environment):
         # ==============================================================#
         # NAV at time t                                                 #
         last_period_nav = self._portfolio.get_nav()                     #
+        reward_extra = dict()
+        reward_extra["exceed_constraint"] = self._portfolio.get_breach_holding_constraint()
         # ==============================================================#
         # End of Time t                                                 #
         # ==============================================================#
@@ -414,12 +416,12 @@ class Market(dm_env.Environment):
                 self._cash_account.add(cashflow)
             # print("Cash account Balance: ", self._cash_account.get_balance())
             ret_step = dm_env.termination(
-                reward=self._reward_rule.step_reward(dm_env.StepType.LAST, step_pnl, action),
+                reward=self._reward_rule.step_reward(dm_env.StepType.LAST, step_pnl, action, reward_extra),
                 observation=np.append(self._observation(),
                                       self._pnl_reward.step_reward(dm_env.StepType.LAST, step_pnl, action)))
         else:
             ret_step = dm_env.transition(
-                reward=self._reward_rule.step_reward(dm_env.StepType.MID, step_pnl, action),
+                reward=self._reward_rule.step_reward(dm_env.StepType.MID, step_pnl, action, reward_extra),
                 observation=np.append(self._observation(),
                                       self._pnl_reward.step_reward(dm_env.StepType.MID, step_pnl, action)),
                 discount=0.)

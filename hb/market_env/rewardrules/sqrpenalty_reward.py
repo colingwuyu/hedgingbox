@@ -17,8 +17,9 @@ class SquarePenaltyReward(reward_rule.RewardRule):
         super().__init__()
 
     def step_reward(self, step_type: dm_env.StepType,
-                    next_step_obs: Dict, action: types.NestedArray) -> types.NestedArray:
-        reward = self._reward_rule.step_reward(step_type, next_step_obs, action)
+                    next_step_obs: Dict, action: types.NestedArray,
+                    extra: dict=dict()) -> types.NestedArray:
+        reward = self._reward_rule.step_reward(step_type, next_step_obs, action, extra)
         reward_square_penalty = reward - 0.5*self._scale_k*reward**2
         return reward_square_penalty
 
