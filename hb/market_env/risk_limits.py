@@ -86,18 +86,23 @@ class RiskLimits():
             ind = np.argsort(inc_delta)
             low_i = 0; up_i = len(ind)
             total_delta_inc = inc_delta.sum()
-            while (((total_delta_inc + total_delta) < self._delta[0]) or \
-                ((total_delta_inc + total_delta) > self._delta[1])) and \
-                (up_i > low_i):    
-                if (total_delta_inc + total_delta) < self._delta[0]:
-                    # exceeds lower limit
-                    low_i += 1
-                    total_delta_inc = inc_delta[ind[low_i:]].sum()
-                elif (total_delta_inc + total_delta) > self._delta[1]:
-                    # exceeds upper limit
-                    up_i -= 1
-                    total_delta_inc = inc_delta[ind[:up_i]].sum()
-            trunc_actions[low_i:up_i] = actions[low_i:up_i]
+            if ((total_delta_inc + total_delta) < self._delta[0]) and (total_delta < self._delta[0]) and (total_delta_inc > 0):
+                trunc_actions = actions
+            elif ((total_delta_inc + total_delta) > self._delta[1]) and (total_delta > self._delta[1]) and (total_delta_inc < 0):
+                trunc_actions = actions
+            else:
+                while (((total_delta_inc + total_delta) < self._delta[0]) or \
+                    ((total_delta_inc + total_delta) > self._delta[1])) and \
+                    (up_i > low_i):    
+                    if (total_delta_inc + total_delta) < self._delta[0]:
+                        # exceeds lower limit
+                        low_i += 1
+                        total_delta_inc = inc_delta[ind[low_i:]].sum()
+                    elif (total_delta_inc + total_delta) > self._delta[1]:
+                        # exceeds upper limit
+                        up_i -= 1
+                        total_delta_inc = inc_delta[ind[:up_i]].sum()
+                trunc_actions[ind[low_i:up_i]] = actions[ind[low_i:up_i]]
             actions = trunc_actions
         return actions
 
