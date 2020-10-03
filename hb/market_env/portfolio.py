@@ -84,7 +84,7 @@ class Position():
         self._holding = max(self._holding_constraints[0],min(prev_holding+shares, self._holding_constraints[1]))
         shares = self._holding - prev_holding
         trans_cost = self._instrument.get_execute_cost(shares)
-        return - self._instrument.get_market_value(shares) - trans_cost, trans_cost
+        return - self._instrument.get_market_value(shares) - trans_cost, trans_cost, shares
 
     def get_breach_holding_constraint(self):
         return (abs(self._holding - self._holding_constraints[0]) < 1e-5) or (abs(self._holding - self._holding_constraints[1]) < 1e-5) 
@@ -206,12 +206,13 @@ class Portfolio():
         cashflows = 0.
         trans_costs = 0.
         actions = self._risk_limits.review_actions(actions, self)
-        for action, hedging_position in zip(actions, self._hedging_portfolio):
+        for i, action in enumerate(actions):
             # rebalance hedging positions
-            proceeds, trans_cost = hedging_position.buy(action)
+            proceeds, trans_cost, trunc_action = self._hedging_portfolio[i].buy(action)
             cashflows += proceeds if not np.isnan(proceeds) else LARGE_NEG_VALUE
             trans_costs += trans_cost
-        return cashflows, trans_costs
+            actions[i] = trunc_action
+        return cashflows, trans_costs, actions
     
     def event_handler(self):
         cashflows = 0.
@@ -244,10 +245,10 @@ class Portfolio():
         # derivative position cleared and exercised
         shares = derivative_position.get_instrument().exercise()
         dump_shares = derivative_position.get_holding()*shares
-        cashflow, _ = derivative_position.buy(-derivative_position.get_holding())
+        cashflow, _, _ = derivative_position.buy(-derivative_position.get_holding())
         # trade or deliver the corresponding shares for option exercise
         hedging_position = self._hedging_portfolio_map[derivative_position.get_instrument().get_underlying_name()]
-        proceeds, trans_cost = hedging_position.buy(dump_shares)
+        proceeds, trans_cost, _ = hedging_position.buy(dump_shares)
         if derivative_position.get_instrument().get_is_physical_settle():
             # physical settle
             proceeds += trans_cost
