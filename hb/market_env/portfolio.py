@@ -267,7 +267,7 @@ class Portfolio():
         trans_costs = 0.
         for hedging_position in self._hedging_portfolio:
             # rebalance hedging positions
-            proceeds, trans_cost = hedging_position.buy(-hedging_position.get_holding())
+            proceeds, trans_cost, _ = hedging_position.buy(-hedging_position.get_holding())
             cashflows += proceeds
             trans_costs += trans_cost
         return cashflows, trans_costs
