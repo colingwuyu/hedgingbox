@@ -6,6 +6,7 @@ from hb.instrument.european_option import EuropeanOption
 from hb.instrument.variance_swap import VarianceSwap
 from hb.utils.consts import *
 from hb.utils.date import *
+from hb.market_env.risk_limits import RiskLimits
 import json
 import os
 
@@ -121,8 +122,10 @@ class Position():
 class Portfolio():
     def __init__(self, 
                  positions: List[Position],
+                 risk_limits: RiskLimits,
                  name: str):
         self._positions = positions
+        self._risk_limits = risk_limits
         self._hedging_portfolio = []
         self._hedging_portfolio_map = dict()
         self._liability_portfolio = []
@@ -140,11 +143,12 @@ class Portfolio():
     def make_portfolio(cls,
                        instruments: List[Instrument],
                        holdings: List[float],
+                       risk_limits: RiskLimits,
                        name: str):
         positions = []
         for instrument, holding in zip(instruments, holdings):
             positions += [Position(instrument, holding)]
-        return cls(positions, name)
+        return cls(positions, risk_limits, name)
 
     def get_all_liability_expired(self) -> bool:
         all_expired = True
@@ -201,6 +205,7 @@ class Portfolio():
         """
         cashflows = 0.
         trans_costs = 0.
+        actions = self._risk_limits.review_actions(actions, self)
         for action, hedging_position in zip(actions, self._hedging_portfolio):
             # rebalance hedging positions
             proceeds, trans_cost = hedging_position.buy(action)
@@ -272,7 +277,9 @@ class Portfolio():
             dict_json = json.loads(json_)
         else:
             dict_json = json_
+        risk_limits = RiskLimits.load_json(dict_json["risk_limits"])
         portfolio = cls(positions=[Position.load_json(pos) for pos in dict_json["positions"]],
+                        risk_limits=risk_limits,
                         name=dict_json["name"])
         for position in portfolio.get_portfolio_positions():
             instrument = position.get_instrument()
@@ -293,6 +300,8 @@ class Portfolio():
     def jsonify_dict(self) -> dict:
         dict_json = dict()
         dict_json["name"] = self._name
+        if "risk_limits" in dict_json:
+            dict_json["risk_limits"] = self._risk_limits.jsonify_dict()
         dict_json["positions"] = [position.jsonify_dict() for position in self._positions]
         for position in self._positions:
             if isinstance(position.get_instrument(), VarianceSwap):

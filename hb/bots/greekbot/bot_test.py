@@ -14,12 +14,12 @@ import matplotlib.pyplot as plt
 class DeltaBotTest(unittest.TestCase):
     def test_regression_deltabot(self):
         market = Market.load_market_file("Markets/Market_Example/spx_market.json")
-        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/portfolio.json")
+        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/call_spread_portfolio.json")
         self._set_up_greek_bot_test(market, portfolio, strategies=[EuroDeltaHedgingStrategy])
 
     def test_gammahedging(self):
         market = Market.load_market_file("Markets/Market_Example/spx_market.json")
-        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/portfolio.json")
+        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/call_spread_portfolio.json")
         self._set_up_greek_bot_test(market, portfolio, strategies=[EuroGammaHedgingStrategy])
 
 

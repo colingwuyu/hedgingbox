@@ -3,6 +3,7 @@
 import acme
 from acme import specs
 from hb.bots.nohedgingbot.bot import NoHedgeBot
+from hb.market_env.market import Market
 from hb.market_env.market_test import MarketTest
 from hb.market_env.portfolio import Portfolio
 import unittest
@@ -10,6 +11,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NoHedgeBotTest(unittest.TestCase):
+    def test_gamma_nohedgebot(self):
+        market = Market.load_market_file("Markets/Market_Example/spx_market.json")
+        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/gamma_portfolio.json")
+        self._set_up_greek_bot_test(market, portfolio)
+
     def test_regression_nohedgebot(self):
         market = MarketTest().set_up_regression_bsm_market()
         portfolio = Portfolio.make_portfolio(
@@ -26,12 +32,11 @@ class NoHedgeBotTest(unittest.TestCase):
         self._set_up_greek_bot_test(market, portfolio, scenario='VaR')
 
     def _set_up_greek_bot_test(self, market, portfolio, scenario=None):
-        market.init_portfolio(portfolio)
+        market.set_portfolio(portfolio)
         if scenario:
-            market.load_scenario(scenario)
+            market.set_mode("scenario")
         else:
-            market.set_pred_mode(True)
-            market.set_pred_episodes(1_000)
+            market.set_mode("validation")
         spec = specs.make_environment_spec(market)
         
         # Construct the agent.
@@ -41,7 +46,7 @@ class NoHedgeBotTest(unittest.TestCase):
         # Try running the environment loop. We have no assertions here because all
         # we care about is that the agent runs without raising any errors.
         loop = acme.EnvironmentLoop(market, agent)
-        loop.run(num_episodes=market.get_pred_episodes())
+        loop.run(num_episodes=market.get_total_episodes())
         predictor = agent.get_predictor()
         predictor._update_progress_figures()
         status = predictor._progress_measures
