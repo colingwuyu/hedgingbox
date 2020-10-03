@@ -98,5 +98,6 @@ class RiskLimits():
                     up_i -= 1
                     total_delta_inc = inc_delta[ind[:up_i]].sum()
             trunc_actions[low_i:up_i] = actions[low_i:up_i]
-        return trunc_actions
+            actions = trunc_actions
+        return actions
 
