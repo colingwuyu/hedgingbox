@@ -122,8 +122,8 @@ class Position():
 class Portfolio():
     def __init__(self, 
                  positions: List[Position],
-                 risk_limits: RiskLimits,
-                 name: str):
+                 name: str,
+                 risk_limits: RiskLimits = RiskLimits()):
         self._positions = positions
         self._risk_limits = risk_limits
         self._hedging_portfolio = []
@@ -143,8 +143,8 @@ class Portfolio():
     def make_portfolio(cls,
                        instruments: List[Instrument],
                        holdings: List[float],
-                       risk_limits: RiskLimits,
-                       name: str):
+                       name: str,
+                       risk_limits: RiskLimits = RiskLimits()):
         positions = []
         for instrument, holding in zip(instruments, holdings):
             positions += [Position(instrument, holding)]
@@ -277,7 +277,10 @@ class Portfolio():
             dict_json = json.loads(json_)
         else:
             dict_json = json_
-        risk_limits = RiskLimits.load_json(dict_json["risk_limits"])
+        if "risk_limits" in dict_json:
+            risk_limits = RiskLimits.load_json(dict_json["risk_limits"])
+        else:
+            risk_limits = RiskLimits()
         portfolio = cls(positions=[Position.load_json(pos) for pos in dict_json["positions"]],
                         risk_limits=risk_limits,
                         name=dict_json["name"])
@@ -300,8 +303,7 @@ class Portfolio():
     def jsonify_dict(self) -> dict:
         dict_json = dict()
         dict_json["name"] = self._name
-        if "risk_limits" in dict_json:
-            dict_json["risk_limits"] = self._risk_limits.jsonify_dict()
+        dict_json["risk_limits"] = self._risk_limits.jsonify_dict()
         dict_json["positions"] = [position.jsonify_dict() for position in self._positions]
         for position in self._positions:
             if isinstance(position.get_instrument(), VarianceSwap):
