@@ -18,6 +18,7 @@ class GreekHedgeBot(bot.Bot):
                  environment_spec: specs.EnvironmentSpec,
                  hedging_strategies = [EuroDeltaHedgingStrategy, VarianceSwapReplicatingStrategy],
                  pred_dir: str = '~/acme/',
+                 label: str = "greek_hedging",
                  pred_episode: int = 1_000 
                  ):
         """Initialize the delta hedging bot
@@ -28,7 +29,7 @@ class GreekHedgeBot(bot.Bot):
         """
         # Create the actor
         actor = greek_hedge_actor.GreekHedgeActor(portfolio, environment_spec.actions, hedging_strategies)
-        predictor = greek_hedge_predictor.GreekHedgePredictor(actor, logger_dir=pred_dir)
+        predictor = greek_hedge_predictor.GreekHedgePredictor(actor, logger_dir=pred_dir, label=label)
         learner = fake_learner.FakeLeaner()
 
         super().__init__(
