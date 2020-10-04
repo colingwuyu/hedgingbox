@@ -347,9 +347,7 @@ class Market(dm_env.Environment):
         #   Cashflow at Time t                                          #
         #   Transaction Cost at Time t.                                 #
         # ==============================================================#
-        print(action)
         cashflow, trans_cost = self._portfolio.rebalance(action)        #
-        print(action)
         trans_cost += self._event_trans_cost                            #
         # add any cashflow in/out to funding account                    #
         self._cash_account.add(cashflow)                                #
