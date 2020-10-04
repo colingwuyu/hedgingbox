@@ -102,7 +102,8 @@ class RiskLimits():
                         # exceeds upper limit
                         up_i -= 1
                         total_delta_inc = inc_delta[ind[:up_i]].sum()
-                trunc_actions[ind[low_i:up_i]] = actions[ind[low_i:up_i]]
-            trunc_actions
+                trunc_actions[ind[low_i:up_i]] = actions[ind[low_i:up_i]].copy()
+        else:
+            trunc_actions = actions.copy()
         return trunc_actions
 
