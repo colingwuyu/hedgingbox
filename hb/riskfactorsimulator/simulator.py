@@ -139,7 +139,8 @@ class Simulator(object):
         else:
             eq_list_json = json_
         num_steps = 0; num_paths = 0; time_step = 0
-        for eq_dict in eq_list_json:
+        self._implied_vol_surfaces = dict()
+        for eq_dict in eq_list_json["scenario"]:
             eq = self._equity_map[eq_dict["name"]]
             eq.load_json_data(eq_dict["data"])
             if num_steps == 0:
@@ -149,8 +150,10 @@ class Simulator(object):
             assert eq.get_num_paths() == num_paths
             assert eq.get_num_steps() == num_steps
             assert eq.get_time_step() == time_step
+            self._implied_vol_surfaces[eq.get_name()] = dict()
         self._num_paths = num_paths
-        self._num_steps = num_steps
+        # num steps exclude initial state at time 0
+        self._num_steps = num_steps - 1
         self._time_step = time_step
 
     def generate_paths(self, num_paths: float, seed: int=None):

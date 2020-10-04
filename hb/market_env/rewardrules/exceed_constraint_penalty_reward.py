@@ -8,7 +8,7 @@ from typing import Dict
 import numpy as np
 
 
-class ExceedConstraintPenaltyRewardReward(reward_rule.RewardRule):
+class ExceedConstraintPenaltyReward(reward_rule.RewardRule):
     def __init__(self, exceed_penalty: float=20):
         self._this_step_obs = None
         self._first_reward = True
@@ -29,4 +29,4 @@ class ExceedConstraintPenaltyRewardReward(reward_rule.RewardRule):
         pass
 
     def __repr__(self):
-        return f"ExceedConstraintPenaltyRewardReward {self._exceed_penalty:.2f}"
+        return f"ExceedConstraintPenaltyReward {self._exceed_penalty:.2f}"

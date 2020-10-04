@@ -501,7 +501,7 @@ class Market(dm_env.Environment):
         market_json.close()
         return Market.load_json(market_dict)
 
-    def load_scenario_file(scenario_file_name):
+    def load_scenario_file(self, scenario_file_name):
         scenario_json = open(scenario_file_name)
         scenario_dict = json.load(scenario_json)
         scenario_json.close()

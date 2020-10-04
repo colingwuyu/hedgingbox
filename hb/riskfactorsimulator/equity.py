@@ -104,7 +104,7 @@ class Equity(object):
             self._spots = tf.math.exp(paths[:,:,0])
             self._spots = tf.concat([np.array([[param["spot"]]]*self._spots.shape[0]),self._spots],-1)
             implied_vols = np.zeros((self._impvol_maturities.shape[0],
-                                     self._impvol_strikes.shape[0]),
+                                     self._impvol_strikes.shape[0]) + self._spots.shape,
                                     dtype=np_dtype)
             implied_vols[:] = param["vol"]
             implied_vols = tf.constant(implied_vols, dtype=np_dtype)
@@ -247,7 +247,7 @@ class Equity(object):
                 m,k = parse_impvol_name(rf_name)
                 self._impvols[np.where(self._str_impvol_maturities==float_to_str(m)),
                               np.where(self._str_impvol_strikes==float_to_str(k)),:,:] = np.array(rf_value)
-            else:
+            elif "Spot" in rf_name:
                 self._spots[:,:] = np.array(rf_value)
         self._num_paths = self._spots.shape[-2]
         self._num_steps = self._spots.shape[-1]
@@ -296,12 +296,11 @@ class Equity(object):
         """
         if self._process_param["process_type"] == "GBM":
             # loaded impvol
-            vol_matrix = self._impvols
             backup_vol = self._process_param["param"]["vol"]
-        else:
+        elif self._process_param["process_type"] == "Heston":
             # impvol already generated
-            vol_matrix = self._impvols[:,:,path_i,step_i]
             backup_vol = self._vars[path_i, step_i]**0.5
+        vol_matrix = self._impvols[:,:,path_i,step_i]
         return ImpliedVolSurface(self._impvol_maturities, self._impvol_strikes, vol_matrix, 
                                  backup_vol=backup_vol)
 

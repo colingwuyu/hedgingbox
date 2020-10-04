@@ -14,14 +14,17 @@ import matplotlib.pyplot as plt
 class DeltaBotTest(unittest.TestCase):
     def test_regression_deltabot(self):
         market = Market.load_market_file("Markets/Market_Example/spx_market.json")
-        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/gamma_portfolio.json")
-        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroDeltaHedgingStrategy])
+        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/delta_portfolio.json")
+        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroDeltaHedgingStrategy],
+                                    scenario="Markets/Market_Example/Covid19.json"
+                                    )
 
     def test_gammahedging(self):
         market = Market.load_market_file("Markets/Market_Example/spx_market.json")
         portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/gamma_portfolio.json")
-        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroGammaHedgingStrategy])
-
+        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroGammaHedgingStrategy],
+                                    scenario="Markets/Market_Example/Covid19.json"
+                                    )
 
     def test_bs_deltabot_with_heston_amzn(self):
         # Create a GBM market
@@ -172,7 +175,7 @@ class DeltaBotTest(unittest.TestCase):
     def _set_up_greek_bot_test(self, market, portfolio, use_bs_delta=True, scenario=None, strategies=None):
         market.set_portfolio(portfolio)
         if scenario:
-            market.load_scenario(scenario)
+            market.load_scenario_file(scenario)
             market.set_mode("scenario")
         else:
             market.set_mode("validation")
