@@ -105,6 +105,6 @@ class RiskLimits():
                 trunc_actions[ind[low_i:up_i]] = actions[ind[low_i:up_i]].copy()
         else:
             trunc_actions = actions.copy()
-        print(total_delta, total_delta_inc, actions, trunc_actions)
+        # print(total_delta, total_delta_inc, actions, trunc_actions)
         return trunc_actions
 
