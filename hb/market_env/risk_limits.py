@@ -84,6 +84,7 @@ class RiskLimits():
                 inc_delta[i] = hedgings[i].get_instrument().get_delta()*action
                 deltas[i] = hedgings[i].get_instrument().get_delta()
             ind = np.argsort(inc_delta)
+            delta_ind = np.argsort(deltas)
             low_i = 0; up_i = len(ind)
             total_delta_inc = inc_delta.sum()
             if ((total_delta_inc + total_delta) < self._delta[0]) and (total_delta < self._delta[0]) and (total_delta_inc > 0):
@@ -103,14 +104,14 @@ class RiskLimits():
                         up_i -= 1
                         total_delta_inc = inc_delta[ind[:up_i]].sum()
                 trunc_actions[ind[low_i:up_i]] = actions[ind[low_i:up_i]].copy()
-                if low_i != 0:
+                if (low_i != 0):
                     # exceeds lower limit
-                    diff_delta = self._delta[0] - inc_delta[ind[low_i:]].sum()
-                    trunc_actions[ind[low_i-1]] = diff_delta/hedgings[ind[low_i-1]].get_instrument().get_delta()
+                    diff_delta = self._delta[0] - (inc_delta[ind[low_i:]].sum() + total_delta)
+                    trunc_actions[delta_ind[-1]] += diff_delta/deltas[delta_ind[-1]]
                 elif up_i != len(ind):
                     # exceeds upper limit
-                    diff_delta = self._delta[1] - inc_delta[ind[:up_i]].sum()
-                    trunc_actions[ind[up_i]] = diff_delta/hedgings[ind[up_i]].get_instrument().get_delta()
+                    diff_delta = self._delta[1] - (inc_delta[ind[:up_i]].sum() + total_delta)
+                    trunc_actions[delta_ind[-1]] = diff_delta/deltas[delta_ind[-1]]
         else:
             trunc_actions = actions
         # print(total_delta, total_delta_inc, actions, trunc_actions)
