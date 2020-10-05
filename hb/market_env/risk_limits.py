@@ -113,7 +113,7 @@ class RiskLimits():
                     diff_delta = self._delta[1] - (inc_delta[ind[:up_i]].sum() + total_delta)
                     trunc_actions[delta_ind[-1]] = diff_delta/deltas[delta_ind[-1]]
         else:
-            trunc_actions = actions
+            trunc_actions = actions.copy()
         # print(total_delta, total_delta_inc, actions, trunc_actions)
         return trunc_actions
 
