@@ -15,14 +15,14 @@ class DeltaBotTest(unittest.TestCase):
     def test_regression_deltabot(self):
         market = Market.load_market_file("Markets/Market_Example/spx_market.json")
         portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/delta_portfolio.json")
-        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroDeltaHedgingStrategy],
+        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroDeltaHedgingStrategy], label="greek_delta_hedging",
                                     scenario="Markets/Market_Example/Covid19.json"
                                     )
 
     def test_gammahedging(self):
         market = Market.load_market_file("Markets/Market_Example/spx_market.json")
         portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/gamma_portfolio.json")
-        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroGammaHedgingStrategy],
+        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroGammaHedgingStrategy], label="greek_gamma_hedging",
                                     scenario="Markets/Market_Example/Covid19.json"
                                     )
 
@@ -172,7 +172,8 @@ class DeltaBotTest(unittest.TestCase):
         )
         self._set_up_greek_bot_test(market, portfolio)
 
-    def _set_up_greek_bot_test(self, market, portfolio, use_bs_delta=True, scenario=None, strategies=None):
+    def _set_up_greek_bot_test(self, market, portfolio, label,
+                               use_bs_delta=True, scenario=None, strategies=None):
         market.set_portfolio(portfolio)
         if scenario:
             market.load_scenario_file(scenario)
@@ -186,11 +187,13 @@ class DeltaBotTest(unittest.TestCase):
             agent = GreekHedgeBot(
                 portfolio=portfolio,
                 environment_spec=spec,
+                label=label,
                 hedging_strategies=strategies
             )
         else:
             agent = GreekHedgeBot(
                 portfolio=portfolio,
+                label=label,
                 environment_spec=spec
             )
         # Try running the environment loop. We have no assertions here because all
