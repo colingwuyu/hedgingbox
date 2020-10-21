@@ -424,7 +424,7 @@ class Market(dm_env.Environment):
                 reward=self._reward_rule.step_reward(dm_env.StepType.MID, step_pnl, action, reward_extra),
                 observation=np.append(self._observation(),
                                       self._pnl_reward.step_reward(dm_env.StepType.MID, step_pnl, action)),
-                discount=0.)
+                discount=1.)
         return ret_step
         
     def _reach_terminal(self) -> bool:
