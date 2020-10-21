@@ -36,6 +36,7 @@ import numpy as np
 from hb.bots import bot
 from hb.bots.d4pgbot import predictor as d4pg_predictor
 from hb.bots.d4pgbot import learning
+from hb.tf.networks.noise import ClipToSpecGaussian
 
 
 # TODO(b/145531941): make the naming of this agent consistent.
@@ -117,8 +118,7 @@ class D4PGBot(bot.Bot):
         behavior_network = snt.Sequential([
             observation_network,
             policy_network,
-            networks.ClippedGaussian(sigma),
-            networks.ClipToSpec(act_spec),
+            ClipToSpecGaussian(sigma, act_spec),
         ])
 
         # Create variables.
