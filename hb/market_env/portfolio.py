@@ -84,7 +84,7 @@ class Position():
         self._holding = max(self._holding_constraints[0],min(prev_holding+shares, self._holding_constraints[1]))
         shares = self._holding - prev_holding
         trans_cost = self._instrument.get_execute_cost(shares)
-        rreturn - self._instrument.get_market_value(shares) - trans_cost, trans_cost, shares
+        return - self._instrument.get_market_value(shares) - trans_cost, trans_cost, shares
 
     def get_breach_holding_constraint(self):
         return (abs(self._holding - self._holding_constraints[0]) < 1e-5) or (abs(self._holding - self._holding_constraints[1]) < 1e-5) 
