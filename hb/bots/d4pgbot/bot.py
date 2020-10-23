@@ -75,12 +75,12 @@ class D4PGBot(bot.Bot):
         # Create a replay server to add data to. This uses no limiter behavior in
         # order to allow the Agent interface to handle it.
         replay_table = reverb.Table(
-            name=replay_table_name,
-            sampler=reverb.selectors.Uniform(),
-            remover=reverb.selectors.Fifo(),
-            max_size=max_replay_size,
-            rate_limiter=reverb.rate_limiters.MinSize(1),
-            signature=adders.NStepTransitionAdder.signature(environment_spec))
+        name=replay_table_name,
+        sampler=reverb.selectors.Uniform(),
+        remover=reverb.selectors.Fifo(),
+        max_size=max_replay_size,
+        rate_limiter=reverb.rate_limiters.MinSize(1),
+        signature=adders.NStepTransitionAdder.signature(environment_spec))
         self._server = reverb.Server([replay_table], port=None)
 
         # The adder is used to insert observations into replay.
@@ -94,11 +94,9 @@ class D4PGBot(bot.Bot):
         # The dataset provides an interface to sample from replay.
         dataset = datasets.make_reverb_dataset(
             table=replay_table_name,
-            client=reverb.TFClient(address),
+            server_address=address,
             batch_size=batch_size,
-            prefetch_size=prefetch_size,
-            environment_spec=environment_spec,
-            transition_adder=True)
+            prefetch_size=prefetch_size)
 
         # Make sure observation network is a Sonnet Module.
         observation_network = tf2_utils.to_sonnet_module(observation_network)
