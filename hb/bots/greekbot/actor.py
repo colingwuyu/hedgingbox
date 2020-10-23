@@ -24,11 +24,15 @@ class GreekHedgeActor(core.Actor):
             strategy(portfolio, action_spec) for strategy in strategies
         ]
         self._actions = np.zeros(action_spec.shape)
+        self._hedging_positions = portfolio.get_hedging_portfolio()
 
     def select_action(self, observations: types.NestedArray) -> types.NestedArray:
         actions = self._actions.copy()
         for strategy in self._strategies:
             actions = strategy.update_action(observations, actions)
+        for action_i, position in enumerate(self._hedging_positions):
+            limit = position.get_instrument().get_trading_limit()
+            actions[action_i] = np.max(-limit, np.min(actions[action_i], limit))/limit
         return actions
 
     def observe_first(self, timestep: dm_env.TimeStep):

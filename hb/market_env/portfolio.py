@@ -188,6 +188,14 @@ class Portfolio():
             nav += position.get_market_value()
         return nav
 
+    def scale_actions(self, actions):
+        for action_i, position in enumerate(self._hedging_portfolio):
+            actions[action_i] = actions[action_i]*position.get_instrument().get_trading_limit()
+        
+    def clip_actions(self, actions):
+        for action_i, position in enumerate(self._hedging_portfolio):
+            actions[action_i] = actions[action_i]/position.get_instrument().get_trading_limit()
+
     def rebalance(self, actions):
         """Rebalance portfolio with hedging actions
            Also deal with the expiry events

@@ -337,6 +337,8 @@ class Market(dm_env.Environment):
         Returns:
             [dm_env.TimeStep]: MID or LAST TimeStep
         """
+        # scale action
+        self._portfolio.scale_actions(action)
         # ==============================================================#
         # Time t                                                        #
         # ==============================================================# 
@@ -402,6 +404,9 @@ class Market(dm_env.Environment):
         #         self._portfolio.get_liability_portfolio()[0].get_holding(), 
         #         self._cash_account.get_balance(), 
         #         cash_interest, portfolio_pnl, trans_cost, step_pnl]])+'\n')
+        
+        # clip action
+        self._portfolio.clip_actions(action)
         if self._reach_terminal():
             # Last step at Time T
             if self._portfolio.get_all_liability_expired():
@@ -481,10 +486,7 @@ class Market(dm_env.Environment):
     def action_spec(self):
         """Returns the action spec.
         """
-        maximum = []
-        for hedging_position in self._portfolio.get_hedging_portfolio():
-            maximum += [hedging_position.get_instrument().get_trading_limit()]
-        maximum = np.array(maximum)
+        maximum = np.ones(len(self._portfolio.get_hedging_portfolio()))
         minimum = -1*maximum
         return specs.BoundedArray(
             shape=(len(maximum),), dtype=float,
