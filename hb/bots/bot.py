@@ -64,8 +64,12 @@ class Bot(agent.Agent):
     def update(self):
         if not (self._pred or self._pred_only):
             super().update()
-            if (self._num_observations >= 0 and
-                    self._num_observations % self._observations_per_update == 0):
+            num_steps = agent._calculate_num_learner_steps(
+                    num_observations=self._num_observations,
+                    min_observations=self._min_observations,
+                    observations_per_step=self._observations_per_step,
+                )
+            if (self._num_observations >= 0 and num_steps > 0):
                 self._predictor.update()
 
     def set_pred_only(self, pred_only: bool):
