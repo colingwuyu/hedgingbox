@@ -190,11 +190,11 @@ class Portfolio():
 
     def scale_actions(self, actions):
         for action_i, position in enumerate(self._hedging_portfolio):
-            actions[action_i] = actions[action_i]*position.get_instrument().get_trading_limit()
+            actions[action_i] = actions[action_i]*np_dtype(position.get_instrument().get_trading_limit())
         
     def clip_actions(self, actions):
         for action_i, position in enumerate(self._hedging_portfolio):
-            actions[action_i] = actions[action_i]/position.get_instrument().get_trading_limit()
+            actions[action_i] = actions[action_i]/np_dtype(position.get_instrument().get_trading_limit())
 
     def rebalance(self, actions):
         """Rebalance portfolio with hedging actions

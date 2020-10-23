@@ -7,6 +7,7 @@ from acme import types
 from dm_env import specs
 import dm_env
 import numpy as np
+from hb.utils.consts import np_dtype
 
 
 class GreekHedgeActor(core.Actor):
@@ -31,7 +32,7 @@ class GreekHedgeActor(core.Actor):
         for strategy in self._strategies:
             actions = strategy.update_action(observations, actions)
         for action_i, position in enumerate(self._hedging_positions):
-            limit = position.get_instrument().get_trading_limit()
+            limit = np_dtype(position.get_instrument().get_trading_limit())
             actions[action_i] = np.max(-limit, np.min(actions[action_i], limit))/limit
         return actions
 
