@@ -33,7 +33,7 @@ class GreekHedgeActor(core.Actor):
             actions = strategy.update_action(observations, actions)
         for action_i, position in enumerate(self._hedging_positions):
             limit = np_dtype(position.get_instrument().get_trading_limit())
-            actions[action_i] = np.max(-limit, np.min(actions[action_i], limit))/limit
+            actions[action_i] = max(-limit, min(actions[action_i], limit))/limit
         return actions
 
     def observe_first(self, timestep: dm_env.TimeStep):
