@@ -17,8 +17,6 @@ class EuroGammaHedgingStrategy:
 
     def __init__(self, portfolio: Portfolio,
                  action_spec: specs.BoundedArray):
-        self._min_action = action_spec.minimum
-        self._max_action = action_spec.maximum
         self._option_positions = []
         self._hedging_option_positions = {}
         # underlying name => action index mapping
@@ -67,13 +65,13 @@ class EuroGammaHedgingStrategy:
             gamma_hedging_holding_obs_index = self._holding_obs_index_map[gamma_hedging_name]
             gamma_hedging_cur_holding = observations[gamma_hedging_holding_obs_index]
             gamma_hedging_action_index = self._action_index_map[gamma_hedging_name]
-            action = np.clip(- gamma_hedging_shares - gamma_hedging_cur_holding, self._min_action[gamma_hedging_action_index], self._max_action[gamma_hedging_action_index])
+            action = - gamma_hedging_shares - gamma_hedging_cur_holding
             actions[gamma_hedging_action_index] += action
             gamma_hedging_delta = -(gamma_hedging_cur_holding+action)*gamma_hedging_option.get_instrument().get_delta()
             delta = delta_map[underlying] - gamma_hedging_delta
             underlying_holding_obs_index = self._holding_obs_index_map[underlying]
             underlying_cur_holding = observations[underlying_holding_obs_index]
             underlying_action_index = self._action_index_map[underlying]
-            action = np.clip(- delta - underlying_cur_holding, self._min_action[underlying_action_index], self._max_action[underlying_action_index])
+            action = - delta - underlying_cur_holding
             actions[underlying_action_index] += action
         return actions

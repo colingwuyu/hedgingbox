@@ -17,8 +17,6 @@ class EuroDeltaHedgingStrategy:
 
     def __init__(self, portfolio: Portfolio,
                  action_spec: specs.BoundedArray):
-        self._min_action = action_spec.minimum
-        self._max_action = action_spec.maximum
         self._option_positions = []
         # underlying name => action index mapping
         self._action_index_map = dict()
@@ -49,6 +47,6 @@ class EuroDeltaHedgingStrategy:
             holding_obs_index = self._holding_obs_index_map[underlying]
             cur_holding = observations[holding_obs_index]
             action_index = self._action_index_map[underlying]
-            action = np.clip(- delta - cur_holding, self._min_action[action_index], self._max_action[action_index])
+            action = - delta - cur_holding
             actions[action_index] += action
         return actions
