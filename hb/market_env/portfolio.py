@@ -11,7 +11,8 @@ import json
 import os
 
 class Position():
-    def __init__(self, instrument=None, holding=0., holding_constraints=None):
+    def __init__(self, instrument=None, holding=0., trading_limit=[-1e5, 1e5], 
+                 holding_constraints=[MIN_FLT_VALUE, MAX_FLT_VALUE]):
         """[summary]
 
         Args:
@@ -22,6 +23,8 @@ class Position():
         self._instrument = instrument
         self._holding = holding
         self._init_holding = holding
+        self._trading_limit = trading_limit
+        self._scale_f = (self._trading_limit[1] - self._trading_limit[0])/2
         self._holding_constraints = holding_constraints
        
     def reset(self):
@@ -60,11 +63,45 @@ class Position():
         self._holding_constraints = holding_constraints
         return self
 
+    def get_trading_limit(self):
+        return self._trading_limit
+
+    def set_trading_limit(self, trading_limit):
+        self._trading_limit = trading_limit
+        self._scale_f = (self._trading_limit[1] - self._trading_limit[0])/2
+
+    def trading_limit(self, trading_limit):
+        self._trading_limit = trading_limit
+        self._scale_f = (self._trading_limit[1] - self._trading_limit[0])/2
+        return self
+
     def get_init_holding(self):
         return self._init_holding
 
     def set_init_holding(self, init_holding):
         self._init_holding = init_holding
+
+    def scale_up_action(self, action):
+        """scale an action in range [-1, 1] to the range of trading limit
+
+        Args:
+            action (np.float32): action between [-1, 1]
+
+        Returns:
+            action scaled up: action between [trading_limit[0], trading_limit[1]]
+        """
+        return action*scale_f
+    
+    def scale_down_action(self, action):
+        """scale an action in range [trading_limit[0], trading_limit[1]] to the range [-1, 1]
+
+        Args:
+            action (np.float32): action between [trading_limit[0], trading_limit[1]]
+        
+        Returns:
+            action scaled down: action between [-1, 1]
+        """
+        return action/self._scale_f
 
     def buy(self, shares: float):
         """buy shares
@@ -81,8 +118,10 @@ class Position():
             transaction cost (float): the transaction cost for buying shares
         """
         prev_holding = self._holding
-        self._holding = max(self._holding_constraints[0],min(prev_holding+shares, self._holding_constraints[1]))
-        shares = self._holding - prev_holding
+        # cutting off at holding constraint
+        self._holding = max(self._holding_constraints[0], min(prev_holding+shares, self._holding_constraints[1]))
+        # cutting off at trading limit
+        shares = max(self._trading_limit[0], min(self._trading_limit[1], self._holding - prev_holding))
         trans_cost = self._instrument.get_execute_cost(shares)
         return - self._instrument.get_market_value(shares) - trans_cost, trans_cost, shares
 
@@ -106,14 +145,17 @@ class Position():
         ret_pos = cls().holding(dict_json["holding"]).instrument(InstrumentFactory.create(dict_json["instrument"]))
         if "holding_constraints" in dict_json:
             ret_pos.set_holding_constraints(dict_json["holding_constraints"])
-        else:
-            ret_pos.set_holding_constraints([MIN_FLT_VALUE, MAX_FLT_VALUE])
+        if "trading_limit" in dict_json:
+            ret_pos.set_trading_limit(dict_json["trading_limit"])
         return ret_pos
 
     def jsonify_dict(self) -> dict:
         dict_json = dict()
         dict_json["holding"] = self._holding
+        dict_json["trading_limit"] = self._trading_limit
         dict_json["instrument"] = str(self._instrument)
+        if self._holding_constraints:
+            dict_json["holding_constraints"] = self._holding_constraints
         return dict_json
 
     def __repr__(self):
@@ -190,11 +232,11 @@ class Portfolio():
 
     def scale_actions(self, actions):
         for action_i, position in enumerate(self._hedging_portfolio):
-            actions[action_i] = actions[action_i]*np_dtype(position.get_instrument().get_trading_limit())
+            actions[action_i] = position.scale_up_action(actions[action_i])
         
     def clip_actions(self, actions):
         for action_i, position in enumerate(self._hedging_portfolio):
-            actions[action_i] = actions[action_i]/np_dtype(position.get_instrument().get_trading_limit())
+            actions[action_i] = position.scale_down_action(actions[action_i])
 
     def rebalance(self, actions):
         """Rebalance portfolio with hedging actions

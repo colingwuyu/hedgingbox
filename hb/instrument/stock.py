@@ -13,20 +13,18 @@ class Stock(Instrument):
     def __init__(self, name: str, 
                  annual_yield: float,
                  dividend_yield: float,
-                 transaction_cost: TransactionCost, 
-                 trading_limit: float = 1e10):
+                 transaction_cost: TransactionCost):
         """Stock
 
         Args:
             name (str): stock name (ticker)
             annual_yield (float): annual return
             dividend_yield (float): annual dividend yield
-            transaction_cost (TransactionCost): transaction_cost calculator 
-            trading_limit (float): trading limit
+            transaction_cost (TransactionCost): transaction_cost calculator
         """
         self._dividend_yield = dividend_yield
         self._annual_yield = annual_yield
-        super().__init__(name=name, tradable=True, transaction_cost=transaction_cost, trading_limit=trading_limit)
+        super().__init__(name=name, tradable=True, transaction_cost=transaction_cost)
         
     def get_dividend_yield(self) -> float:
         return self._dividend_yield
@@ -57,11 +55,10 @@ class Stock(Instrument):
         return self._simulator_handler.get_obj().get_spot(self._name, path_i, step_i).numpy()
 
     def __repr__(self):
-        return "Stock {name} {annual_yield:.2f} {dividend_yield:.2f} {transaction_cost:.2f} {trading_limit:.2f}" \
+        return "Stock {name} {annual_yield:.2f} {dividend_yield:.2f} {transaction_cost:.2f}" \
                     .format(name=self._name, 
                             annual_yield=self._annual_yield*100,
                             dividend_yield=self._dividend_yield*100,
-                            trading_limit=self._trading_limit,
                             transaction_cost=self._transaction_cost.get_percentage_cost()*100)
 
 if __name__ == "__main__":

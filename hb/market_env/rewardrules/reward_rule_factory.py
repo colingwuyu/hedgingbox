@@ -20,6 +20,6 @@ class RewardRuleFactory():
         if str_reward_rule == "PnLReward":
             return PnLReward()
         if "SPR" == params[0]:
-            return SquarePenaltyReward(RewardRuleFactory.create(params[1]), float(params[2]))
+            return SquarePenaltyReward(RewardRuleFactory.create(" ".join(params[1:-1])), float(params[-1]))
         if "ExceedConstraintPenaltyReward" in params[0] :
             return ExceedConstraintPenaltyReward(float(params[1]))

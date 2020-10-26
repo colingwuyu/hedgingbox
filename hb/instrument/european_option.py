@@ -15,8 +15,7 @@ class EuropeanOption(Instrument):
     def __init__(self, name: str, option_type: str, strike: float, 
                  maturity: float, tradable: bool,
                  transaction_cost: TransactionCost = None,
-                 underlying = None, 
-                 trading_limit: float = 1e10):
+                 underlying = None):
         payoff = ql.PlainVanillaPayoff(ql.Option.Call if option_type=="Call" else ql.Option.Put, 
                                        strike)
         exercise = ql.EuropeanExercise(add_time(maturity))
@@ -26,7 +25,7 @@ class EuropeanOption(Instrument):
         self._strike = strike
         super().__init__(name=name, tradable=tradable, 
                          transaction_cost=transaction_cost, 
-                         underlying=underlying, trading_limit=trading_limit)
+                         underlying=underlying)
 
     def set_simulator(self, simulator_handler, counter_handler):
         super().set_simulator(simulator_handler, counter_handler)
@@ -180,14 +179,13 @@ class EuropeanOption(Instrument):
         return self._option.gamma()
 
     def __repr__(self):
-        return 'EuroOpt {underlying_name} {list_otc} {maturity} {call_put} {strike:.2f} {transaction_cost} {trading_limit:.2f} ({name})' \
+        return 'EuroOpt {underlying_name} {list_otc} {maturity} {call_put} {strike:.2f} {transaction_cost} ({name})' \
                 .format(underlying_name=self._underlying.get_name(),
                         list_otc="Listed" if self._tradable else "OTC",
                         maturity=get_period_str_from_time(self._maturity_time),
                         call_put="Call" if self._call else "Put",
                         strike=self._strike, 
                         transaction_cost=self._transaction_cost.get_percentage_cost()*100,
-                        trading_limit=self._trading_limit,
                         name=self._name)
 
 

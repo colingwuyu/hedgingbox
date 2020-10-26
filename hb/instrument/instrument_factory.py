@@ -13,9 +13,9 @@ class InstrumentFactory():
         Args:
             str_instrument (str): 
                 Stock:
-                    'Stock Ticker annual_yield% dividend_yield% transaction_cost% trading_limit'  
+                    'Stock Ticker annual_yield% dividend_yield% transaction_cost%'  
                 European Option:
-                    'EuroOpt Ticker OTC/Listed Maturity Call/Put Strike transaction_cost% trading_limit (ShortName)'
+                    'EuroOpt Ticker OTC/Listed Maturity Call/Put Strike transaction_cost% (ShortName)'
                 Variance Swap:
                     'VarSwap Ticker Maturity VolStrike VarNotional (ShortName)'
         """
@@ -25,8 +25,7 @@ class InstrumentFactory():
                 name=params[1],
                 annual_yield=float(params[2])/100.,
                 dividend_yield=float(params[3])/100.,
-                transaction_cost=PercentageTransactionCost(float(params[4])/100.),
-                trading_limit=float(params[5])
+                transaction_cost=PercentageTransactionCost(float(params[4])/100.)
             )
         if params[0] == 'EuroOpt':
             return EuropeanOption(
@@ -36,8 +35,7 @@ class InstrumentFactory():
                 maturity=date_util.get_period_from_str(params[3]),
                 strike=float(params[5]),
                 tradable=True if params[2]=='Listed' else False,
-                transaction_cost=PercentageTransactionCost(float(params[6])/100.),
-                trading_limit=float(params[7])
+                transaction_cost=PercentageTransactionCost(float(params[6])/100.)
             )
         if params[0] == 'VarSwap':
             return VarianceSwap(

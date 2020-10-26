@@ -11,8 +11,7 @@ class Instrument(abc.ABC):
     def __init__(self, name: str, 
                  tradable: bool,
                  transaction_cost: TransactionCost = None,
-                 underlying = None, 
-                 trading_limit: float = 1e10):
+                 underlying = None):
         self._name = name
         self._tradable = tradable
         self._transaction_cost = transaction_cost
@@ -22,7 +21,6 @@ class Instrument(abc.ABC):
             self._underlying = None
         else:
             self._underlying = underlying
-        self._trading_limit = trading_limit
         self._price_cache = dict()
         self._exercised = False
         self._simulator_handler = None
@@ -51,22 +49,6 @@ class Instrument(abc.ABC):
 
     def underlying(self, underlying):
         self._underlying = underlying
-        return self
-
-    def get_trading_limit(self) -> float:
-        """trading block limit
-
-        Returns:
-            float: the maximum shares one buy/sell action can be executed 
-                   None - means no limit
-        """
-        return self._trading_limit
-
-    def set_trading_limit(self, trading_limit):
-        self._trading_limit = trading_limit
-
-    def trading_limit(self, trading_limit):
-        self._trading_limit = trading_limit
         return self
 
     def get_is_tradable(self) -> bool:
