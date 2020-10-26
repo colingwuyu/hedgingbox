@@ -255,14 +255,14 @@ class Portfolio():
         """
         cashflows = 0.
         trans_costs = 0.
-        actions = self._risk_limits.review_actions(actions, self)
+        self._risk_limits.review_actions(actions, self)
         for i, action in enumerate(actions):
             # rebalance hedging positions
             proceeds, trans_cost, trunc_action = self._hedging_portfolio[i].buy(action)
             cashflows += proceeds if not np.isnan(proceeds) else LARGE_NEG_VALUE
             trans_costs += trans_cost
             actions[i] = trunc_action
-        return cashflows, trans_costs, actions
+        return cashflows, trans_costs
     
     def event_handler(self):
         cashflows = 0.

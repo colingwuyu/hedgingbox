@@ -114,6 +114,6 @@ class RiskLimits():
                     trunc_actions[delta_ind[-1]] = diff_delta/deltas[delta_ind[-1]]
         else:
             trunc_actions = actions.copy()
-        # print(total_delta, total_delta_inc, actions, trunc_actions)
-        return trunc_actions
+        for i, _ in enumerate(actions):
+            actions[i] = trunc_actions[i]
 
