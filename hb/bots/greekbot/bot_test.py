@@ -13,10 +13,9 @@ import matplotlib.pyplot as plt
 
 class DeltaBotTest(unittest.TestCase):
     def test_regression_deltabot(self):
-        market = Market.load_market_file("Markets/Market_Example/spx_market.json")
-        portfolio = Portfolio.load_portfolio_file("Markets/Market_Example/delta_portfolio.json")
-        self._set_up_greek_bot_test(market, portfolio, strategies=[EuroDeltaHedgingStrategy], label="greek_delta_hedging",
-                                    scenario="Markets/Market_Example/Covid19.json"
+        market = Market.load_market_file("Markets/test/market.json")
+        self._set_up_greek_bot_test(market, strategies=[EuroDeltaHedgingStrategy], label="greek_delta_hedging",
+                                    # scenario="Markets/Market_Example/Covid19.json"
                                     )
 
     def test_gammahedging(self):
@@ -172,9 +171,8 @@ class DeltaBotTest(unittest.TestCase):
         )
         self._set_up_greek_bot_test(market, portfolio)
 
-    def _set_up_greek_bot_test(self, market, portfolio, label,
+    def _set_up_greek_bot_test(self, market, label,
                                use_bs_delta=True, scenario=None, strategies=None):
-        market.set_portfolio(portfolio)
         if scenario:
             market.load_scenario_file(scenario)
             market.set_mode("scenario")
@@ -185,14 +183,14 @@ class DeltaBotTest(unittest.TestCase):
         # Construct the agent.
         if strategies:
             agent = GreekHedgeBot(
-                portfolio=portfolio,
+                portfolio=market.get_portfolio(),
                 environment_spec=spec,
                 label=label,
                 hedging_strategies=strategies
             )
         else:
             agent = GreekHedgeBot(
-                portfolio=portfolio,
+                portfolio=market.get_portfolio(),
                 label=label,
                 environment_spec=spec
             )

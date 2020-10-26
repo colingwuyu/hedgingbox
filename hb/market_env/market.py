@@ -160,7 +160,7 @@ class Market(dm_env.Environment):
                                                                .num_steps(dict_json["num_steps_per_episode"]+1)
         market._validation_simulator = market._validation_simulator.time_step(market._hedging_step_in_days/DAYS_PER_YEAR)\
                                                                    .num_steps(dict_json["num_steps_per_episode"]+1)
-        market._portfolio = None
+        market.set_portfolio(Portfolio.load_json(dict_json["portfolio"]))
         market._event_trans_cost = 0.
         return market
         
@@ -244,7 +244,10 @@ class Market(dm_env.Environment):
             #     rho=-0.696611, vov=0.753137, use_risk_free=False
             # )
         return param
-        
+    
+    def get_portfolio(self):
+        return self._portfolio
+
     def set_portfolio(self, portfolio: Portfolio):
         """set the trading portfolio into market
 

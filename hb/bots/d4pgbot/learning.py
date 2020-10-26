@@ -186,21 +186,16 @@ class D4PGLearner(acme.Learner):
       # Actor loss. If clipping is true use dqda clipping and clip the norm.
       dqda_clipping = 1.0 if self._clipping else None
       if self._risk_obj_func:
-        policy_loss = dpg.risk_dpg(
-            dpg_q_t,
-            dpg_q_var_t,
-            self._risk_obj_c,
-            dpg_a_t,
-            tape=tape,
-            dqda_clipping=dqda_clipping,
-            clip_norm=self._clipping)
+        c = tf.cast(c, dpg_q_t.dtype)
+        dpg_f = dpg_q_t - c * tf.sqrt(dpg_q_var_t)
       else:
-        policy_loss = losses.dpg(
-            dpg_q_t,
-            dpg_a_t,
-            tape=tape,
-            dqda_clipping=dqda_clipping,
-            clip_norm=self._clipping)
+        dpg_f = dpg_q_t
+      policy_loss = losses.dpg(
+          dpg_f,
+          dpg_a_t,
+          tape=tape,
+          dqda_clipping=dqda_clipping,
+          clip_norm=self._clipping)
       policy_loss = tf.reduce_mean(policy_loss, axis=[0])
 
     # Get trainable variables.
