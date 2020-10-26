@@ -190,31 +190,51 @@ class Simulator(object):
         else:
             self._implied_vol_surfaces = dict()
 
-        processes = []
-        initial_state = []
-        for eq in self._equity:
-            processes.append(eq.get_process())
-            initial_state.append(eq.get_initial_state())
-        join_process = tff.models.JoinedItoProcess(
-            processes=processes, corr_structure=self._corr_structure()
-        )
-        all_paths = join_process.sample_paths(
-            times,
-            time_step=self._time_step,
-            num_samples=num_paths,
-            initial_state=np.array(initial_state).T,
-            random_type=random.RandomType.PSEUDO_ANTITHETIC,
-            seed=seed
-        )
+        if len(self._equity) > 1:
+            # Use joined process
+            processes = []
+            initial_state = []
+            for eq in self._equity:
+                processes.append(eq.get_process())
+                initial_state.append(eq.get_initial_state())
+            join_process = tff.models.JoinedItoProcess(
+                processes=processes, corr_structure=self._corr_structure()
+            )
+            all_paths = join_process.sample_paths(
+                times,
+                time_step=self._time_step,
+                num_samples=num_paths,
+                initial_state=np.array(initial_state).T,
+                random_type=random.RandomType.PSEUDO_ANTITHETIC,
+                seed=seed
+            )
 
-        cur_path_j = 0
-        for i, eq in enumerate(self._equity):
-            if eq.get_process_param()["process_type"] == "GBM":
-                paths = all_paths[:,:,cur_path_j:(cur_path_j+1)]
-                cur_path_j += 1
-            elif eq.get_process_param()["process_type"] == "Heston":
-                paths = all_paths[:,:,cur_path_j:(cur_path_j+2)]
-                cur_path_j += 2
+            cur_path_j = 0
+            for i, eq in enumerate(self._equity):
+                if eq.get_process_param()["process_type"] == "GBM":
+                    paths = all_paths[:,:,cur_path_j:(cur_path_j+1)]
+                    cur_path_j += 1
+                elif eq.get_process_param()["process_type"] == "Heston":
+                    paths = all_paths[:,:,cur_path_j:(cur_path_j+2)]
+                    cur_path_j += 2
+                if hasattr(eq, "_spots"):
+                    if eq.get_spots() is None:
+                        eq.set_generated_paths(paths, self._time_step, self._ir)
+                        self._implied_vol_surfaces[eq.get_name()] = dict()
+                else:
+                    eq.set_generated_paths(paths, self._time_step, self._ir)
+                    self._implied_vol_surfaces[eq.get_name()] = dict()
+        else:
+            eq = self._equity[0]
+            process = eq.get_process()
+            paths = process.sample_paths(
+                times,
+                time_step=self._time_step,
+                num_samples=num_paths,
+                initial_state=eq.get_initial_state(),
+                random_type=random.RandomType.PSEUDO_ANTITHETIC,
+                seed=seed
+            )
             if hasattr(eq, "_spots"):
                 if eq.get_spots() is None:
                     eq.set_generated_paths(paths, self._time_step, self._ir)
@@ -222,6 +242,7 @@ class Simulator(object):
             else:
                 eq.set_generated_paths(paths, self._time_step, self._ir)
                 self._implied_vol_surfaces[eq.get_name()] = dict()
+           
            
     def get_spot(self, equity_name, path_i, step_i=None):
         return self._equity_map[equity_name].get_spot(path_i, step_i)

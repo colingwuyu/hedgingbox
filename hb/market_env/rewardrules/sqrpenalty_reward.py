@@ -27,4 +27,4 @@ class SquarePenaltyReward(reward_rule.RewardRule):
         self._reward_rule.reset(reset_obs)
 
     def __repr__(self):
-        return "SPR " + str(self._reward_rule) + "{:.1f}".format(self._scale_k)
+        return "SPR " + str(self._reward_rule) + " {:.1f}".format(self._scale_k)
