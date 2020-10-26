@@ -72,7 +72,7 @@ class Market(dm_env.Environment):
     __slots__ = ["_name", 
                  "_training_simulator", "_validation_simulator", "_scenario_simulator", "_current_simulator_handler",
                  "_training_counter", "_validation_counter", "_scenario_counter", "_current_counter_handler",
-                 "_cash_account", "_pnl_reward", "_reward_rule", "_hedging_step_in_days",
+                 "_cash_account", "_reward_rule", "_hedging_step_in_days",
                  "_portfolio", "_event_trans_cost"]
 
     """Market Environment
@@ -153,7 +153,6 @@ class Market(dm_env.Environment):
         market._current_simulator_handler = Handler(market._training_simulator)
         market._current_counter_handler = Handler(market._training_counter)
         market._cash_account = CashAccount(interest_rates=market._training_simulator.get_ir())
-        market._pnl_reward = PnLReward()
         market._reward_rule = RewardRuleFactory.create(dict_json["reward_rule"])
         market._hedging_step_in_days = dict_json["hedging_step_in_days"]
         market._training_simulator = market._training_simulator.time_step(market._hedging_step_in_days/DAYS_PER_YEAR)\
@@ -317,7 +316,6 @@ class Market(dm_env.Environment):
         # save initial cashflow into cash account
         self._cash_account.add(-initial_cashflow)
         self._reward_rule.reset(self._portfolio)
-        self._pnl_reward.reset(self._portfolio)
         # with open('logger.csv', 'a') as logger:
         #     logger.write(','.join([str(k) for k in 
         #         [get_cur_days(), 0., 100., 5, 
@@ -425,13 +423,11 @@ class Market(dm_env.Environment):
             # print("Cash account Balance: ", self._cash_account.get_balance())
             ret_step = dm_env.termination(
                 reward=self._reward_rule.step_reward(dm_env.StepType.LAST, step_pnl, action, reward_extra),
-                observation=np.append(self._observation(),
-                                      self._pnl_reward.step_reward(dm_env.StepType.LAST, step_pnl, action)))
+                observation=np.append(self._observation(),step_pnl))
         else:
             ret_step = dm_env.transition(
                 reward=self._reward_rule.step_reward(dm_env.StepType.MID, step_pnl, action, reward_extra),
-                observation=np.append(self._observation(),
-                                      self._pnl_reward.step_reward(dm_env.StepType.MID, step_pnl, action)),
+                observation=np.append(self._observation(), step_pnl),
                 discount=1.)
         return ret_step
         
