@@ -90,7 +90,7 @@ class Position():
         Returns:
             action scaled up: action between [trading_limit[0], trading_limit[1]]
         """
-        return action*scale_f
+        return action*self._scale_f
     
     def scale_down_action(self, action):
         """scale an action in range [trading_limit[0], trading_limit[1]] to the range [-1, 1]
