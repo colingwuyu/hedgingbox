@@ -156,9 +156,27 @@ class Simulator(object):
         self._num_steps = num_steps - 1
         self._time_step = time_step
 
+    def _corr_structure(self):
+        eq_names = [eq.get_name() for eq in self._equity]
+        corr_structure = pd.DataFrame(np.ones([len(self._equity),len(self._equity)]), 
+                                     index=eq_names, columns=eq_names)
+        for corr in self._correlation:
+            corr_structure.loc[corr.get_equity1(),corr.get_equity2()] = corr.get_corr()
+            corr_structure.loc[corr.get_equity2(),corr.get_equity1()] = corr.get_corr()
+        extra_corr = 0
+        for eq in self._equity:
+            if eq.get_process_param()["process_type"] == "Heston":
+                extra_corr += 1
+        extra_corr_structure = [[1.] for i in range(extra_corr)]
+        if len(extra_corr_structure) > 0:
+            corr_structure = [corr_structure.values.tolist(), extra_corr_structure]
+        else:
+            corr_structure = [corr_structure.values.tolist()]
+        return corr_structure
+
     def generate_paths(self, num_paths: float, seed: int=None):
         """Generate paths
-            TODO: add correlation.
+            TODO: correlation now only supports GBM.
         Args:
             num_paths (float): number of paths
             seed (int, optional): RNG seed. Defaults to None.
@@ -172,16 +190,31 @@ class Simulator(object):
         else:
             self._implied_vol_surfaces = dict()
 
+        processes = []
+        initial_state = []
         for eq in self._equity:
-            process = eq.get_process()
-            paths = process.sample_paths(
-                times,
-                time_step=self._time_step,
-                num_samples=num_paths,
-                initial_state=eq.get_initial_state(),
-                random_type=random.RandomType.PSEUDO_ANTITHETIC,
-                seed=seed
-            )
+            processes.append(eq.get_process())
+            initial_state.append(eq.get_initial_state())
+        join_process = tff.models.JoinedItoProcess(
+            processes=processes, corr_structure=self._corr_structure()
+        )
+        all_paths = join_process.sample_paths(
+            times,
+            time_step=self._time_step,
+            num_samples=num_paths,
+            initial_state=np.array(initial_state).T,
+            random_type=random.RandomType.PSEUDO_ANTITHETIC,
+            seed=seed
+        )
+
+        cur_path_j = 0
+        for i, eq in enumerate(self._equity):
+            if eq.get_process_param()["process_type"] == "GBM":
+                paths = all_paths[:,:,cur_path_j:(cur_path_j+1)]
+                cur_path_j += 1
+            elif eq.get_process_param()["process_type"] == "Heston":
+                paths = all_paths[:,:,cur_path_j:(cur_path_j+2)]
+                cur_path_j += 2
             if hasattr(eq, "_spots"):
                 if eq.get_spots() is None:
                     eq.set_generated_paths(paths, self._time_step, self._ir)
