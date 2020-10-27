@@ -163,7 +163,7 @@ class Predictor(core.Actor):
         action: types.NestedArray,
         next_timestep: dm_env.TimeStep,
     ):
-        self._portfolio.scale_up_action(action)
+        self._portfolio.scale_actions(action)
         if self._num_hedgings is None:
             self._num_hedgings = action.shape[0]
             num_obs = next_timestep.observation.shape[0]
