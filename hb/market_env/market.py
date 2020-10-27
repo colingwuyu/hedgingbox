@@ -315,7 +315,7 @@ class Market(dm_env.Environment):
         reset_date()
         self._current_counter_handler.get_obj().inc_step_counter()
         self._current_counter_handler.get_obj().inc_path_counter() 
-        self._portfolio.reset(mode == "training")
+        self._portfolio.reset(self._mode == "training")
         self._cash_account.reset()
         initial_cashflow = self._portfolio.get_nav()
         # save initial cashflow into cash account
