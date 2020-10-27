@@ -26,6 +26,7 @@ class Position():
         self._init_holding = holding
         self._trading_limit = trading_limit
         self._scale_f = (self._trading_limit[1] - self._trading_limit[0])/2
+        self._loc_f = (self._trading_limit[1] + self._trading_limit[0])/2
         self._holding_constraints = holding_constraints
        
     def reset(self):
