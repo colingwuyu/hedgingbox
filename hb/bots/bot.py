@@ -3,6 +3,7 @@ from acme import core
 from acme import types
 from hb.core import Predictor
 from hb.core import ActorAdapter
+from hb.market_env.portfolio import Portfolio 
 import dm_env
 
 
@@ -18,8 +19,10 @@ class Bot(agent.Agent):
     def __init__(self, actor: core.Actor, learner: core.Learner, predictor: Predictor,
                  min_observations: int, observations_per_step: float,
                  pred_episods: int, observations_per_pred: int,
+                 portfolio: Portfolio,
                  pred_only: bool = False):
         self._predictor = predictor
+        self._predictor.set_portfolio(portfolio)
         self._observations_per_pred = observations_per_pred
         self._pred_episods = pred_episods
         self._cur_episods = -self._observations_per_pred

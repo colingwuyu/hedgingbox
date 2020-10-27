@@ -92,6 +92,7 @@ class Predictor(core.Actor):
         self._risk_obj_c = risk_obj_c
         self._num_hedgings = None
         self._num_derivatives = None
+        self._portfolio = None
         if risk_obj:
             self._best_reward_measure = 'mean-var'
         else:
@@ -154,11 +155,15 @@ class Predictor(core.Actor):
     def get_episode_action(self):
         return self._last_episode_action
 
+    def set_portfolio(self, portfolio):
+        self._portfolio = portfolio
+
     def observe(
         self,
         action: types.NestedArray,
         next_timestep: dm_env.TimeStep,
     ):
+        self._portfolio.scale_up_action(action)
         if self._num_hedgings is None:
             self._num_hedgings = action.shape[0]
             num_obs = next_timestep.observation.shape[0]

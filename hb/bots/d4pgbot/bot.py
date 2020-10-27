@@ -36,6 +36,7 @@ import numpy as np
 from hb.bots import bot
 from hb.bots.d4pgbot import predictor as d4pg_predictor
 from hb.bots.d4pgbot import learning
+from hb.market_env.portfolio import Portfolio
 from typing import Union
 
 
@@ -45,6 +46,7 @@ class D4PGBot(bot.Bot):
 
     """
     def __init__(self,
+                portfolio: Portfolio, 
                 environment_spec: specs.EnvironmentSpec,
                 policy_network: snt.Module,
                 critic_network: snt.Module,
@@ -188,6 +190,7 @@ class D4PGBot(bot.Bot):
             observations_per_step=float(batch_size) / samples_per_insert,
             pred_episods=pred_episode,
             observations_per_pred=observation_per_pred,
+            portfolio=portfolio,
             pred_only=pred_only)
 
     def update(self):
