@@ -36,6 +36,7 @@ import numpy as np
 from hb.bots import bot
 from hb.bots.d4pgbot import predictor as d4pg_predictor
 from hb.bots.d4pgbot import learning
+from typing import Union
 
 
 # TODO(b/145531941): make the naming of this agent consistent.
@@ -55,8 +56,8 @@ class D4PGBot(bot.Bot):
                 batch_size: int = 256,
                 prefetch_size: int = 4,
                 target_update_period: int = 100,
-                policy_optimizer: snt.Optimizer = None,
-                critic_optimizer: snt.Optimizer = None,
+                policy_optimizer: Union[snt.Optimizer,tf.keras.optimizers.Optimizer] = None,
+                critic_optimizer: Union[snt.Optimizer,tf.keras.optimizers.Optimizer] = None,
                 min_replay_size: int = 1000,
                 max_replay_size: int = 1000000,
                 samples_per_insert: float = 32.0,
@@ -143,9 +144,9 @@ class D4PGBot(bot.Bot):
                                                 risk_obj_c=risk_obj_c)
 
         # Create optimizers.
-        policy_optimizer = policy_optimizer or snt.optimizers.Adam(
+        policy_optimizer = policy_optimizer or tf.keras.optimizers.Adam(
             learning_rate=1e-4)
-        critic_optimizer = critic_optimizer or snt.optimizers.Adam(
+        critic_optimizer = critic_optimizer or tf.keras.optimizers.Adam(
             learning_rate=1e-4)
 
         # The learner updates the parameters (and initializes them).
@@ -193,3 +194,9 @@ class D4PGBot(bot.Bot):
         super().update()
         if (self._checkpointer is not None) and self._predictor.is_best_perf():
             self._checkpointer.save(force=True)
+
+    def checkpoint_restore(self):
+        self._checkpointer.restore()
+
+    def checkpoint_save(self):
+        self._checkpointer.save(force=True)

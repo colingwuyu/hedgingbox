@@ -218,8 +218,12 @@ class D4PGLearner(acme.Learner):
       critic_gradients = tf.clip_by_global_norm(critic_gradients, 40.)[0]
 
     # Apply gradients.
-    self._policy_optimizer.apply(policy_gradients, policy_variables)
-    self._critic_optimizer.apply(critic_gradients, critic_variables)
+    if isinstance(self._policy_optimizer, tf.keras.optimizers.Optimizer):
+      self._policy_optimizer.apply_gradients(zip(policy_gradients, policy_variables))
+      self._critic_optimizer.apply_gradients(zip(critic_gradients, critic_variables))
+    else:
+      self._policy_optimizer.apply(policy_gradients, policy_variables)
+      self._critic_optimizer.apply(critic_gradients, critic_variables)
 
     # Losses to track.
     return {
