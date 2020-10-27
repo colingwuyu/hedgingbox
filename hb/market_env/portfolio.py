@@ -28,12 +28,8 @@ class Position():
         self._scale_f = (self._trading_limit[1] - self._trading_limit[0])/2
         self._holding_constraints = holding_constraints
        
-    def reset(self, training=False):
-        if not training:
-            self._holding = self._init_holding
-        else:
-            self._holding = np.random.uniform(self._holding_constraints[0], 
-                                              self._holding_constraints[1])
+    def reset(self):
+        self._holding = self._init_holding
         self._instrument.reset()
 
     def get_instrument(self):
@@ -225,13 +221,10 @@ class Portfolio():
             breach = breach or pos.get_breach_holding_constraint()
         return breach
 
-    def reset(self, training=False):
+    def reset(self):
         for position in self._positions:
-            if position.get_instrument().get_is_tradable():
-                position.reset(training)
-            else:
-                position.reset(False)
-
+            position.reset()
+            
     def get_nav(self):
         nav = 0.
         for position in self._positions:
