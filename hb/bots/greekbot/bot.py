@@ -40,4 +40,5 @@ class GreekHedgeBot(bot.Bot):
             observations_per_step=1e9,
             pred_episods=pred_episode,
             observations_per_pred=1,
+            portfolio=portfolio,
             pred_only=True)

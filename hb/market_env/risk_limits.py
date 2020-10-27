@@ -68,12 +68,15 @@ class RiskLimits():
         """Review the actions, if actions breach risk limist, then truncate the actions
 
         Args:
-            actions (np.ndarray): trading action
+            actions (np.ndarray): position holding
             portfolio (Portfolio): portfolio
         """
         if hasattr(self, "_delta"):
             total_delta = 0
             inc_delta = np.zeros(actions.shape)
+            cur_delta = np.zeros(actions.shape)
+            buysell_action = np.zeros(actions.shape)
+            cur_holding = np.zeros(actions.shape)
             deltas = np.zeros(actions.shape)
             hedgings = portfolio.get_hedging_portfolio()
             positions = portfolio.get_portfolio_positions()
@@ -81,7 +84,10 @@ class RiskLimits():
             for position in positions:
                 total_delta += position.get_instrument().get_delta()*position.get_holding()
             for i, action in enumerate(actions):
-                inc_delta[i] = hedgings[i].get_instrument().get_delta()*action
+                cur_delta[i] += hedgings[i].get_instrument().get_delta()*hedgings[i].get_holding()
+                inc_delta[i] = hedgings[i].get_instrument().get_delta()*action - cur_delta[i]
+                buysell_action[i] = action - hedgings[i].get_holding()
+                cur_holding[i] = hedgings[i].get_holding()
                 deltas[i] = hedgings[i].get_instrument().get_delta()
             ind = np.argsort(inc_delta)
             delta_ind = np.argsort(deltas)
@@ -103,7 +109,7 @@ class RiskLimits():
                         # exceeds upper limit
                         up_i -= 1
                         total_delta_inc = inc_delta[ind[:up_i]].sum()
-                trunc_actions[ind[low_i:up_i]] = actions[ind[low_i:up_i]].copy()
+                trunc_actions[ind[low_i:up_i]] = buysell_action[ind[low_i:up_i]].copy()
                 if (low_i != 0):
                     # exceeds lower limit
                     diff_delta = self._delta[0] - (inc_delta[ind[low_i:]].sum() + total_delta)
@@ -112,6 +118,7 @@ class RiskLimits():
                     # exceeds upper limit
                     diff_delta = self._delta[1] - (inc_delta[ind[:up_i]].sum() + total_delta)
                     trunc_actions[delta_ind[-1]] = diff_delta/deltas[delta_ind[-1]]
+                trunc_actions = [h+bs for bs, h in zip(trunc_actions, cur_holding)]
         else:
             trunc_actions = actions.copy()
         for i, _ in enumerate(actions):

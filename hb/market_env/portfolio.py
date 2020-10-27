@@ -63,9 +63,11 @@ class Position():
 
     def set_holding_constraints(self, holding_constraints):
         self._holding_constraints = holding_constraints
+        self._scale_f = (self._holding_constraints[1] - self._holding_constraints[0])/2
 
     def holding_constraints(self, holding_constraint):
         self._holding_constraints = holding_constraints
+        self._scale_f = (self._holding_constraints[1] - self._holding_constraints[0])/2
         return self
 
     def get_trading_limit(self):
@@ -73,11 +75,9 @@ class Position():
 
     def set_trading_limit(self, trading_limit):
         self._trading_limit = trading_limit
-        self._scale_f = (self._trading_limit[1] - self._trading_limit[0])/2
 
     def trading_limit(self, trading_limit):
         self._trading_limit = trading_limit
-        self._scale_f = (self._trading_limit[1] - self._trading_limit[0])/2
         return self
 
     def get_init_holding(self):
@@ -255,7 +255,7 @@ class Portfolio():
                 - if physical delivery: no transaction costs for the hedging position delivery 
 
         Args:
-            actions ([float]): hedging buy/sell action applied to hedging portfolio
+            actions ([float]): hedging holdings applied to hedging portfolio
 
         Returns:
             cashflow [float]: step cashflow (buy/sell proceeds, and option exercise payoff go to cash account)
@@ -266,10 +266,11 @@ class Portfolio():
         self._risk_limits.review_actions(actions, self)
         for i, action in enumerate(actions):
             # rebalance hedging positions
-            proceeds, trans_cost, trunc_action = self._hedging_portfolio[i].buy(action)
+            holding = self._hedging_portfolio[i].get_holding()
+            proceeds, trans_cost, trunc_action = self._hedging_portfolio[i].buy(action-holding)
             cashflows += proceeds if not np.isnan(proceeds) else LARGE_NEG_VALUE
             trans_costs += trans_cost
-            actions[i] = trunc_action
+            actions[i] = trunc_action + holding
         return cashflows, trans_costs
     
     def event_handler(self):

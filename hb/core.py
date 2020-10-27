@@ -92,6 +92,7 @@ class Predictor(core.Actor):
         self._risk_obj_c = risk_obj_c
         self._num_hedgings = None
         self._num_derivatives = None
+        self._portfolio = None
         if risk_obj:
             self._best_reward_measure = 'mean-var'
         else:
@@ -109,6 +110,9 @@ class Predictor(core.Actor):
         else:
             self._counter = 0
     
+    def set_portfolio(self, portfolio):
+        self._portfolio = portfolio
+
     def is_best_perf(self):
         if self._is_best_perf:
             self._is_best_perf = False
@@ -159,6 +163,11 @@ class Predictor(core.Actor):
         action: types.NestedArray,
         next_timestep: dm_env.TimeStep,
     ):
+        # scale up action
+        self._portfolio.scale_actions(action)
+        for i, h in enumerate(self._portfolio.get_hedging_portfolio()):
+            # convert holding to buy/sell actions
+            action[i] = action[i] - h.get_holding()
         if self._num_hedgings is None:
             self._num_hedgings = action.shape[0]
             num_obs = next_timestep.observation.shape[0]

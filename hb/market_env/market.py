@@ -338,7 +338,7 @@ class Market(dm_env.Environment):
            step to next time
 
         Args:
-            action (np.darray): hedging buy/sell action from agent
+            action (np.darray): hedging holding action from agent
 
         Returns:
             [dm_env.TimeStep]: MID or LAST TimeStep
