@@ -73,7 +73,7 @@ class Market(dm_env.Environment):
                  "_training_simulator", "_validation_simulator", "_scenario_simulator", "_current_simulator_handler",
                  "_training_counter", "_validation_counter", "_scenario_counter", "_current_counter_handler",
                  "_cash_account", "_reward_rule", "_hedging_step_in_days",
-                 "_portfolio", "_event_trans_cost"]
+                 "_portfolio", "_event_trans_cost", "_mode"]
 
     """Market Environment
     """
@@ -161,6 +161,7 @@ class Market(dm_env.Environment):
                                                                    .num_steps(dict_json["num_steps_per_episode"]+1)
         market.set_portfolio(Portfolio.load_json(dict_json["portfolio"]))
         market._event_trans_cost = 0.
+        market._mode = None
         return market
         
     def jsonify_dict(self) -> dict:
@@ -204,6 +205,10 @@ class Market(dm_env.Environment):
             position.get_instrument().set_simulator(self._current_simulator_handler, self._current_counter_handler)
         if not continue_counter:
             self._current_counter_handler.get_obj().reset()
+        self._mode = mode
+
+    def get_mode(self):
+        return self._mode
 
     def calibrate(self,  
                   underlying: Stock, 
@@ -310,7 +315,7 @@ class Market(dm_env.Environment):
         reset_date()
         self._current_counter_handler.get_obj().inc_step_counter()
         self._current_counter_handler.get_obj().inc_path_counter() 
-        self._portfolio.reset()
+        self._portfolio.reset(mode == "training")
         self._cash_account.reset()
         initial_cashflow = self._portfolio.get_nav()
         # save initial cashflow into cash account

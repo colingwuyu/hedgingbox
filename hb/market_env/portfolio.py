@@ -9,6 +9,7 @@ from hb.utils.date import *
 from hb.market_env.risk_limits import RiskLimits
 import json
 import os
+import numpy as np
 
 class Position():
     def __init__(self, instrument=None, holding=0., trading_limit=[-1e5, 1e5], 
@@ -27,8 +28,12 @@ class Position():
         self._scale_f = (self._trading_limit[1] - self._trading_limit[0])/2
         self._holding_constraints = holding_constraints
        
-    def reset(self):
-        self._holding = self._init_holding
+    def reset(self, training=False):
+        if not training:
+            self._holding = self._init_holding
+        else:
+            self._holding = np.random.uniform(self._holding_constraints[0], 
+                                              self._holding_constraints[1])
         self._instrument.reset()
 
     def get_instrument(self):
@@ -220,9 +225,12 @@ class Portfolio():
             breach = breach or pos.get_breach_holding_constraint()
         return breach
 
-    def reset(self):
+    def reset(self, training=False):
         for position in self._positions:
-            position.reset()
+            if position.get_instrument().get_is_tradable():
+                position.reset(training)
+            else:
+                position.reset(False)
 
     def get_nav(self):
         nav = 0.
