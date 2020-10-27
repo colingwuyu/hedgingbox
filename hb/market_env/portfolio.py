@@ -63,10 +63,12 @@ class Position():
 
     def set_holding_constraints(self, holding_constraints):
         self._holding_constraints = holding_constraints
+        self._loc_f = (self._holding_constraints[1] + self._holding_constraints[0])/2
         self._scale_f = (self._holding_constraints[1] - self._holding_constraints[0])/2
 
     def holding_constraints(self, holding_constraint):
         self._holding_constraints = holding_constraints
+        self._loc_f = (self._holding_constraints[1] + self._holding_constraints[0])/2
         self._scale_f = (self._holding_constraints[1] - self._holding_constraints[0])/2
         return self
 
@@ -95,7 +97,7 @@ class Position():
         Returns:
             action scaled up: action between [trading_limit[0], trading_limit[1]]
         """
-        return action*self._scale_f
+        return self._loc_f + action*self._scale_f
     
     def scale_down_action(self, action):
         """scale an action in range [trading_limit[0], trading_limit[1]] to the range [-1, 1]
@@ -106,7 +108,7 @@ class Position():
         Returns:
             action scaled down: action between [-1, 1]
         """
-        return action/self._scale_f
+        return (action-self._loc_f)/self._scale_f
 
     def buy(self, shares: float):
         """buy shares
