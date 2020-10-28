@@ -31,7 +31,7 @@ class InstrumentFactory():
             if "-" not in params[3]:
                 maturity = date_util.get_period_from_str(params[3])  
             else:
-                maturity = date_utils.time_between(date_utils.date_from_str(params[3]))
+                maturity = date_util.time_between(date_util.date_from_str(params[3]))
             return EuropeanOption(
                 name=params[-1][1:-1],
                 underlying=params[1],
