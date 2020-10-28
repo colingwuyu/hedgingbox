@@ -107,7 +107,7 @@ class Position():
         """
         return (action-self._loc_f)/self._scale_f
 
-    def buy(self, shares: float):
+    def buy(self, shares: float, ignore_constraint: bool=False):
         """buy shares
 
         Args:
@@ -123,9 +123,12 @@ class Position():
         """
         prev_holding = self._holding
         # cutting off at holding constraint
-        self._holding = max(self._holding_constraints[0], min(prev_holding+shares, self._holding_constraints[1]))
-        # cutting off at trading limit
-        shares = max(self._trading_limit[0], min(self._trading_limit[1], self._holding - prev_holding))
+        if not ignore_constraint:
+            self._holding = max(self._holding_constraints[0], min(prev_holding+shares, self._holding_constraints[1]))
+            # cutting off at trading limit
+            shares = max(self._trading_limit[0], min(self._trading_limit[1], self._holding - prev_holding))
+        else:
+            self._holding = self._holding + shares
         trans_cost = self._instrument.get_execute_cost(shares)
         return - self._instrument.get_market_value(shares) - trans_cost, trans_cost, shares
 
@@ -299,10 +302,10 @@ class Portfolio():
         # derivative position cleared and exercised
         shares = derivative_position.get_instrument().exercise()
         dump_shares = derivative_position.get_holding()*shares
-        cashflow, _, _ = derivative_position.buy(-derivative_position.get_holding())
+        cashflow, _, _ = derivative_position.buy(-derivative_position.get_holding(), ignore_constraint=True)
         # trade or deliver the corresponding shares for option exercise
         hedging_position = self._hedging_portfolio_map[derivative_position.get_instrument().get_underlying_name()]
-        proceeds, trans_cost, _ = hedging_position.buy(dump_shares)
+        proceeds, trans_cost, _ = hedging_position.buy(dump_shares, ignore_constraint=True)
         if derivative_position.get_instrument().get_is_physical_settle():
             # physical settle
             proceeds += trans_cost
@@ -321,7 +324,7 @@ class Portfolio():
         trans_costs = 0.
         for hedging_position in self._hedging_portfolio:
             # rebalance hedging positions
-            proceeds, trans_cost, _ = hedging_position.buy(-hedging_position.get_holding())
+            proceeds, trans_cost, _ = hedging_position.buy(-hedging_position.get_holding(), ignore_constraint=True)
             cashflows += proceeds
             trans_costs += trans_cost
         return cashflows, trans_costs

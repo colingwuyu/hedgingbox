@@ -69,7 +69,7 @@ class EpisodeCounter:
         self._step_counter = -1
 
 class Market(dm_env.Environment):
-    __slots__ = ["_name", 
+    __slots__ = ["_name", "_valuation_date",
                  "_training_simulator", "_validation_simulator", "_scenario_simulator", "_current_simulator_handler",
                  "_training_counter", "_validation_counter", "_scenario_counter", "_current_counter_handler",
                  "_cash_account", "_reward_rule", "_hedging_step_in_days",
@@ -145,6 +145,7 @@ class Market(dm_env.Environment):
             dict_json = json_
         market = cls()
         market._name = dict_json["name"]
+        market._valuation_date = dict_json["valuation_date"]
         set_valuation_date(date_from_str(dict_json["valuation_date"]))
         market._training_simulator = Simulator.load_json(dict_json["riskfactorsimulator"])
         market._training_counter = EpisodeCounter(dict_json["training_episodes"], dict_json["num_steps_per_episode"]+1)
@@ -169,6 +170,7 @@ class Market(dm_env.Environment):
     def jsonify_dict(self) -> dict:
         dict_json = dict()
         dict_json["name"] = self._name
+        dict_json["valuation_date"] = self._valuation_date
         dict_json["reward_rule"] = str(self._reward_rule)
         dict_json["hedging_step_in_days"] = self._hedging_step_in_days
         dict_json["num_steps_per_episode"] = self._training_counter.get_total_steps()
@@ -266,7 +268,7 @@ class Market(dm_env.Environment):
             num_steps_to_maturity = int(days_from_time(derivative.get_instrument().get_maturity_time()) / self._hedging_step_in_days)
             num_steps = max(num_steps, num_steps_to_maturity)
         self._portfolio = portfolio 
-        num_steps = min(self._training_counter.get_total_steps(), num_steps)
+        num_steps = max(self._training_counter.get_total_steps(), num_steps)
         self._training_counter.set_total_steps(num_steps)
         self._training_simulator.set_num_steps(num_steps)
         # self._training_simulator.generate_paths(self._training_counter.get_total_paths())

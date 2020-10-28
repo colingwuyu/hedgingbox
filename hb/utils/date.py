@@ -1,11 +1,19 @@
 import QuantLib as ql
+from hb.utils.handler import Handler
 from hb.utils.consts import *
 
 
-date0 = ql.Date(1,1,2000)
+date0 = Handler(ql.Date(1,1,2000))
+
+def reset_date():
+    ql.Settings.instance().evaluationDate = get_valuation_date()
 
 def set_valuation_date(d):
-    date0 = d
+    date0.set_obj(d)
+    reset_date()
+
+def get_valuation_date():
+    return date0.get_obj()
 
 def date_from_str(d_str: str):
     """convert to ql.Date
@@ -13,10 +21,9 @@ def date_from_str(d_str: str):
     Args:
         d_str (str): date in format "yyyy-mm-dd"
     """
-    vd_str = dict_json["valuation_date"]
-    vd = [int(i) for i in vd_str.split("-")]
+    vd = [int(i) for i in d_str.split("-")]
     return ql.Date(vd[2],vd[1],vd[0])
-    
+
 def time_between(d1: ql.Date, d2: ql.Date = None) -> float:
     if d2:
         return day_count.yearFraction(d2, d1)
@@ -48,19 +55,16 @@ def time_from_days(days: int) -> float:
     return days/DAYS_PER_YEAR
 
 def get_cur_time():
-    return time_between(ql.Settings.instance().getEvaluationDate(), date0)
+    return time_between(ql.Settings.instance().getEvaluationDate(), get_valuation_date())
 
 def get_cur_days():
-    return days_between(ql.Settings.instance().getEvaluationDate(), date0)
+    return days_between(ql.Settings.instance().getEvaluationDate(), get_valuation_date())
 
 def get_date():
     return ql.Settings.instance().getEvaluationDate()
 
 def move_days(days:int = 1):
     ql.Settings.instance().evaluationDate = add_days(days)
-
-def reset_date():
-    ql.Settings.instance().evaluationDate = date0
 
 def get_period_from_str(str_period: str) -> float:
     """convert period in string to period in time
