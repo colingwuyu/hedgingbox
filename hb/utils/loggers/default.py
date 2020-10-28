@@ -8,8 +8,8 @@ from hb.utils.loggers import csv
 
 
 def make_default_logger(
-    directory: str = '~/acme',
     label: str,
+    directory: str = '~/acme',
     save_data: bool = True,
     time_delta: float = 1.0,
 ) -> base.Logger:
