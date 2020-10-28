@@ -84,6 +84,7 @@ class Market(dm_env.Environment):
         example:
         {
             "name": "BSM_AMZN_SPX",
+            "valuation_date": "2020-02-03" (yyyy-mm-dd),
             "reward_rule": "PnLReward",
             "hedging_step_in_days": 1,
             "validation_rng_seed": 1234,
@@ -144,6 +145,7 @@ class Market(dm_env.Environment):
             dict_json = json_
         market = cls()
         market._name = dict_json["name"]
+        set_valuation_date(ql.date_from_str(dict_json["valuation_date"]))
         market._training_simulator = Simulator.load_json(dict_json["riskfactorsimulator"])
         market._training_counter = EpisodeCounter(dict_json["training_episodes"], dict_json["num_steps_per_episode"]+1)
         market._validation_simulator = Simulator.load_json(dict_json["riskfactorsimulator"]).rng_seed(dict_json["validation_rng_seed"])

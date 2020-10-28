@@ -28,11 +28,15 @@ class InstrumentFactory():
                 transaction_cost=PercentageTransactionCost(float(params[4])/100.)
             )
         if params[0] == 'EuroOpt':
+            if "-" not in params[3]:
+                maturity = date_util.get_period_from_str(params[3])  
+            else:
+                maturity = date_utils.date_from_str(params[3])
             return EuropeanOption(
                 name=params[-1][1:-1],
                 underlying=params[1],
                 option_type=params[4],
-                maturity=date_util.get_period_from_str(params[3]),
+                maturity=maturity,
                 strike=float(params[5]),
                 tradable=True if params[2]=='Listed' else False,
                 transaction_cost=PercentageTransactionCost(float(params[6])/100.)

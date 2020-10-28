@@ -2,6 +2,21 @@ import QuantLib as ql
 from hb.utils.consts import *
 
 
+date0 = ql.Date(1,1,2000)
+
+def set_valuation_date(d):
+    date0 = d
+
+def date_from_str(d_str: str):
+    """convert to ql.Date
+
+    Args:
+        d_str (str): date in format "yyyy-mm-dd"
+    """
+    vd_str = dict_json["valuation_date"]
+    vd = [int(i) for i in vd_str.split("-")]
+    return ql.Date(vd[2],vd[1],vd[0])
+    
 def time_between(d1: ql.Date, d2: ql.Date = None) -> float:
     if d2:
         return day_count.yearFraction(d2, d1)
