@@ -194,6 +194,7 @@ class Market(dm_env.Environment):
             continue_counter (bool): True - continue counter
                                      False - reset counter
         """
+        reset_date()
         if mode == "training":
             self._current_simulator_handler.set_obj(self._training_simulator)
             self._current_counter_handler.set_obj(self._training_counter)
@@ -205,8 +206,6 @@ class Market(dm_env.Environment):
         elif mode == "scenario":
             self._current_simulator_handler.set_obj(self._scenario_simulator)
             self._current_counter_handler.set_obj(self._scenario_counter)
-        for position in self._portfolio.get_portfolio_positions():
-            position.get_instrument().set_simulator(self._current_simulator_handler, self._current_counter_handler)
         if not continue_counter:
             self._current_counter_handler.get_obj().reset()
         self._mode = mode
