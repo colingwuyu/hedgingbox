@@ -55,6 +55,9 @@ class Position():
         self._init_holding = holding
         return self
 
+    def get_initial_holding(self):
+        return self._init_holding
+
     def get_holding_constraints(self):
         return self._holding_constraints
 

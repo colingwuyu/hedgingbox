@@ -45,7 +45,7 @@ class EuroDeltaHedgingStrategy:
         # calculate the buy/sell action from delta        
         for underlying, delta in delta_map.items():
             holding_obs_index = self._holding_obs_index_map[underlying]
-            cur_holding = observations[holding_obs_index]
+            cur_holding = self._portfolio.get_position(underlying).get_holding()
             action_index = self._action_index_map[underlying]
             action = - delta - cur_holding
             actions[action_index] += action
