@@ -12,7 +12,7 @@ import os
 import numpy as np
 
 class Position():
-    def __init__(self, instrument=None, holding=0., trading_limit=[-1e5, 1e5], 
+    def __init__(self, instrument=None, holding=0., trading_limit=[MIN_FLT_VALUE/2., MAX_FLT_VALUE/2.-1.], 
                  holding_constraints=[MIN_FLT_VALUE, MAX_FLT_VALUE]):
         """[summary]
 
@@ -162,10 +162,11 @@ class Position():
     def jsonify_dict(self) -> dict:
         dict_json = dict()
         dict_json["holding"] = self._holding
-        dict_json["trading_limit"] = self._trading_limit
         dict_json["instrument"] = str(self._instrument)
-        if self._holding_constraints:
+        if self._holding_constraints[0] > MIN_FLT_VALUE:
             dict_json["holding_constraints"] = self._holding_constraints
+        if self._trading_limit[0] > MIN_FLT_VALUE/2.:
+            dict_json["trading_limit"] = self._trading_limit
         return dict_json
 
     def __repr__(self):
