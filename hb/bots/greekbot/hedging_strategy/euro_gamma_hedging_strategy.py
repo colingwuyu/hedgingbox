@@ -17,6 +17,7 @@ class EuroGammaHedgingStrategy:
 
     def __init__(self, portfolio: Portfolio,
                  action_spec: specs.BoundedArray):
+        self._portfolio = portfolio
         self._option_positions = []
         self._hedging_option_positions = {}
         # underlying name => action index mapping

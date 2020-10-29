@@ -17,6 +17,7 @@ class VarianceSwapReplicatingStrategy:
 
     def __init__(self, portfolio: Portfolio,
                  action_spec: specs.BoundedArray):
+        self._portfolio = portfolio
         # underlying name => action index mapping
         self._action_index_map = dict()
         # underlying name => holding index in observation mapping
@@ -40,15 +41,13 @@ class VarianceSwapReplicatingStrategy:
             hedging_ratios, hedging_opts = variance_swap.get_instrument().get_greeks()
             underlying_delta = 0
             for opt_name, greek in hedging_ratios.items():
-                holding_obs_index = self._holding_obs_index_map[opt_name]
-                cur_holding = observations[holding_obs_index]
+                cur_holding = self._portfolio[opt_name]
                 action_index = self._action_index_map[opt_name]
                 action = - greek*holding - cur_holding
                 underlying_delta = (cur_holding + action)*hedging_opts[opt_name].get_delta()
                 actions[action_index] += action
             underlying = variance_swap.get_instrument().get_underlying_name()
-            holding_obs_index = self._holding_obs_index_map[underlying]
-            cur_holding = observations[holding_obs_index]
+            cur_holding = self._portfolio[underlying]
             action_index = self._action_index_map[underlying]
             action = - underlying_delta - cur_holding
             actions[action_index] += action

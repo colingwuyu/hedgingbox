@@ -17,6 +17,7 @@ class EuroDeltaHedgingStrategy:
 
     def __init__(self, portfolio: Portfolio,
                  action_spec: specs.BoundedArray):
+        self._portfolio = portfolio
         self._option_positions = []
         # underlying name => action index mapping
         self._action_index_map = dict()
@@ -45,7 +46,7 @@ class EuroDeltaHedgingStrategy:
         # calculate the buy/sell action from delta        
         for underlying, delta in delta_map.items():
             holding_obs_index = self._holding_obs_index_map[underlying]
-            cur_holding = self._portfolio.get_position(underlying).get_holding()
+            cur_holding = self._portfolio.get_position(underlying) [holding_obs_index]
             action_index = self._action_index_map[underlying]
             action = - delta - cur_holding
             actions[action_index] += action
