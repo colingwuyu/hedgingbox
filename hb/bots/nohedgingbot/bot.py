@@ -14,6 +14,7 @@ class NoHedgeBot(bot.Bot):
 
     def __init__(self,
                  environment_spec: specs.EnvironmentSpec,
+                 portfolio,
                  pred_dir: str = '~/acme/',
                  pred_episode: int = 1_000 
                  ):
@@ -35,4 +36,5 @@ class NoHedgeBot(bot.Bot):
             observations_per_step=1e9,
             pred_episods=pred_episode,
             observations_per_pred=1,
+            portfolio=portfolio,
             pred_only=True)
