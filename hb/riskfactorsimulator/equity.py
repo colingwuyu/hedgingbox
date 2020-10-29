@@ -12,7 +12,11 @@ from hb.riskfactorsimulator.impliedvolsurface import ImpliedVolSurface
 def parse_impvol_name(impvol_name):
     str_maturity=impvol_name[4:].split("x")[0]
     str_strike=impvol_name[4:].split("x")[1]
-    return get_period_from_str(str_maturity), float(str_strike)
+    if "-" in str_maturity:
+        maturity = time_between(date_from_str(str_maturity))
+    else:
+        maturity = get_period_from_str(str_maturity)
+    return maturity, float(str_strike)
 
 class Equity(object):
     __slots__ = ["_name", "_riskfactors", "_process_param", 
@@ -32,6 +36,15 @@ class Equity(object):
         return self
 
     def set_riskfactors(self, riskfactors: List[str]):
+        """risk factors
+
+
+        Args:
+            riskfactors (List[str]): list of risk factors
+                    Spot
+                    Vol MaturityxStrike: Maturity in form of period (i.e. 1M, 2M) or date (yyyy-mm-dd)
+                                         Strike is percentage of spot (i.e. 100 for ATM strike) 
+        """
         self._riskfactors = riskfactors
         _maturities = set()
         _strikes = set()
@@ -301,6 +314,8 @@ class Equity(object):
             # impvol already generated
             backup_vol = self._vars[path_i, step_i]**0.5
         vol_matrix = self._impvols[:,:,path_i,step_i]
+        spot = self._process_param["param"]["spot"]
+        impvol_strikes = [spot*i/100 for i in self._impvol_strikes]
         return ImpliedVolSurface(self._impvol_maturities, self._impvol_strikes, vol_matrix, 
                                  backup_vol=backup_vol)
 
