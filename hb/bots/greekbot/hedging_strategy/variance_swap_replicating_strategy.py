@@ -41,13 +41,13 @@ class VarianceSwapReplicatingStrategy:
             hedging_ratios, hedging_opts = variance_swap.get_instrument().get_greeks()
             underlying_delta = 0
             for opt_name, greek in hedging_ratios.items():
-                cur_holding = self._portfolio[opt_name]
+                cur_holding = self._portfolio.get_position(opt_name).get_holding()
                 action_index = self._action_index_map[opt_name]
                 action = - greek*holding - cur_holding
                 underlying_delta = (cur_holding + action)*hedging_opts[opt_name].get_delta()
                 actions[action_index] += action
             underlying = variance_swap.get_instrument().get_underlying_name()
-            cur_holding = self._portfolio[underlying]
+            cur_holding = self._portfolio.get_position(underlying).get_holding()
             action_index = self._action_index_map[underlying]
             action = - underlying_delta - cur_holding
             actions[action_index] += action
