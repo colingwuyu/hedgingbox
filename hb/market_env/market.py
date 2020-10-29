@@ -165,6 +165,8 @@ class Market(dm_env.Environment):
         market.set_portfolio(Portfolio.load_json(dict_json["portfolio"]))
         market._event_trans_cost = 0.
         market._mode = None
+        if "scenario" in dict_json:
+            market.load_scenario(dict_json["scenario"])
         return market
         
     def jsonify_dict(self) -> dict:
@@ -267,7 +269,7 @@ class Market(dm_env.Environment):
             num_steps_to_maturity = int(days_from_time(derivative.get_instrument().get_maturity_time()) / self._hedging_step_in_days)
             num_steps = max(num_steps, num_steps_to_maturity)
         self._portfolio = portfolio 
-        num_steps = max(self._training_counter.get_total_steps(), num_steps)
+        num_steps = min(self._training_counter.get_total_steps(), num_steps)
         self._training_counter.set_total_steps(num_steps)
         self._training_simulator.set_num_steps(num_steps)
         # self._training_simulator.generate_paths(self._training_counter.get_total_paths())
