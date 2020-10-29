@@ -210,8 +210,6 @@ class Predictor(core.Actor):
             self._episode_pnl = 0.
             self._episode_reward = 0.
             if self._log_perf:
-                for hi, h in enumerate(self._portfolio.get_hedging_portfolio()):
-                    self._episode_hedging_holding[hi] = self._episode_hedging_holding[hi]*h.get_initial_holding()
                 perf_log_measures = {'pnl': self._episode_pnl_path,
                                     'reward': self._episode_reward_path,
                                     'hedging_price': self._episode_hedging_price,

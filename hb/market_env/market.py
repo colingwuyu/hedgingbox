@@ -254,6 +254,9 @@ class Market(dm_env.Environment):
             # )
         return param
     
+    def get_counter(self):
+        return self._current_counter_handler.get_obj()
+
     def get_portfolio(self):
         return self._portfolio
 
@@ -465,7 +468,7 @@ class Market(dm_env.Environment):
         for position in self._portfolio.get_hedging_portfolio():
             price = position.get_instrument().get_price()
             # add position's price and holding
-            market_observations = np.append(market_observations, [price, position.get_holding()/position.get_initial_holding()])
+            market_observations = np.append(market_observations, [price, position.get_holding()])
         for position in self._portfolio.get_liability_portfolio():
             market_observations = np.append(market_observations, [position.get_instrument().get_price(), 
                                                                   position.get_instrument().get_remaining_time()])

@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 class DeltaBotTest(unittest.TestCase):
     def test_regression_deltabot(self):
-        market = Market.load_market_file("Markets/test/market.json")
+        market = Market.load_market_file("Markets/test/proxy_trading.json")
         self._set_up_greek_bot_test(market, strategies=[EuroDeltaHedgingStrategy], label="greek_delta_hedging",
                                     # scenario="Markets/Market_Example/Covid19.json"
                                     )
