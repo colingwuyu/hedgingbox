@@ -119,7 +119,7 @@ class D4PGBot(bot.Bot):
         tf2_utils.create_variables(target_observation_network, [obs_spec])
 
         # Create the actor which defines how we take actions.
-        actor = actors.FeedForwardActor(behavior_network, adder=adder)
+        actor = actors.FeedForwardActor(behavior_network)
 
         # Create the predictor 
         pred_behavior_network = snt.Sequential([
