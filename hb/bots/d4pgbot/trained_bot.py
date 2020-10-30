@@ -1,44 +1,58 @@
-# python3
-# Copyright 2018 DeepMind Technologies Limited. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-"""D4PG agent implementation."""
-
-import copy
-
-from acme import datasets
 from acme import specs
-from acme import types
-from acme.adders import reverb as adders
-from acme.agents import agent
-from acme.agents.tf import actors
-from acme.tf import networks
-from acme.tf import savers as tf2_savers
+from acme.tf import networks as tf2_networks
 from acme.tf import utils as tf2_utils
+from acme.tf import savers as tf2_savers
+from acme.agents.tf import actors
 from acme.utils import counting
 from acme.utils import loggers
-import reverb
-import sonnet as snt
-import tensorflow as tf
+from acme import types
 import numpy as np
-
+import tensorflow as tf
+import sonnet as snt
+from typing import Mapping, Sequence, Union
+from hb.bots import fake_learner
 from hb.bots import bot
 from hb.bots.d4pgbot import predictor as d4pg_predictor
-from hb.bots.d4pgbot import learning
 from hb.market_env.portfolio import Portfolio
-from typing import Union
 
+
+def make_networks(
+    action_spec: specs.BoundedArray,
+    policy_layer_sizes: Sequence[int] = (256, 256, 256),
+    critic_layer_sizes: Sequence[int] = (512, 512, 256),
+    vmin: float = -150.,
+    vmax: float = 150.,
+    num_atoms: int = 51,
+) -> Mapping[str, types.TensorTransformation]:
+    """Creates networks used by the agent."""
+
+    # Get total number of action dimensions from action spec.
+    num_dimensions = np.prod(action_spec.shape, dtype=int)
+
+    # Create the shared observation network; here simply a state-less operation.
+    observation_network = tf2_utils.batch_concat
+
+    # Create the policy network.
+    policy_network = snt.Sequential([
+        tf2_networks.LayerNormMLP(policy_layer_sizes, activate_final=True),
+        tf2_networks.NearZeroInitializedLinear(num_dimensions),
+        tf2_networks.TanhToSpec(action_spec),
+    ])
+
+    # Create the critic network.
+    critic_network = snt.Sequential([
+        # The multiplexer concatenates the observations/actions.
+        tf2_networks.CriticMultiplexer(),
+        tf2_networks.LayerNormMLP(critic_layer_sizes, activate_final=True),
+        tf2_networks.DiscreteValuedHead(vmin, vmax, num_atoms),
+    ])
+
+    return {
+        'policy': policy_network,
+        'critic': critic_network,
+        'observation': observation_network,
+    }
 
 class D4PGBot(bot.Bot):
     """D4PG Bot.
@@ -77,30 +91,6 @@ class D4PGBot(bot.Bot):
                 replay_table_name: str = adders.DEFAULT_PRIORITY_TABLE):
         # Create a replay server to add data to. This uses no limiter behavior in
         # order to allow the Agent interface to handle it.
-        replay_table = reverb.Table(
-        name=replay_table_name,
-        sampler=reverb.selectors.Uniform(),
-        remover=reverb.selectors.Fifo(),
-        max_size=max_replay_size,
-        rate_limiter=reverb.rate_limiters.MinSize(1),
-        signature=adders.NStepTransitionAdder.signature(environment_spec))
-        self._server = reverb.Server([replay_table], port=None)
-
-        # The adder is used to insert observations into replay.
-        address = f'localhost:{self._server.port}'
-        adder = adders.NStepTransitionAdder(
-            priority_fns={replay_table_name: lambda x: 1.},
-            client=reverb.Client(address),
-            n_step=n_step,
-            discount=discount)
-
-        # The dataset provides an interface to sample from replay.
-        dataset = datasets.make_reverb_dataset(
-            table=replay_table_name,
-            server_address=address,
-            batch_size=batch_size,
-            prefetch_size=prefetch_size)
-
         # Make sure observation network is a Sonnet Module.
         observation_network = tf2_utils.to_sonnet_module(observation_network)
 
@@ -118,8 +108,8 @@ class D4PGBot(bot.Bot):
         behavior_network = snt.Sequential([
             observation_network,
             policy_network,
-            networks.ClippedGaussian(sigma),
-            networks.ClipToSpec(act_spec),
+            tf2_networks.ClippedGaussian(sigma),
+            tf2_networks.ClipToSpec(act_spec),
         ])
 
         # Create variables.
@@ -136,7 +126,7 @@ class D4PGBot(bot.Bot):
         pred_behavior_network = snt.Sequential([
             observation_network,
             policy_network,
-            networks.ClipToSpec(act_spec),
+            tf2_networks.ClipToSpec(act_spec),
         ])
         predictor = d4pg_predictor.D4PGPredictor(network=pred_behavior_network,
                                                 action_spec=act_spec, 
@@ -144,38 +134,26 @@ class D4PGBot(bot.Bot):
                                                 logger_dir=pred_dir,
                                                 risk_obj=risk_obj_func,
                                                 risk_obj_c=risk_obj_c)
+        learner = fake_learner.FakeLeaner()
+        # Store online and target networks.
+        self._policy_network = policy_network
+        self._critic_network = critic_network
+        self._target_policy_network = target_policy_network
+        self._target_critic_network = target_critic_network
 
-        # Create optimizers.
-        policy_optimizer = policy_optimizer or tf.keras.optimizers.Adam(
-            learning_rate=1e-4)
-        critic_optimizer = critic_optimizer or tf.keras.optimizers.Adam(
-            learning_rate=1e-4)
+        # Make sure observation networks are snt.Module's so they have variables.
+        self._observation_network = tf2_utils.to_sonnet_module(observation_network)
+        self._target_observation_network = tf2_utils.to_sonnet_module(
+            target_observation_network)
 
-        # The learner updates the parameters (and initializes them).
-        learner = learning.D4PGLearner(
-            policy_network=policy_network,
-            critic_network=critic_network,
-            observation_network=observation_network,
-            target_policy_network=target_policy_network,
-            target_critic_network=target_critic_network,
-            target_observation_network=target_observation_network,
-            policy_optimizer=policy_optimizer,
-            critic_optimizer=critic_optimizer,
-            risk_obj_c=risk_obj_c,
-            risk_obj_func=risk_obj_func,
-            clipping=clipping,
-            discount=discount,
-            target_update_period=target_update_period,
-            dataset=dataset,
-            counter=counter,
-            logger=logger,
-            checkpoint=checkpoint,
-        )
+        # General learner book-keeping and loggers.
+        self._counter = counter or counting.Counter()
+        
 
         if checkpoint:
             self._checkpointer = tf2_savers.Checkpointer(
                 directory=checkpoint_subpath,
-                objects_to_save=learner.state,
+                objects_to_save=self.state,
                 subdirectory='d4pg_learner',
                 time_delta_minutes=checkpoint_per_min,
                 add_uid=False)
@@ -199,8 +177,13 @@ class D4PGBot(bot.Bot):
         if (self._checkpointer is not None) and self._predictor.is_best_perf():
             self._checkpointer.save(force=True)
 
-    def checkpoint_restore(self):
-        self._checkpointer.restore()
-
-    def checkpoint_save(self):
-        self._checkpointer.save(force=True)
+    @property
+    def state(self):
+        return {
+                'policy': self._policy_network,
+                'critic': self._critic_network,
+                'observation': self._observation_network,
+                'target_policy': self._target_policy_network,
+                'target_critic': self._target_critic_network,
+                'target_observation': self._target_observation_network
+            }
