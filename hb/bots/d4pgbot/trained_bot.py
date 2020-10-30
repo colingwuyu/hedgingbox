@@ -87,8 +87,7 @@ class D4PGBot(bot.Bot):
                 pred_dir: str = '~/acme/',
                 checkpoint: bool = True,
                 checkpoint_subpath: str = '~/acme/',
-                checkpoint_per_min: float = 30.,
-                replay_table_name: str = adders.DEFAULT_PRIORITY_TABLE):
+                checkpoint_per_min: float = 30.):
         # Create a replay server to add data to. This uses no limiter behavior in
         # order to allow the Agent interface to handle it.
         # Make sure observation network is a Sonnet Module.
