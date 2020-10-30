@@ -148,6 +148,11 @@ class D4PGBot(bot.Bot):
         # General learner book-keeping and loggers.
         self._counter = counter or counting.Counter()
         
+        self._num_steps = tf.Variable(0, dtype=tf.int32)
+        self._policy_optimizer = policy_optimizer or tf.keras.optimizers.Adam(
+            learning_rate=1e-4)
+        self._critic_optimizer = critic_optimizer or tf.keras.optimizers.Adam(
+            learning_rate=1e-4)
 
         if checkpoint:
             self._checkpointer = tf2_savers.Checkpointer(
@@ -159,12 +164,6 @@ class D4PGBot(bot.Bot):
         else:
             self._checkpointer = None
         
-        self._num_steps = tf.Variable(0, dtype=tf.int32)
-        self._policy_optimizer = policy_optimizer or tf.keras.optimizers.Adam(
-            learning_rate=1e-4)
-        self._critic_optimizer = critic_optimizer or tf.keras.optimizers.Adam(
-            learning_rate=1e-4)
-
         super().__init__(
             name=name,
             actor=actor,
