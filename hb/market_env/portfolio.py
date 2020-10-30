@@ -195,6 +195,7 @@ class Portfolio():
         self._name = name
         for position in positions:
             if position.get_instrument().get_is_tradable():
+                assert position.get_instrument().get_name() not in self._hedging_portfolio_map, "Duplicate instrument name: %s" % position.get_instrument().get_name()
                 self._hedging_portfolio += [position]
                 self._hedging_portfolio_map[position.get_instrument().get_name()] = position
             else:

@@ -16,11 +16,12 @@ class Bot(agent.Agent):
 
     """
 
-    def __init__(self, actor: core.Actor, learner: core.Learner, predictor: Predictor,
+    def __init__(self, name: str, actor: core.Actor, learner: core.Learner, predictor: Predictor,
                  min_observations: int, observations_per_step: float,
                  pred_episods: int, observations_per_pred: int,
                  portfolio: Portfolio,
                  pred_only: bool = False):
+        self._name = name
         self._predictor = predictor
         self._predictor.set_portfolio(portfolio)
         self._observations_per_pred = observations_per_pred
@@ -31,6 +32,9 @@ class Bot(agent.Agent):
         self.set_pred_only(pred_only)
         super().__init__(ActorAdapter(actor), learner,
                          min_observations, observations_per_step)
+
+    def get_name(self):
+        return self._name
 
     def select_action(self, observation: types.NestedArray) -> types.NestedArray:
         if self._pred:

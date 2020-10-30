@@ -46,6 +46,7 @@ class D4PGBot(bot.Bot):
 
     """
     def __init__(self,
+                name: str,
                 portfolio: Portfolio, 
                 environment_spec: specs.EnvironmentSpec,
                 policy_network: snt.Module,
@@ -183,6 +184,7 @@ class D4PGBot(bot.Bot):
             self._checkpointer = None
             
         super().__init__(
+            name=name,
             actor=actor,
             learner=learner,
             predictor=predictor,

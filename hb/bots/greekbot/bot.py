@@ -14,7 +14,7 @@ class GreekHedgeBot(bot.Bot):
 
     """
 
-    def __init__(self, portfolio: Portfolio,
+    def __init__(self, name: str, portfolio: Portfolio,
                  environment_spec: specs.EnvironmentSpec,
                  hedging_strategies = [EuroDeltaHedgingStrategy, VarianceSwapReplicatingStrategy],
                  pred_dir: str = '~/acme/',
@@ -33,6 +33,7 @@ class GreekHedgeBot(bot.Bot):
         learner = fake_learner.FakeLeaner()
 
         super().__init__(
+            name=name,
             actor=actor,
             learner=learner,
             predictor=predictor,

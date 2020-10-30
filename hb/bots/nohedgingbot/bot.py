@@ -29,6 +29,7 @@ class NoHedgeBot(bot.Bot):
         learner = fake_learner.FakeLeaner()
 
         super().__init__(
+            name="No_Hedging_Bot",
             actor=actor,
             learner=learner,
             predictor=predictor,
