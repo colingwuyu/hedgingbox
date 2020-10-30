@@ -39,8 +39,44 @@ from hb.bots.d4pgbot import learning
 from hb.market_env.portfolio import Portfolio
 from typing import Union
 
+def make_networks(
+    action_spec: specs.BoundedArray,
+    policy_layer_sizes: Sequence[int] = (256, 256, 256),
+    critic_layer_sizes: Sequence[int] = (512, 512, 256),
+    vmin: float = -150.,
+    vmax: float = 150.,
+    num_atoms: int = 51,
+) -> Mapping[str, types.TensorTransformation]:
+    """Creates networks used by the agent."""
 
-# TODO(b/145531941): make the naming of this agent consistent.
+    # Get total number of action dimensions from action spec.
+    num_dimensions = np.prod(action_spec.shape, dtype=int)
+
+    # Create the shared observation network; here simply a state-less operation.
+    observation_network = tf2_utils.batch_concat
+
+    # Create the policy network.
+    policy_network = snt.Sequential([
+        tf2_networks.LayerNormMLP(policy_layer_sizes, activate_final=True),
+        tf2_networks.NearZeroInitializedLinear(num_dimensions),
+        tf2_networks.TanhToSpec(action_spec),
+    ])
+
+    # Create the critic network.
+    critic_network = snt.Sequential([
+        # The multiplexer concatenates the observations/actions.
+        tf2_networks.CriticMultiplexer(),
+        tf2_networks.LayerNormMLP(critic_layer_sizes, activate_final=True),
+        tf2_networks.DiscreteValuedHead(vmin, vmax, num_atoms),
+    ])
+
+    return {
+        'policy': policy_network,
+        'critic': critic_network,
+        'observation': observation_network,
+    }
+
+
 class D4PGBot(bot.Bot):
     """D4PG Bot.
 
