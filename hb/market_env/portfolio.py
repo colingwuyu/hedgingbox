@@ -146,6 +146,15 @@ class Position():
         # else:
         return self._instrument.get_market_value(self._holding)
 
+    def get_delta(self):
+        return self._instrument.get_delta()*self._holding
+
+    def get_gamma(self):
+        return self._instrument.get_gamma()*self._holding
+
+    def get_vega(self):
+        return self._instrument.get_vega()*self._holding
+
     @classmethod
     def load_json(cls, json_: Union[dict, str]):
         if isinstance(json_, str):
@@ -241,6 +250,24 @@ class Portfolio():
             nav += position.get_market_value()
         return nav
 
+    def get_delta(self):
+        delta = 0.
+        for position in self._positions:
+            delta += position.get_delta()
+        return delta
+
+    def get_gamma(self):
+        gamma = 0.
+        for position in self._positions:
+            gamma += position.get_gamma()
+        return gamma
+        
+    def get_vega(self):
+        vega = 0.
+        for position in self._positions:
+            vega += position.get_vega()
+        return vega
+        
     def scale_actions(self, actions):
         for action_i, position in enumerate(self._hedging_portfolio):
             actions[action_i] = position.scale_up_action(actions[action_i])
