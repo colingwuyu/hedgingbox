@@ -24,6 +24,14 @@ def date_from_str(d_str: str):
     vd = [int(i) for i in d_str.split("-")]
     return ql.Date(vd[2],vd[1],vd[0])
 
+def str_from_date(d: ql.Date):
+    """convert ql.Date to string in format "yyyy-mm-dd"
+
+    Args:
+        d (ql.Date): [description]
+    """
+    return "-".join([str(d.year()), str(d.month()), str(d.dayOfMonth())])
+
 def time_between(d1: ql.Date, d2: ql.Date = None) -> float:
     if d2:
         return day_count.yearFraction(d2, d1)
