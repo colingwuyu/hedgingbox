@@ -11,4 +11,8 @@ def acc_pnl(bots: List[bot.Bot]):
     plt.figure()
     for i, bot in enumerate(bots):
         plt.plot(np.cumsum(bot.get_predictor().get_episode_pnl_path()), label=f"{bot.get_name()} Acc. PnL", color=colors[i])
+    plt.legend()
+    plt.xlabel("Num of Days")
+    plt.ylabel("Acc. PnL")
+    plt.title("Accumulative PnL")
     return plt
