@@ -182,7 +182,7 @@ class EuropeanOption(Instrument):
         return 'EuroOpt {underlying_name} {list_otc} {maturity} {call_put} {strike:.2f} {transaction_cost} ({name})' \
                 .format(underlying_name=self._underlying.get_name(),
                         list_otc="Listed" if self._tradable else "OTC",
-                        maturity=str_from_date(date_from_time(self._maturity_time)),
+                        maturity=str_from_date(date_from_time(self._maturity_time, get_valuation_date())),
                         call_put="Call" if self._call else "Put",
                         strike=self._strike, 
                         transaction_cost=self._transaction_cost.get_percentage_cost()*100,
