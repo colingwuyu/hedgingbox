@@ -158,7 +158,13 @@ class D4PGBot(bot.Bot):
                 add_uid=False)
         else:
             self._checkpointer = None
-            
+        
+        self._num_steps = tf.Variable(0, dtype=tf.int32)
+        self._policy_optimizer = policy_optimizer or tf.keras.optimizers.Adam(
+            learning_rate=1e-4)
+        self._critic_optimizer = critic_optimizer or tf.keras.optimizers.Adam(
+            learning_rate=1e-4)
+
         super().__init__(
             name=name,
             actor=actor,
@@ -179,10 +185,14 @@ class D4PGBot(bot.Bot):
     @property
     def state(self):
         return {
-                'policy': self._policy_network,
-                'critic': self._critic_network,
-                'observation': self._observation_network,
-                'target_policy': self._target_policy_network,
-                'target_critic': self._target_critic_network,
-                'target_observation': self._target_observation_network
-            }
+              'counter': self._counter,
+              'policy': self._policy_network,
+              'critic': self._critic_network,
+              'observation': self._observation_network,
+              'target_policy': self._target_policy_network,
+              'target_critic': self._target_critic_network,
+              'target_observation': self._target_observation_network,
+              'policy_optimizer': self._policy_optimizer,
+              'critic_optimizer': self._critic_optimizer,
+              'num_steps': self._num_steps,
+          }
