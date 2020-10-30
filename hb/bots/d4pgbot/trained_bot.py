@@ -15,7 +15,7 @@ from hb.bots import fake_learner
 from hb.bots import bot
 from hb.bots.d4pgbot import predictor as d4pg_predictor
 from hb.market_env.portfolio import Portfolio
-
+import copy
 
 def make_networks(
     action_spec: specs.BoundedArray,
