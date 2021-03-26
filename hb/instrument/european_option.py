@@ -30,9 +30,9 @@ class EuropeanOption(Instrument):
     def set_simulator(self, simulator_handler, counter_handler):
         super().set_simulator(simulator_handler, counter_handler)
         ir = self._simulator_handler.get_obj().get_ir()
-        spot = 100
+        spot = 100 # place holder
         dividend = self._underlying.get_dividend_yield()
-        vol = 0.2
+        vol = 0.2 # place holder
         flat_ts = create_flat_forward_ts(ir)
         dividend_ts = create_flat_forward_ts(dividend)
         self._spot_handle = ql.RelinkableQuoteHandle(ql.SimpleQuote(spot))
