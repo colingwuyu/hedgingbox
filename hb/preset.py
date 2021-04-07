@@ -2,7 +2,7 @@ from typing import Union
 import json
 from hb.market_env.market import Market
 from hb.utils.loggers.default import make_default_logger
-#import hb.bots.d4pgbot as d4pg
+import hb.bots.d4pgbot as d4pg
 import hb.bots.greekbot as greek
 import acme
 import pandas as pd
