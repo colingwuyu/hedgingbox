@@ -18,4 +18,6 @@ nn_model/
 *.pickle
 *.xlsx
 *.json
+*.npy
 Markets/presets/*
+~/Desktop/MachineLearning/HedgingBox/Markets/presets/bsagent/Greek-Delta1hedge_pnl_measures.npy

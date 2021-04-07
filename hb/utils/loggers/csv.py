@@ -20,8 +20,9 @@ class CSVLogger(base.Logger):
   def __init__(self,
                directory: str = '~/acme',
                label: str = '',
-               time_delta: float = 0.):
-    directory = paths.process_path(directory, 'logs', label, add_uid=False)
+               time_delta: float = 0.,
+               add_uid: bool = False):
+    directory = paths.process_path(os.path.join(directory, 'logs', label), add_uid=add_uid)
     self._file_path = os.path.join(directory, 'logs.csv')
     logging.info('Logging to %s', self._file_path)
     self._time = time.time()

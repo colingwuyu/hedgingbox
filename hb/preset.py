@@ -128,8 +128,8 @@ class Preset:
 
             for k in status.keys():
                 status_dic[k] = [status[k]]
-
-            pd.DataFrame.from_dict(status_dic, orient="index", columns=[bot_name]).to_csv(f'{self._log_path}{bot_name}_pnl_stat.csv')
+            log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
+            pd.DataFrame.from_dict(status_dic, orient="index", columns=[bot_name]).to_csv(f'{log_path}/{bot_name}_pnl_stat.csv')
 
     def train(self, num_check_points):
         if self._agent_type == "Greek":
@@ -169,6 +169,7 @@ class Preset:
         self.dist_stat_save()
 
         for agent in self._market._agents.values():
-            hedge_perf = pd.read_csv(f'{self._log_path}logs/{agent.get_name()}/performance/logs.csv')
+            hedge_perf = pd.read_csv(agent.get_predictor().get_perf_log_file_path())
             hedge_pnl_list = hedge_perf[hedge_perf.type=='pnl'].drop(['path_num','type'], axis=1).sum(axis=1).values
-            np.save(f'{self._log_path}{agent.get_name()}hedge_pnl_measures.npy', hedge_pnl_list)
+            log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
+            np.save(f'{log_path}/{agent.get_name()}hedge_pnl_measures.npy', hedge_pnl_list)
