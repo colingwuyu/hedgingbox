@@ -23,6 +23,7 @@ class Bot(agent.Agent):
                  pred_only: bool = False):
         self._name = name
         self._predictor = predictor
+        self._portfolio = portfolio
         self._predictor.set_portfolio(portfolio)
         self._observations_per_pred = observations_per_pred
         self._pred_episods = pred_episods
@@ -98,3 +99,6 @@ class Bot(agent.Agent):
 
     def get_learner(self):
         return self._learner
+
+    def get_portfolio(self):
+        return self._portfolio

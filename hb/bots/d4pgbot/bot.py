@@ -74,7 +74,9 @@ class D4PGBot(bot.Bot):
                 checkpoint: bool = True,
                 checkpoint_subpath: str = '~/acme/',
                 checkpoint_per_min: float = 30.,
-                replay_table_name: str = adders.DEFAULT_PRIORITY_TABLE):
+                replay_table_name: str = adders.DEFAULT_PRIORITY_TABLE,
+                trainable = True):
+        self._trainable = trainable
         # Create a replay server to add data to. This uses no limiter behavior in
         # order to allow the Agent interface to handle it.
         replay_table = reverb.Table(
@@ -130,8 +132,10 @@ class D4PGBot(bot.Bot):
         tf2_utils.create_variables(target_observation_network, [obs_spec])
 
         # Create the actor which defines how we take actions.
-        actor = actors.FeedForwardActor(behavior_network, adder=adder)
-
+        if self._trainable:
+            actor = actors.FeedForwardActor(behavior_network, adder=adder)
+        else:
+            actor = actors.FeedForwardActor(behavior_network)
         # Create the predictor 
         pred_behavior_network = snt.Sequential([
             observation_network,
@@ -142,6 +146,7 @@ class D4PGBot(bot.Bot):
                                                 action_spec=act_spec, 
                                                 num_train_per_pred=observation_per_pred, 
                                                 logger_dir=pred_dir,
+                                                label=name,
                                                 risk_obj=risk_obj_func,
                                                 risk_obj_c=risk_obj_c)
 
@@ -176,7 +181,7 @@ class D4PGBot(bot.Bot):
             self._checkpointer = tf2_savers.Checkpointer(
                 directory=checkpoint_subpath,
                 objects_to_save=learner.state,
-                subdirectory='d4pg_learner',
+                subdirectory=name,
                 time_delta_minutes=checkpoint_per_min,
                 add_uid=False)
         else:

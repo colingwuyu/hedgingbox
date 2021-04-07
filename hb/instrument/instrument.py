@@ -76,6 +76,9 @@ class Instrument(abc.ABC):
             self._price_cache[f"{path_i}_{step_i}"] = _price 
             return _price
 
+    def market_impact(self) -> float:
+        0.
+
     @abc.abstractmethod
     def _get_price(self, path_i: int, step_i: int) -> float:
         """price of simulated episode at current time

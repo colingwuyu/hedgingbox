@@ -18,3 +18,4 @@ nn_model/
 *.pickle
 *.xlsx
 *.json
+Markets/presets/*

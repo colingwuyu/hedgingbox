@@ -3,6 +3,7 @@ from hb.instrument.european_option import EuropeanOption
 from hb.instrument.variance_swap import VarianceSwap
 from hb.transaction_cost.percentage_transaction_cost import PercentageTransactionCost
 from hb.utils import date as date_util
+import numpy as np
 
 
 class InstrumentFactory():
@@ -13,7 +14,7 @@ class InstrumentFactory():
         Args:
             str_instrument (str): 
                 Stock:
-                    'Stock Ticker annual_yield% dividend_yield% transaction_cost%'  
+                    'Stock Ticker annual_yield% dividend_yield% transaction_cost% daily_volume mi_alpha'  
                 European Option:
                     'EuroOpt Ticker OTC/Listed Maturity Call/Put Strike transaction_cost% (ShortName)'
                 Variance Swap:
@@ -21,11 +22,18 @@ class InstrumentFactory():
         """
         params = str_instrument.split(' ')
         if params[0] == 'Stock':
+            daily_volume = np.infty
+            mi_alpha = 1.0
+            if len(params) >= 6:
+                daily_volume = float(params[5])
+                if len(params) == 7:
+                    mi_alpha = float(params[6])
             return Stock(
                 name=params[1],
                 annual_yield=float(params[2])/100.,
                 dividend_yield=float(params[3])/100.,
-                transaction_cost=PercentageTransactionCost(float(params[4])/100.)
+                transaction_cost=PercentageTransactionCost(float(params[4])/100.),
+                daily_volume=daily_volume, mi_alpha=mi_alpha
             )
         if params[0] == 'EuroOpt':
             if "-" not in params[3]:

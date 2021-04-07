@@ -13,7 +13,9 @@ class Stock(Instrument):
     def __init__(self, name: str, 
                  annual_yield: float,
                  dividend_yield: float,
-                 transaction_cost: TransactionCost):
+                 transaction_cost: TransactionCost,
+                 daily_volume: float = np.infty,
+                 mi_alpha: float = 1.0):
         """Stock
 
         Args:
@@ -21,9 +23,15 @@ class Stock(Instrument):
             annual_yield (float): annual return
             dividend_yield (float): annual dividend yield
             transaction_cost (TransactionCost): transaction_cost calculator
+            daily_volume (float): daily trasanction volume on average
+            mi_alpha: market impact alpha
         """
         self._dividend_yield = dividend_yield
         self._annual_yield = annual_yield
+        self._step_buy_sell = 0.
+        self._daily_volume = daily_volume
+        self._mi_alpha = mi_alpha
+        self._market_impact = np.array([])
         super().__init__(name=name, tradable=True, transaction_cost=transaction_cost)
         
     def get_dividend_yield(self) -> float:
@@ -45,6 +53,10 @@ class Stock(Instrument):
     def annual_yield(self, annual_yield):
         self._annual_yield = annual_yield
         return self
+    
+    def get_execute_cost(self, action: float) -> float:
+        self._step_buy_sell += action
+        return self._transaction_cost.execute(self.get_market_value(action))
 
     def _get_price(self, path_i: int, step_i: int) -> float:
         """price of the instrument at current time
@@ -53,6 +65,38 @@ class Stock(Instrument):
             float: price
         """
         return self._simulator_handler.get_obj().get_spot(self._name, path_i, step_i).numpy()
+
+    def get_price(self) -> float:
+        """price of the instrument at path_i and step_i
+
+        Returns:
+            float: price
+        """
+        path_i, step_i = self._counter_handler.get_obj().get_path_step()
+        return self._get_price(path_i, step_i) * np.prod(self._market_impact)
+
+    def market_impact(self) -> float:
+        """Sigma-root-liquidity [Grinold & Kahn, 1994]
+        \delta P = \alpha * \sigma *\sqrt{div{Q,V}}
+
+        Returns:
+            float: market impact
+        """
+        path_i, step_i = self._counter_handler.get_obj().get_path_step()
+        if step_i > (len(self._market_impact) - 1):
+            imp_vol_surf = self._simulator_handler.get_obj().get_implied_vol_surface(self._name, path_i, step_i)
+            sigma = imp_vol_surf.get_black_vol(t=0.1, k=self.get_price()).numpy()
+            impact_sign = -1 if self._step_buy_sell < 0 else 1
+            self._market_impact = np.append(self._market_impact, 
+                np.exp(impact_sign*self._mi_alpha*sigma*np.sqrt(abs(self._step_buy_sell/self._daily_volume))))
+            self._step_buy_sell = 0.
+        jump = np.prod(self._market_impact[:-1])
+        return (self._market_impact[-1] - 1)*self._get_price(path_i, step_i)*jump
+
+    def reset(self):
+        self._market_impact = np.array([])
+        self._step_buy_sell = 0.
+        super().reset()
 
     def __repr__(self):
         return "Stock {name} {annual_yield:.2f} {dividend_yield:.2f} {transaction_cost:.2f}" \

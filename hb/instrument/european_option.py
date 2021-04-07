@@ -130,7 +130,7 @@ class EuropeanOption(Instrument):
             # past expiry, or exercised
             option_price = 0.
         else:
-            spot = float(self._underlying._get_price(path_i, step_i))
+            spot = float(self._underlying.get_price())
             vol = float(self.get_implied_vol(path_i, step_i))
             self._spot_handle.linkTo(ql.SimpleQuote(spot))
             self._flat_vol_ts_handle.linkTo(
@@ -153,7 +153,7 @@ class EuropeanOption(Instrument):
             return 0.
         if (path_i is None) or (step_i is None):
             path_i, step_i = self._counter_handler.get_obj().get_path_step()
-        spot = float(self._underlying._get_price(path_i, step_i))
+        spot = float(self._underlying.get_price())
         vol = float(self.get_implied_vol(path_i, step_i))
         self._spot_handle.linkTo(ql.SimpleQuote(spot))
         self._flat_vol_ts_handle.linkTo(
@@ -170,7 +170,7 @@ class EuropeanOption(Instrument):
             return 0.
         if (path_i is None) or (step_i is None):
             path_i, step_i = self._counter_handler.get_obj().get_path_step()
-        spot = float(self._underlying._get_price(path_i, step_i))
+        spot = float(self._underlying.get_price())
         vol = float(self.get_implied_vol(path_i, step_i))
         self._spot_handle.linkTo(ql.SimpleQuote(spot))
         self._flat_vol_ts_handle.linkTo(

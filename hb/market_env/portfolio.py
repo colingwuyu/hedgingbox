@@ -12,9 +12,10 @@ import os
 import numpy as np
 
 class Position():
-    def __init__(self, instrument=None, holding=0., trading_limit=[MIN_FLT_VALUE/2., MAX_FLT_VALUE/2.-1.], 
+    def __init__(self, instrument=None, holding=0., 
+                 trading_limit=[MIN_FLT_VALUE/2., MAX_FLT_VALUE/2.-1.], 
                  holding_constraints=[MIN_FLT_VALUE, MAX_FLT_VALUE]):
-        """[summary]
+        """A position in portfolio containing holding and instrument information
 
         Args:
             instrument (Instrument, optional): holding instrument. Defaults to None.
@@ -64,7 +65,7 @@ class Position():
     def set_holding_constraints(self, holding_constraints):
         self._holding_constraints = holding_constraints
 
-    def holding_constraints(self, holding_constraint):
+    def holding_constraints(self, holding_constraints):
         self._holding_constraints = holding_constraints
         return self
 
@@ -136,7 +137,13 @@ class Position():
         return - self._instrument.get_market_value(shares) - trans_cost, trans_cost, shares
 
     def get_breach_holding_constraint(self):
-        return (abs(self._holding - self._holding_constraints[0]) < 1e-5) or (abs(self._holding - self._holding_constraints[1]) < 1e-5) 
+        """check if holding exceeds constraints
+
+        Returns:
+            bool: True if it exceeds constraints
+        """
+        return (abs(self._holding - self._holding_constraints[0]) < 1e-5) \
+            or (abs(self._holding - self._holding_constraints[1]) < 1e-5) 
 
     def get_market_value(self):
         # if (abs(self._holding - self._holding_constraints[0]) < 1e-5) or \
@@ -157,11 +164,26 @@ class Position():
 
     @classmethod
     def load_json(cls, json_: Union[dict, str]):
+        """Constructor of market environment
+        example:
+        {
+            "holding": -1.30403,
+            "trading_limit": [-5,5],
+            "instrument": "SPX"
+        }
+        Args:
+            json_ (Union[dict, str]): [description]
+
+        Returns:
+            Position: a position object
+                      insturment is a string representing its name, 
+                      instrument object needs be looked up from Market.get_instrument function
+        """
         if isinstance(json_, str):
             dict_json = json.loads(json_)
         else:
             dict_json = json_
-        ret_pos = cls().holding(dict_json["holding"]).instrument(InstrumentFactory.create(dict_json["instrument"]))
+        ret_pos = cls().holding(dict_json["holding"]).instrument(dict_json["instrument"])
         if "holding_constraints" in dict_json:
             ret_pos.set_holding_constraints(dict_json["holding_constraints"])
         if "trading_limit" in dict_json:
@@ -171,7 +193,7 @@ class Position():
     def jsonify_dict(self) -> dict:
         dict_json = dict()
         dict_json["holding"] = self._holding
-        dict_json["instrument"] = str(self._instrument)
+        dict_json["instrument"] = self._instrument.get_name()
         if self._holding_constraints[0] > MIN_FLT_VALUE:
             dict_json["holding_constraints"] = self._holding_constraints
         if self._trading_limit[0] > MIN_FLT_VALUE/2.:
@@ -184,16 +206,34 @@ class Position():
 class Portfolio():
     def __init__(self, 
                  positions: List[Position],
-                 name: str,
                  risk_limits: RiskLimits = RiskLimits()):
+        """Portfolio contains holding positions and risk limits
+
+        Args:
+            positions (List[Position]): a list of positions
+            risk_limits (RiskLimits, optional): [description]. Defaults to RiskLimits().
+        """
         self._positions = positions
         self._risk_limits = risk_limits
         self._hedging_portfolio = []
         self._hedging_portfolio_map = dict()
         self._liability_portfolio = []
         self._liability_portfolio_map = dict()
-        self._name = name
-        for position in positions:
+
+    @classmethod
+    def make_portfolio(cls,
+                       instruments: Union[List[Instrument], List[str]],
+                       holdings: List[float],
+                       risk_limits: RiskLimits = RiskLimits()):
+        positions = []
+        for instrument, holding in zip(instruments, holdings):
+            positions += [Position(instrument, holding)]
+        return cls(positions, risk_limits)
+    
+    def classify_positions(self):
+        """classify positions into hedging and liability positions 
+        """
+        for position in self._positions:
             if position.get_instrument().get_is_tradable():
                 assert position.get_instrument().get_name() not in self._hedging_portfolio_map, "Duplicate instrument name: %s" % position.get_instrument().get_name()
                 self._hedging_portfolio += [position]
@@ -203,16 +243,28 @@ class Portfolio():
                 self._liability_portfolio_map[position.get_instrument().get_name()] = position
 
     @classmethod
-    def make_portfolio(cls,
-                       instruments: List[Instrument],
-                       holdings: List[float],
-                       name: str,
-                       risk_limits: RiskLimits = RiskLimits()):
-        positions = []
-        for instrument, holding in zip(instruments, holdings):
-            positions += [Position(instrument, holding)]
-        return cls(positions, risk_limits, name)
+    def load_json(cls, json_: Union[dict, str]):
+        if isinstance(json_, str):
+            dict_json = json.loads(json_)
+        else:
+            dict_json = json_
+        if "risk_limits" in dict_json:
+            risk_limits = RiskLimits.load_json(dict_json["risk_limits"])
+        else:
+            risk_limits = RiskLimits()
+        portfolio = cls(positions=[Position.load_json(pos) for pos in dict_json["positions"]],
+                        risk_limits=risk_limits)
+        return portfolio
 
+    def jsonify_dict(self) -> dict:
+        dict_json = dict()
+        dict_json["risk_limits"] = self._risk_limits.jsonify_dict()
+        dict_json["positions"] = [position.jsonify_dict() for position in self._positions]
+        return dict_json
+
+    def __repr__(self):
+        return json.dumps(self.jsonify_dict(), indent=4)
+    
     def get_all_liability_expired(self) -> bool:
         all_expired = True
         for derivative in self._liability_portfolio:
@@ -303,6 +355,12 @@ class Portfolio():
             actions[i] = trunc_action
         return cashflows, trans_costs
     
+    def market_impact(self, actions) -> float:
+        mi_cashflows = 0.
+        for i, action in enumerate(actions):
+            mi_cashflows += self._hedging_portfolio[i].get_instrument().market_impact()*(-action)/2.0
+        return mi_cashflows
+
     def event_handler(self):
         cashflows = 0.
         trans_costs = 0.
@@ -360,63 +418,6 @@ class Portfolio():
             cashflows += proceeds
             trans_costs += trans_cost
         return cashflows, trans_costs
-
-    @classmethod
-    def load_json(cls, json_: Union[dict, str]):
-        if isinstance(json_, str):
-            dict_json = json.loads(json_)
-        else:
-            dict_json = json_
-        if "risk_limits" in dict_json:
-            risk_limits = RiskLimits.load_json(dict_json["risk_limits"])
-        else:
-            risk_limits = RiskLimits()
-        portfolio = cls(positions=[Position.load_json(pos) for pos in dict_json["positions"]],
-                        risk_limits=risk_limits,
-                        name=dict_json["name"])
-        for position in portfolio.get_portfolio_positions():
-            instrument = position.get_instrument()
-            if not isinstance(instrument, Stock):
-                instrument.set_underlying(
-                    portfolio.get_position(instrument.get_underlying_name()).get_instrument()
-                )
-        if "extra" in dict_json:
-            extras = dict_json["extra"]
-            for extra in extras:
-                instrument = portfolio.get_position(extra["instrument"]).get_instrument()
-                if isinstance(instrument, VarianceSwap):
-                    repliacting_portfolio = [portfolio.get_position(opts).get_instrument() for opts in extra["replicating_opts"]]
-                    instrument.replicating_opts(repliacting_portfolio)
-                    instrument.set_excl_realized_var(extra["excl_realized_var"])
-        return portfolio
-
-    def jsonify_dict(self) -> dict:
-        dict_json = dict()
-        dict_json["name"] = self._name
-        dict_json["risk_limits"] = self._risk_limits.jsonify_dict()
-        dict_json["positions"] = [position.jsonify_dict() for position in self._positions]
-        for position in self._positions:
-            if isinstance(position.get_instrument(), VarianceSwap):
-                varswap_extra_dict = {
-                    "instrument": position.get_instrument().get_name(),
-                    "replicating_opts": position.get_instrument().get_hedging_instrument_names(),
-                    "excl_realized_var": position.get_instrument().get_excl_realized_var()
-                }
-                if "extra" in dict_json:
-                    dict_json["extra"] += [varswap_extra_dict]
-                else:
-                    dict_json["extra"] = [varswap_extra_dict]
-        return dict_json
-
-    def __repr__(self):
-        return json.dumps(self.jsonify_dict(), indent=4)
-    
-    @staticmethod
-    def load_portfolio_file(portfolio_file_name):
-        portfolio_json = open(portfolio_file_name)
-        portfolio_dict = json.load(portfolio_json)
-        portfolio_json.close()
-        return Portfolio.load_json(portfolio_dict)
 
 if __name__ == "__main__":
     with open('Markets/Market_Example/portfolio.json') as json_file:

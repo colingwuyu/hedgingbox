@@ -232,6 +232,8 @@ class D4PGLearner(acme.Learner):
     }
 
   def step(self):
+    if not self._trainable:
+      return
     # Run the learning step.
     fetches = self._step()
 

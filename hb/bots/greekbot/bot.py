@@ -29,7 +29,7 @@ class GreekHedgeBot(bot.Bot):
         """
         # Create the actor
         actor = greek_hedge_actor.GreekHedgeActor(portfolio, environment_spec.actions, hedging_strategies)
-        predictor = greek_hedge_predictor.GreekHedgePredictor(actor, logger_dir=pred_dir, label=label)
+        predictor = greek_hedge_predictor.GreekHedgePredictor(actor, logger_dir=pred_dir, label=name)
         learner = fake_learner.FakeLeaner()
 
         super().__init__(
