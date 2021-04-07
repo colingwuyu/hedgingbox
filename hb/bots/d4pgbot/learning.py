@@ -45,6 +45,7 @@ class D4PGLearner(acme.Learner):
       counter: counting.Counter = None,
       logger: loggers.Logger = None,
       checkpoint: bool = True,
+      trainable: bool = True
   ):
     """Initializes the learner.
 
@@ -70,6 +71,7 @@ class D4PGLearner(acme.Learner):
       logger: logger object to be used by learner.
       checkpoint: boolean indicating whether to checkpoint the learner.
     """
+    self._trainable = trainable
     self._risk_obj_func = risk_obj_func
     self._risk_obj_c = risk_obj_c
     # Store online and target networks.

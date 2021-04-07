@@ -175,6 +175,7 @@ class D4PGBot(bot.Bot):
             counter=counter,
             logger=logger,
             checkpoint=checkpoint,
+            trainable=trainable
         )
 
         if checkpoint:

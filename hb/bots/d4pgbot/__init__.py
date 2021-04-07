@@ -131,6 +131,7 @@ def load_json(json_: Union[dict, str], market, log_dir, trainable=True):
         risk_obj_c=dict_json["parameters"]["risk_obj_c"],
         batch_size=dict_json["parameters"]["batch_size"],
         n_step=dict_json["parameters"]["n_step"],
+        sigma=dict_json["parameters"]["sigma"],
         samples_per_insert=dict_json["parameters"]["samples_per_insert"],
         pred_episode=num_prediction_episodes,
         observation_per_pred=observation_per_pred,

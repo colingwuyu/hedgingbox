@@ -446,7 +446,7 @@ class Market(dm_env.Environment):
         # self._validation_simulator.generate_paths(self._validation_counter.get_total_paths())
         for instrument in self._instruments.values():
             instrument.set_simulator(self._current_simulator_handler, self._current_counter_handler)
-        self._agent_markets[agent_name] = agent_market
+        self._agent_markets[agent_name] = wrappers.SinglePrecisionWrapper(agent_market)
 
     def add_agent(self, agent, agent_name: str):
         self._agents[agent_name] = agent
