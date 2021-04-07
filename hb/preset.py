@@ -7,7 +7,7 @@ import hb.bots.greekbot as greek
 import acme
 import pandas as pd
 import numpy as np
-
+import os
 
 class Preset:
     def __init__(self) -> None:
@@ -84,6 +84,8 @@ class Preset:
         preset = cls()
         market = Market.load_json(dict_json["market"])
         preset._log_path = dict_json["log_path"]
+        if not os.path.exists(preset._log_path):
+            os.makedirs(preset._log_path)
         for agent in dict_json["agents"]:
             if agent["agent_type"] == "D4PG":
                 if agent["name"] == dict_json["trainable_agent"]:
@@ -169,4 +171,4 @@ class Preset:
         for agent in self._market._agents.values():
             hedge_perf = pd.read_csv(f'{self._log_path}logs/{agent.get_name()}/performance/logs.csv')
             hedge_pnl_list = hedge_perf[hedge_perf.type=='pnl'].drop(['path_num','type'], axis=1).sum(axis=1).values
-            np.save(f'{self._log_path}{agent}hedge_pnl_measures.npy', hedge_pnl_list)
+            np.save(f'{self._log_path}{agent.get_name()}hedge_pnl_measures.npy', hedge_pnl_list)
