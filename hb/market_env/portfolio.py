@@ -358,7 +358,7 @@ class Portfolio():
     def market_impact(self, actions) -> float:
         mi_cashflows = 0.
         for i, action in enumerate(actions):
-            mi_cashflows += self._hedging_portfolio[i].get_instrument().market_impact()*(-action)/2.0
+            mi_cashflows += self._hedging_portfolio[i].get_instrument().market_impact()*(-action)
         return mi_cashflows
 
     def event_handler(self):
@@ -412,12 +412,14 @@ class Portfolio():
         """
         cashflows = 0.
         trans_costs = 0.
-        for hedging_position in self._hedging_portfolio:
+        dump_actions = np.zeros(len(self._hedging_portfolio))
+        for i, hedging_position in enumerate(self._hedging_portfolio):
             # rebalance hedging positions
+            dump_actions[i] = -hedging_position.get_holding()
             proceeds, trans_cost, _ = hedging_position.buy(-hedging_position.get_holding(), ignore_constraint=True)
             cashflows += proceeds
             trans_costs += trans_cost
-        return cashflows, trans_costs
+        return cashflows, trans_costs, dump_actions
 
 if __name__ == "__main__":
     with open('Markets/Market_Example/portfolio.json') as json_file:

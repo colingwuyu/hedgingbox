@@ -625,12 +625,16 @@ class Market(dm_env.Environment):
                     # Dump whole portfolio if all positions in liability portfolio expire
                     #   Cashflow at Time T
                     #   Transaction cost at Time T    
-                    cashflow, trans_cost = agent_market.portfolio.dump_portfolio()
+                    cashflow, trans_cost, dump_actions = agent_market.portfolio.dump_portfolio()
                     # Step pnl (reward) at Time T also includes
                     #   - Transaction cost caused by dumping the portfolio at Time T
                     step_pnl -= trans_cost
                     # Add the cashflow at Time T into cash account
                     agent_market.cash_account.add(cashflow)
+                    # Dump pnl
+                    dump_pnl = agent_market.portfolio.market_impact(dump_actions)
+                    agent_market.cash_account.add(dump_pnl)
+                    step_pnl += dump_pnl
                 # print("Cash account Balance: ", self._cash_account.get_balance())
                 ret_step = dm_env.termination(
                     reward=agent_market.reward_rule.step_reward(dm_env.StepType.LAST, step_pnl, action, reward_extra),
