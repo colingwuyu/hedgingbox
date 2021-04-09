@@ -186,7 +186,7 @@ class D4PGLearner(acme.Learner):
       # Actor learning.
       dpg_a_t = self._policy_network(o_t)
       # TODO: add constraint function applying onto dpg_a_t
-      dpg_a_t = self._portfolio.action_constraint(dpg_a_t)
+      dpg_a_t = self._portfolio.action_constraint(dpg_a_t, o_t)
       dpg_z_t = self._critic_network(o_t, dpg_a_t)
       dpg_q_t = dpg_z_t.mean()
       dpg_q_var_t = dpg_z_t.variance()

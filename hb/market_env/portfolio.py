@@ -422,14 +422,14 @@ class Portfolio():
             trans_costs += trans_cost
         return cashflows, trans_costs, dump_actions
 
-    def action_constraint(self, action):
+    def action_constraint(self, action, observation):
         uh = np.zeros(len(self._hedging_portfolio))
         lh = np.zeros(len(self._hedging_portfolio))
         ua = np.zeros(len(self._hedging_portfolio))
         la = np.zeros(len(self._hedging_portfolio))
         for i, position in enumerate(self._hedging_portfolio):
-            uh[i] = position.get_holding_constraints()[1] - position.get_holding()
-            lh[i] = position.get_holding_constraints()[0] - position.get_holding()
+            uh[i] = position.get_holding_constraints()[1] - observation[2*i-1]
+            lh[i] = position.get_holding_constraints()[0] - observation[2*i-1]
             ua[i] = position.get_trading_limit()[1]
             la[i] = position.get_trading_limit()[0]
         uh = tf.cast(uh, dtype=tf.float32)
