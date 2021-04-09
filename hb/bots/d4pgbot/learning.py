@@ -1,5 +1,6 @@
 """D4PG learner implementation."""
 
+from hb.market_env import portfolio
 import time
 from typing import Dict, List
 
@@ -17,6 +18,7 @@ import tensorflow as tf
 import tree
 
 from hb.tf.losses import dpg
+from hb.market_env.portfolio import Portfolio
 
 
 class D4PGLearner(acme.Learner):
@@ -35,6 +37,7 @@ class D4PGLearner(acme.Learner):
       discount: float,
       target_update_period: int,
       dataset: tf.data.Dataset,
+      portfolio: Portfolio,
       observation_network: types.TensorTransformation = lambda x: x,
       target_observation_network: types.TensorTransformation = lambda x: x,
       policy_optimizer: snt.Optimizer = None,
@@ -71,6 +74,7 @@ class D4PGLearner(acme.Learner):
       logger: logger object to be used by learner.
       checkpoint: boolean indicating whether to checkpoint the learner.
     """
+    self._portfolio = portfolio
     self._trainable = trainable
     self._risk_obj_func = risk_obj_func
     self._risk_obj_c = risk_obj_c
@@ -181,6 +185,8 @@ class D4PGLearner(acme.Learner):
 
       # Actor learning.
       dpg_a_t = self._policy_network(o_t)
+      # TODO: add constraint function applying onto dpg_a_t
+      dpg_a_t = self._portfolio.action_constraint(dpg_a_t)
       dpg_z_t = self._critic_network(o_t, dpg_a_t)
       dpg_q_t = dpg_z_t.mean()
       dpg_q_var_t = dpg_z_t.variance()

@@ -10,6 +10,7 @@ from hb.market_env.risk_limits import RiskLimits
 import json
 import os
 import numpy as np
+import tensorflow as tf
 
 class Position():
     def __init__(self, instrument=None, holding=0., 
@@ -420,6 +421,25 @@ class Portfolio():
             cashflows += proceeds
             trans_costs += trans_cost
         return cashflows, trans_costs, dump_actions
+
+    def action_constraint(self, action):
+        uh = np.zeros(len(self._hedging_portfolio))
+        lh = np.zeros(len(self._hedging_portfolio))
+        ua = np.zeros(len(self._hedging_portfolio))
+        la = np.zeros(len(self._hedging_portfolio))
+        for i, position in enumerate(self._hedging_portfolio):
+            uh[i] = position.get_holding_constraints()[1] - position.get_holding()
+            lh[i] = position.get_holding_constraints()[0] - position.get_holding()
+            ua[i] = position.get_trading_limit()[1]
+            la[i] = position.get_trading_limit()[0]
+        uh = tf.cast(uh, dtype=tf.float32)
+        lh = tf.cast(lh, dtype=tf.float32)
+        ua = tf.cast(ua, dtype=tf.float32)
+        la = tf.cast(la, dtype=tf.float32)
+        ac = tf.maximum(tf.minimum(ua, action), la)
+        hc = tf.maximum(tf.minimum(uh, ac), lh)
+        return hc
+
 
 if __name__ == "__main__":
     with open('Markets/Market_Example/portfolio.json') as json_file:

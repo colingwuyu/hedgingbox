@@ -158,6 +158,7 @@ class D4PGBot(bot.Bot):
 
         # The learner updates the parameters (and initializes them).
         learner = learning.D4PGLearner(
+            portfolio=portfolio,
             policy_network=policy_network,
             critic_network=critic_network,
             observation_network=observation_network,
