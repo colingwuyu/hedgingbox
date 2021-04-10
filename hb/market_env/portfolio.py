@@ -423,21 +423,24 @@ class Portfolio():
         return cashflows, trans_costs, dump_actions
 
     def action_constraint(self, action, observation):
-        uh = np.zeros(len(self._hedging_portfolio))
-        lh = np.zeros(len(self._hedging_portfolio))
-        ua = np.zeros(len(self._hedging_portfolio))
-        la = np.zeros(len(self._hedging_portfolio))
+        cs = action.shape.as_list()
+        uh = np.zeros(cs)
+        lh = np.zeros(cs)
+        ua = np.zeros(cs)
+        la = np.zeros(cs)
+        ind = np.arange(0, len(self._hedging_portfolio))*2+1
         for i, position in enumerate(self._hedging_portfolio):
-            uh[i] = position.get_holding_constraints()[1] - observation[2*i-1]
-            lh[i] = position.get_holding_constraints()[0] - observation[2*i-1]
-            ua[i] = position.get_trading_limit()[1]
-            la[i] = position.get_trading_limit()[0]
-        uh = tf.cast(uh, dtype=tf.float32)
-        lh = tf.cast(lh, dtype=tf.float32)
+            uh[:, i] = position.get_holding_constraints()[1] 
+            lh[:, i] = position.get_holding_constraints()[0] 
+            ua[:, i] = position.get_trading_limit()[1]
+            la[:, i] = position.get_trading_limit()[0]
+        uh = tf.cast(uh, dtype=tf.float32) - tf.gather(observation, ind, axis=-1)
+        lh = tf.cast(lh, dtype=tf.float32) - tf.gather(observation, ind, axis=-1)
         ua = tf.cast(ua, dtype=tf.float32)
         la = tf.cast(la, dtype=tf.float32)
-        ac = tf.maximum(tf.minimum(ua, action), la)
-        hc = tf.maximum(tf.minimum(uh, ac), lh)
+        # leaky relu
+        ac = tf.maximum(tf.minimum(ua - action/100, action), la + action/100)
+        hc = tf.maximum(tf.minimum(uh - action/100, ac), lh + action/100)
         return hc
 
 
