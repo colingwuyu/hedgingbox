@@ -129,6 +129,7 @@ def load_json(json_: Union[dict, str], market, log_dir, trainable=True):
         # critic_optimizer=tf.keras.optimizers.Adam(learning_rate),
         risk_obj_func=dict_json["parameters"]["risk_obj_func"],
         risk_obj_c=dict_json["parameters"]["risk_obj_c"],
+        exp_mu=dict_json["parameters"]["exp_mu"],
         batch_size=dict_json["parameters"]["batch_size"],
         n_step=dict_json["parameters"]["n_step"],
         sigma=dict_json["parameters"]["sigma"],
