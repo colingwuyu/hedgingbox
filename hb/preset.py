@@ -8,6 +8,7 @@ import acme
 import pandas as pd
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 class Preset:
     def __init__(self) -> None:
@@ -15,6 +16,7 @@ class Preset:
         self._agent = None
         self._agent_type = None
         self._log_path = None
+        self._loop = None
 
     @classmethod
     def load_json(cls, json_: Union[dict, str]):
@@ -102,6 +104,11 @@ class Preset:
                 preset._agent = market.get_agent(dict_json["trainable_agent"])
                 preset._agent_type = agent["agent_type"]
         preset._market = market
+        preset._loop = acme.EnvironmentLoop(preset._market, preset._agent,
+                                        logger=make_default_logger(
+                                            directory=preset._log_path+'environment_loop',
+                                            label="environment_loop"))
+            
         return preset
 
     @staticmethod
@@ -131,7 +138,7 @@ class Preset:
             log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
             pd.DataFrame.from_dict(status_dic, orient="index", columns=[bot_name]).to_csv(f'{log_path}/{bot_name}_pnl_stat.csv')
 
-    def train(self, num_check_points):
+    def train(self, num_check_points, validate = False):
         if self._agent_type == "Greek":
             print("Greek agent is not trainable.")
             return
@@ -141,10 +148,6 @@ class Preset:
             # Try running the environment loop. We have no assertions here because all
             # we care about is that the agent runs without raising any errors.
 
-            loop = acme.EnvironmentLoop(self._market, self._agent,
-                                        logger=make_default_logger(
-                                            directory=self._log_path+'environment_loop',
-                                            label="environment_loop"))
             num_prediction_episodes = self._market.get_validation_episodes()
             num_train_episodes = self._market.get_train_episodes()
             num_episodes =  num_train_episodes + num_prediction_episodes
@@ -153,10 +156,11 @@ class Preset:
                     print(f"Check Point {i}")
                     # train
                     self._market.set_mode("training",continue_counter=True)
-                    loop.run(num_episodes=num_train_episodes)
+                    self._loop.run(num_episodes=num_train_episodes)
                     # prediction
-                    self._market.set_mode("validation")
-                    loop.run(num_episodes=num_prediction_episodes)
+                    if validate:
+                        self._market.set_mode("validation")
+                        self._loop.run(num_episodes=num_prediction_episodes)
                     self._agent.checkpoint_save()    
 
     def validation(self):
@@ -173,3 +177,123 @@ class Preset:
             hedge_pnl_list = hedge_perf[hedge_perf.type=='pnl'].drop(['path_num','type'], axis=1).sum(axis=1).values
             log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
             np.save(f'{log_path}/{agent.get_name()}hedge_pnl_measures.npy', hedge_pnl_list)
+
+    def plot_progress(self, start_episode = 0):
+        train_progress = pd.read_csv(self._loop._logger._to._to._to[1]._file_path)
+        plt.plot(train_progress.episodes[start_episode:], train_progress.episode_return[start_episode:])
+
+    def plot_pnl_distribution(self):
+        for agent in self._market._agents.values():
+            log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
+            pnl_path = f'{log_path}/{agent.get_name()}hedge_pnl_measures.npy'
+            hedge_pnl_list = np.load(pnl_path)
+            plt.hist(hedge_pnl_list, bins=50, alpha=0.5, label=agent.get_name(), density=True)
+        plt.legend(loc='upper left')
+        plt.show()
+    
+    # def plot_path(self, pnl, action, cum_holding,
+    #           hedging_inst, hedging_price, liability_inst, derivative_price, 
+    #           figure_name):
+    #     logs_file = {
+    #         "d4pg hedging": 'logs/d4pg_predictor/performance/logs.csv',
+    #         "greek hedging": 'logs/greek_delta_hedging/performance/logs.csv',
+    #         # "d4pg hedging": 'logs/d4pg_predictor_bmk/performance/logs.csv'
+    #     }
+    #     hedging_inst = ["BAC", "XLF"]
+    #     liability_inst = ["BAC Call"]
+
+    #     perfs = {}
+    #     for n, f in logs_file.items():
+    #         perfs[n] = pd.read_csv(model_path + f)
+    #     hedging_strategy = "d4pg hedging" 
+    #     price_from = "d4pg hedging" 
+    #     all_pnl_list = {}
+    #     for n, perf in perfs.items():
+    #         all_pnl_list[n] = perf[perf.type=='pnl'].drop(['path_num','type'], axis=1).sum(axis=1)
+    #     index_order = np.argsort(all_pnl_list[hedging_strategy])
+    #     # pnl_order = math.floor(all_pnl_list[hedging_strategy].shape[0]*(100-VaR)/100)
+    #     path_num = index_order.iloc[pnl_order]
+    #     print(path_num)
+
+    #     hedging_price = perfs[price_from][(perfs[price_from].path_num==path_num)&(perfs[price_from].type.str.contains("hedging_price"))].drop(['path_num','type'], axis=1)
+    #     derivative_price = perfs[price_from][(perfs[price_from].path_num==path_num)&(perfs[price_from].type.str.contains("derivative_price"))].drop(['path_num','type'], axis=1)
+
+    #     action_list = {}
+    #     holding_list = {}
+    #     pnl_list = {}
+    #     for n, perf in perfs.items():
+    #         action_list[n + " action"] = perf[(perf.path_num==path_num)&(perf.type.str.contains("action"))].drop(['path_num','type'], axis=1)
+    #         holding_list[n + " holding"] = perf[(perf.path_num==path_num)&(perf.type.str.contains("holding"))].drop(['path_num','type'], axis=1)
+    #         pnl_list[n + " acc. pnl"] = perf[(perf.path_num==path_num)&(perf.type=='pnl')].drop(['path_num','type'], axis=1)
+
+    #     hedging_price.columns = hedging_price.columns.astype(int) 
+    #     hedging_price = hedging_price.reindex(sorted(hedging_price.columns), axis=1).values
+    #     derivative_price.columns = derivative_price.columns.astype(int) 
+    #     derivative_price = derivative_price.reindex(sorted(derivative_price.columns), axis=1).values
+    #     for k in pnl_list.keys():
+    #         pnl_list[k].columns = pnl_list[k].columns.astype(int)
+    #         pnl_list[k] = pnl_list[k].reindex(sorted(pnl_list[k].columns), axis=1).values[0]
+    #     for k in action_list.keys():
+    #         action_list[k].columns = action_list[k].columns.astype(int) 
+    #         action_list[k] = action_list[k].reindex(sorted(action_list[k].columns), axis=1).values
+    #     for k in holding_list.keys():
+    #         holding_list[k].columns = holding_list[k].columns.astype(int) 
+    #         holding_list[k] = holding_list[k].reindex(sorted(holding_list[k].columns), axis=1).values
+    #     path_plot(pnl_list, action_list, holding_list,
+    #             hedging_inst, hedging_price, liability_inst, derivative_price, 
+    #             f"{hedging_strategy} Path{pnl_order}")
+    #     hedging_dim = hedging_price.shape[0]
+    #     derivative_dim = derivative_price.shape[0]
+    #     step_dim = hedging_price.shape[1]
+    #     pnls = {}
+    #     for n, p in pnl.items():
+    #         pnls[n] = np.cumsum(pd.to_numeric(p))
+    #     # no_cum_pnl = np.cumsum(pd.to_numeric(no_pnl))
+    #     # d4pg_cum_holding = np.cumsum(d4pg_action, axis=1) + np.expand_dims(initial_stock_holding, -1)
+    #     # delta_cum_holding = np.cumsum(delta_action, axis=1) + np.expand_dims(initial_stock_holding, -1)
+    #     # no_cum_holding = np.cumsum(no_action, axis=1) + np.expand_dims(initial_stock_holding, -1)
+
+    #     num_sub_plts = 2+hedging_dim*2
+    #     fig, axs = plt.subplots(num_sub_plts, 1, figsize=(num_sub_plts*20,20))
+    #     for i in range(hedging_dim):
+    #         axs[0].plot(hedging_price[i,:], label=f'{hedging_inst[i]} Price', color='orange')
+    #     # axs[0].plot(hedging_price[0,:], label='Stock Price', color='orange')
+    #     axs[0].grid(True)
+    #     axs[0].set_ylabel('Hedging Price')
+    #     ax2 = axs[0].twinx()  # instantiate a second axes that shares the same x-axis
+    #     ax2.set_ylabel('Liability Prices') 
+    #     for i in range(derivative_dim): 
+    #         ax2.plot(derivative_price[i,:], label=f'{liability_inst[i]}', color='blue')
+    #     # ax2.plot(derivative_price[0,:], label='European Option Price', color='blue')
+    #     axs[0].legend(loc='upper left')
+    #     ax2.legend(loc='lower left')
+
+    #     for i in range(hedging_dim):
+    #         for n, a in action.items():
+    #         try:
+    #             axs[1+i*2].bar(range(0, step_dim), a[i,:], alpha=0.5, label=n)
+    #         except:
+    #             continue
+    #         # axs[1+i*2].bar(range(0, step_dim), no_action[i,:], alpha=0.5, label='No hedge bot hedging action')
+    #         axs[1+i*2].legend(loc='upper left')
+    #         axs[1+i*2].set_ylabel(f'Hedging {i} Action')
+
+    #         for n, h in cum_holding.items():
+    #         try:
+    #             axs[2*(1+i)].bar(range(0, step_dim), h[i,:], alpha=0.5, label=n)
+    #         except:
+    #             continue
+    #         # axs[2+i*2].bar(range(0, step_dim), no_cum_holding[i,:], alpha=0.5, label='No hedge bot hedging holding')
+    #         axs[2*(1+i)].legend(loc='upper left')
+    #         axs[2*(1+i)].set_ylabel(f'{hedging_inst[i]} Holding')
+
+    #     for n, l in pnls.items():
+    #         axs[1+2*hedging_dim].plot(l, label=n)
+    #     # axs[1+2*hedging_dim].plot(no_cum_pnl, label='No hedge bot accumulative P&L')
+    #     axs[1+2*hedging_dim].grid(True)
+    #     axs[1+2*hedging_dim].legend(loc='upper left')
+    #     axs[1+2*hedging_dim].set_xlabel('time')
+
+    #     fig.tight_layout()
+    #     plt.savefig(f'{model_path}price_action_path_{figure_name}.png')
+    #     plt.show()
