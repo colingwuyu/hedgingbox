@@ -44,6 +44,7 @@ class D4PGLearner(acme.Learner):
       critic_optimizer: snt.Optimizer = None,
       risk_obj_func: bool = True,
       risk_obj_c: np.float32 = 1.5,
+      exp_mu: np.float32 = 0,
       clipping: bool = True,
       counter: counting.Counter = None,
       logger: loggers.Logger = None,
@@ -78,6 +79,7 @@ class D4PGLearner(acme.Learner):
     self._trainable = trainable
     self._risk_obj_func = risk_obj_func
     self._risk_obj_c = risk_obj_c
+    self._exp_mu = exp_mu
     # Store online and target networks.
     self._policy_network = policy_network
     self._critic_network = critic_network
@@ -195,7 +197,9 @@ class D4PGLearner(acme.Learner):
       dqda_clipping = 1.0 if self._clipping else None
       if self._risk_obj_func:
         c = tf.cast(self._risk_obj_c, dpg_q_t.dtype)
-        dpg_f = dpg_q_t - c * tf.sqrt(dpg_q_var_t)
+        # dpg_f = dpg_q_t - c * tf.sqrt(dpg_q_var_t)
+        exp_mu = tf.cast(self._exp_mu, dpg_q_t.dtype)
+        dpg_f = - dpg_q_var_t - self._risk_obj_c * tf.square(dpg_q_t - exp_mu)
       else:
         dpg_f = dpg_q_t
       policy_loss = losses.dpg(
