@@ -138,7 +138,7 @@ class Preset:
             log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
             pd.DataFrame.from_dict(status_dic, orient="index", columns=[bot_name]).to_csv(f'{log_path}/{bot_name}_pnl_stat.csv')
 
-    def train(self, num_check_points, validate = False):
+    def train(self, num_check_points):
         if self._agent_type == "Greek":
             print("Greek agent is not trainable.")
             return
@@ -158,9 +158,8 @@ class Preset:
                     self._market.set_mode("training",continue_counter=True)
                     self._loop.run(num_episodes=num_train_episodes)
                     # prediction
-                    if validate:
-                        self._market.set_mode("validation")
-                        self._loop.run(num_episodes=num_prediction_episodes)
+                    self._market.set_mode("validation")
+                    self._loop.run(num_episodes=num_prediction_episodes)
                     self._agent.checkpoint_save()    
 
     def validation(self):
