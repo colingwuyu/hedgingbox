@@ -160,7 +160,8 @@ class Preset:
                     # prediction
                     self._market.set_mode("validation")
                     self._loop.run(num_episodes=num_prediction_episodes)
-                    self._agent.checkpoint_save()    
+                    if self._agent.get_predictor().is_best_perf():
+                        self._agent.checkpoint_save()    
 
     def validation(self):
         self._market.set_mode("validation")

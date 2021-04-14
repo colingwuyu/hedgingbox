@@ -93,10 +93,6 @@ class Predictor(core.Actor):
         self._num_hedgings = None
         self._num_derivatives = None
         self._portfolio = None
-        if risk_obj:
-            self._best_reward_measure = 'mean-var'
-        else:
-            self._best_reward_measure = 'reward_mean'
         if self._log_perf:
             self._performance_logger.clear()
         self._progress_measures = dict()
@@ -104,9 +100,10 @@ class Predictor(core.Actor):
             self._counter = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
                                     usecols=["train_episodes"]).max().values[0]
-            self._best_reward = pd.read_csv(self._progress_logger.file_path,
+            std = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
-                                    usecols=[self._best_reward_measure]).max().values[0]
+                                    usecols=["pnl_std"])
+            self._best_reward = (-std**2).max().values[0]
         else:
             self._counter = 0
     
@@ -292,8 +289,8 @@ class Predictor(core.Actor):
         self._counter += self._num_train_per_pred
         measures['train_episodes'] = self._counter
         self._progress_measures.update(measures)
-        if (self._best_reward is None) or (self._best_reward < measures[self._best_reward_measure]):
-            self._best_reward = measures[self._best_reward_measure] 
+        if (self._best_reward is None) or (self._best_reward < (-measures["pnl_std"]**2)):
+            self._best_reward = -measures["pnl_std"]**2 
             self._is_best_perf = True
 
     def _write_progress_figures(self):
