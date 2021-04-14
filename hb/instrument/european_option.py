@@ -132,11 +132,16 @@ class EuropeanOption(Instrument):
         else:
             spot = float(self._underlying.get_price())
             vol = float(self.get_implied_vol(path_i, step_i))
-            self._spot_handle.linkTo(ql.SimpleQuote(spot))
-            self._flat_vol_ts_handle.linkTo(
-                ql.BlackConstantVol(get_date(), calendar, vol, day_count)
-            )
-            option_price = self._option.NPV()
+            # self._spot_handle.linkTo(ql.SimpleQuote(spot))
+            # self._flat_vol_ts_handle.linkTo(
+            #     ql.BlackConstantVol(get_date(), calendar, vol, day_count)
+            # )
+            # option_price = self._option.NPV()
+            ir = self._simulator_handler.get_obj().get_ir()
+            dividend = self._underlying.get_dividend_yield()
+            tau = self._maturity_time - get_cur_time()
+            option_price = blackscholes.price(self._call, spot, ir, dividend, vol, 
+                                              self._strike, tau, tau)
         return option_price
 
     def get_delta(self, path_i: int=None, step_i: int=None) -> float:
@@ -155,11 +160,17 @@ class EuropeanOption(Instrument):
             path_i, step_i = self._counter_handler.get_obj().get_path_step()
         spot = float(self._underlying.get_price())
         vol = float(self.get_implied_vol(path_i, step_i))
-        self._spot_handle.linkTo(ql.SimpleQuote(spot))
-        self._flat_vol_ts_handle.linkTo(
-            ql.BlackConstantVol(get_date(), calendar, vol, day_count)
-        )
-        return self._option.delta()
+        # self._spot_handle.linkTo(ql.SimpleQuote(spot))
+        # self._flat_vol_ts_handle.linkTo(
+        #     ql.BlackConstantVol(get_date(), calendar, vol, day_count)
+        # )
+        # delta = self._option.delta()
+        ir = self._simulator_handler.get_obj().get_ir()
+        dividend = self._underlying.get_dividend_yield()
+        tau = self._maturity_time - get_cur_time()
+        delta = blackscholes.delta(self._call, spot, ir, dividend, vol, 
+                                   self._strike, tau, tau)
+        return delta
         
     def get_gamma(self, path_i: int=None, step_i: int=None) -> float:
         if (abs(self._maturity_time-get_cur_time()) < 1e-5):
