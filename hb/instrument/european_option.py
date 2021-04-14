@@ -168,8 +168,8 @@ class EuropeanOption(Instrument):
         ir = self._simulator_handler.get_obj().get_ir()
         dividend = self._underlying.get_dividend_yield()
         tau = self._maturity_time - get_cur_time()
-        delta = blackscholes.delta(self._call, spot, ir, dividend, vol, 
-                                   self._strike, tau, tau)
+        delta = blackscholes.delta(self._call, spot, ir, dividend,  
+                                   self._strike, vol, tau, tau)
         return delta
         
     def get_gamma(self, path_i: int=None, step_i: int=None) -> float:
