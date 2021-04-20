@@ -112,12 +112,14 @@ class Position():
         """
         return (action-self._loc_f)/self._scale_f
 
-    def buy(self, shares: float, ignore_constraint: bool=False):
+    def buy(self, shares: float, ignore_constraint: bool=False, physical: bool=False):
         """buy shares
 
         Args:
             shares (float): if it is positive, then means to buy shares
                             if it is negative, then means to sell shares
+            ignore_constraint (bool): whether ignore the trading constraint
+            physical (bool): whether the buy is a physical execution or not. If it is physical, then ignore transaction cost
 
         Returns:
             cashflow (float):   the proceed cash flow including transaction cost 
@@ -134,7 +136,9 @@ class Position():
             shares = max(self._trading_limit[0], min(self._trading_limit[1], self._holding - prev_holding))
         else:
             self._holding = self._holding + shares
-        trans_cost = self._instrument.get_execute_cost(shares)
+        trans_cost = 0.
+        if not physical:
+            trans_cost = self._instrument.get_execute_cost(shares)
         return - self._instrument.get_market_value(shares) - trans_cost, trans_cost, shares
 
     def get_breach_holding_constraint(self):
@@ -396,11 +400,8 @@ class Portfolio():
         cashflow, _, _ = derivative_position.buy(-derivative_position.get_holding(), ignore_constraint=True)
         # trade or deliver the corresponding shares for option exercise
         hedging_position = self._hedging_portfolio_map[derivative_position.get_instrument().get_underlying_name()]
-        proceeds, trans_cost, _ = hedging_position.buy(dump_shares, ignore_constraint=True)
-        if derivative_position.get_instrument().get_is_physical_settle():
-            # physical settle
-            proceeds += trans_cost
-            trans_cost = 0
+        proceeds, trans_cost, _ = hedging_position.buy(dump_shares, ignore_constraint=True, 
+                                                       physical=derivative_position.get_instrument().get_is_physical_settle())
         cashflow += proceeds
         return cashflow, trans_cost
 
