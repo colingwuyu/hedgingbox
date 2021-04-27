@@ -58,6 +58,7 @@ class Predictor(core.Actor):
                  num_train_per_pred: int,
                  risk_obj: bool = False,
                  risk_obj_c: float = 1.5,
+                 mu_lambda: float = 1.0,
                  logger_dir: str = 'predictor/',
                  label: str = 'predictor',
                  log_perf: bool = False):
@@ -90,6 +91,7 @@ class Predictor(core.Actor):
         self._best_reward = None
         self._is_best_perf = False
         self._risk_obj_c = risk_obj_c
+        self._mu_lambda = mu_lambda
         self._num_hedgings = None
         self._num_derivatives = None
         self._portfolio = None
@@ -100,10 +102,10 @@ class Predictor(core.Actor):
             self._counter = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
                                     usecols=["train_episodes"]).max().values[0]
-            std = pd.read_csv(self._progress_logger.file_path,
+            stat = pd.read_csv(self._progress_logger.file_path,
                                     header=0, 
-                                    usecols=["pnl_std"])
-            self._best_reward = (-std**2).max().values[0]
+                                    usecols=["pnl_std", "pnl_mean"])
+            self._best_reward = (self._mu_lambda*stat.pnl_mean-self._risk_obj_c*stat.pnl_std).max()
         else:
             self._counter = 0
     
@@ -289,8 +291,9 @@ class Predictor(core.Actor):
         self._counter += self._num_train_per_pred
         measures['train_episodes'] = self._counter
         self._progress_measures.update(measures)
-        if (self._best_reward is None) or (self._best_reward < (-measures["pnl_std"]**2)):
-            self._best_reward = -measures["pnl_std"]**2 
+        reward_value = self._mu_lambda*measures['pnl_mean']-self._risk_obj_c*measures['pnl_std']
+        if (self._best_reward is None) or (self._best_reward < reward_value):
+            self._best_reward = reward_value 
             self._is_best_perf = True
 
     def _write_progress_figures(self):

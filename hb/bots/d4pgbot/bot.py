@@ -52,7 +52,8 @@ class D4PGBot(bot.Bot):
                 critic_network: snt.Module,
                 observation_network: types.TensorTransformation = tf.identity,
                 discount: float = 1.0,
-                pred_episode: int = 1_000,
+                pred_episode: int = 0, 
+                validation_episodes: int = 1_000,
                 observation_per_pred: int = 10_000,
                 pred_only: bool = False,
                 batch_size: int = 256,
@@ -68,7 +69,7 @@ class D4PGBot(bot.Bot):
                 clipping: bool = True,
                 risk_obj_func: bool = True,
                 risk_obj_c: np.float32 = 1.5,
-                exp_mu: np.float32 = 0.,
+                mu_lambda: np.float32 = 1.0,
                 logger: loggers.Logger = None,
                 counter: counting.Counter = None,
                 pred_dir: str = '~/acme/',
@@ -106,56 +107,59 @@ class D4PGBot(bot.Bot):
 
         # Make sure observation network is a Sonnet Module.
         observation_network = tf2_utils.to_sonnet_module(observation_network)
+        
+        with tf.name_scope(name):
+            # Create target networks.
+            target_policy_network = copy.deepcopy(policy_network)
+            target_critic_network = copy.deepcopy(critic_network)
+            target_observation_network = copy.deepcopy(observation_network)
 
-        # Create target networks.
-        target_policy_network = copy.deepcopy(policy_network)
-        target_critic_network = copy.deepcopy(critic_network)
-        target_observation_network = copy.deepcopy(observation_network)
+            # Get observation and action specs.
+            act_spec = environment_spec.actions
+            obs_spec = environment_spec.observations
+            emb_spec = tf2_utils.create_variables(observation_network, [obs_spec])
 
-        # Get observation and action specs.
-        act_spec = environment_spec.actions
-        obs_spec = environment_spec.observations
-        emb_spec = tf2_utils.create_variables(observation_network, [obs_spec])
+            # Create the behavior policy.
+            behavior_network = snt.Sequential([
+                observation_network,
+                policy_network,
+                networks.ClippedGaussian(sigma),
+                networks.ClipToSpec(act_spec),
+            ])
 
-        # Create the behavior policy.
-        behavior_network = snt.Sequential([
-            observation_network,
-            policy_network,
-            networks.ClippedGaussian(sigma),
-            networks.ClipToSpec(act_spec),
-        ])
+            # Create variables.
+            tf2_utils.create_variables(policy_network, [emb_spec])  # pytype: disable=wrong-arg-types
+            tf2_utils.create_variables(critic_network, [emb_spec, act_spec])
+            tf2_utils.create_variables(target_policy_network, [emb_spec])  # pytype: disable=wrong-arg-types
+            tf2_utils.create_variables(target_critic_network, [emb_spec, act_spec])
+            tf2_utils.create_variables(target_observation_network, [obs_spec])
 
-        # Create variables.
-        tf2_utils.create_variables(policy_network, [emb_spec])  # pytype: disable=wrong-arg-types
-        tf2_utils.create_variables(critic_network, [emb_spec, act_spec])
-        tf2_utils.create_variables(target_policy_network, [emb_spec])  # pytype: disable=wrong-arg-types
-        tf2_utils.create_variables(target_critic_network, [emb_spec, act_spec])
-        tf2_utils.create_variables(target_observation_network, [obs_spec])
+            # Create the actor which defines how we take actions.
+            if self._trainable:
+                actor = actors.FeedForwardActor(behavior_network, adder=adder)
+            else:
+                actor = actors.FeedForwardActor(behavior_network)
+            
+            # Create the predictor 
+            pred_behavior_network = snt.Sequential([
+                observation_network,
+                policy_network,
+                networks.ClipToSpec(act_spec),
+            ])
+            predictor = d4pg_predictor.D4PGPredictor(network=pred_behavior_network,
+                                                    action_spec=act_spec, 
+                                                    num_train_per_pred=observation_per_pred, 
+                                                    logger_dir=pred_dir,
+                                                    label=name,
+                                                    risk_obj=risk_obj_func,
+                                                    risk_obj_c=risk_obj_c,
+                                                    mu_lambda=mu_lambda)
 
-        # Create the actor which defines how we take actions.
-        if self._trainable:
-            actor = actors.FeedForwardActor(behavior_network, adder=adder)
-        else:
-            actor = actors.FeedForwardActor(behavior_network)
-        # Create the predictor 
-        pred_behavior_network = snt.Sequential([
-            observation_network,
-            policy_network,
-            networks.ClipToSpec(act_spec),
-        ])
-        predictor = d4pg_predictor.D4PGPredictor(network=pred_behavior_network,
-                                                action_spec=act_spec, 
-                                                num_train_per_pred=observation_per_pred, 
-                                                logger_dir=pred_dir,
-                                                label=name,
-                                                risk_obj=risk_obj_func,
-                                                risk_obj_c=risk_obj_c)
-
-        # Create optimizers.
-        policy_optimizer = policy_optimizer or tf.keras.optimizers.Adam(
-            learning_rate=1e-4)
-        critic_optimizer = critic_optimizer or tf.keras.optimizers.Adam(
-            learning_rate=1e-4)
+            # Create optimizers.
+            policy_optimizer = policy_optimizer or tf.keras.optimizers.Adam(
+                learning_rate=1e-4)
+            critic_optimizer = critic_optimizer or tf.keras.optimizers.Adam(
+                learning_rate=1e-4)
 
         # The learner updates the parameters (and initializes them).
         learner = learning.D4PGLearner(
@@ -170,7 +174,7 @@ class D4PGBot(bot.Bot):
             critic_optimizer=critic_optimizer,
             risk_obj_c=risk_obj_c,
             risk_obj_func=risk_obj_func,
-            exp_mu=exp_mu,
+            mu_lambda=mu_lambda,
             clipping=clipping,
             discount=discount,
             target_update_period=target_update_period,
@@ -198,7 +202,8 @@ class D4PGBot(bot.Bot):
             predictor=predictor,
             min_observations=max(batch_size, min_replay_size),
             observations_per_step=float(batch_size) / samples_per_insert,
-            pred_episods=pred_episode,
+            pred_episods=pred_episode, 
+            validation_episodes=validation_episodes,
             observations_per_pred=observation_per_pred,
             portfolio=portfolio,
             pred_only=pred_only)

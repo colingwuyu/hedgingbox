@@ -5,10 +5,12 @@ from hb.utils.loggers.default import make_default_logger
 import hb.bots.d4pgbot as d4pg
 import hb.bots.greekbot as greek
 import acme
+from acme.utils import counting
 import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+
 
 class Preset:
     def __init__(self) -> None:
@@ -91,9 +93,12 @@ class Preset:
         for agent in dict_json["agents"]:
             if agent["agent_type"] == "D4PG":
                 if agent["name"] == dict_json["trainable_agent"]:
-                    agent_obj = d4pg.load_json(agent, market, preset._log_path, True)
+                    agent_obj = d4pg.load_json(
+                        agent, market, preset._log_path, True)
+                    preset._reward_func = lambda stats: agent["parameters"]["mu_lambda"]*stats[0] - agent["parameters"]["risk_obj_c"]*stats[1] 
                 else:
-                    agent_obj = d4pg.load_json(agent, market, preset._log_path, False)
+                    agent_obj = d4pg.load_json(
+                        agent, market, preset._log_path, False)
             elif agent["agent_type"] == "Greek":
                 agent_obj = greek.load_json(agent, market, preset._log_path)
             else:
@@ -104,11 +109,29 @@ class Preset:
                 preset._agent = market.get_agent(dict_json["trainable_agent"])
                 preset._agent_type = agent["agent_type"]
         preset._market = market
+        preset._environment_log_file = preset._log_path+"logs/environment_loop/logs.csv"
+        counter = counting.Counter()
+        preset._best_reward = None
+        if preset._agent_type == 'D4PG':
+            if os.path.exists(preset._environment_log_file):
+                loop_log = pd.read_csv(preset._environment_log_file)
+                counter.increment(episodes=loop_log.episodes.values[-1],steps=loop_log.steps.values[-1])
+                num_train_episodes = market.get_train_episodes()
+                for i in range(int(len(loop_log)/num_train_episodes)):
+                    last_set = loop_log.episode_return.values[(num_train_episodes*i):(num_train_episodes*(i+1))]                      
+                    last_mean = np.mean(last_set)
+                    last_std = np.std(last_set)
+                    last_reward = preset._reward_func([last_mean, last_std])
+                    if (preset._best_reward is None) or (last_reward > preset._best_reward):
+                        preset._best_reward = last_reward
+        print("Current best target function value is: ", preset._best_reward)
         preset._loop = acme.EnvironmentLoop(preset._market, preset._agent,
-                                        logger=make_default_logger(
-                                            directory=preset._log_path+'environment_loop',
-                                            label="environment_loop"))
-            
+                                            logger=make_default_logger(
+                                                directory=preset._log_path,
+                                                label="environment_loop",
+                                                time_delta=0.0),
+                                            counter=counter)
+
         return preset
 
     @staticmethod
@@ -135,8 +158,10 @@ class Preset:
 
             for k in status.keys():
                 status_dic[k] = [status[k]]
-            log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
-            pd.DataFrame.from_dict(status_dic, orient="index", columns=[bot_name]).to_csv(f'{log_path}/{bot_name}_pnl_stat.csv')
+            log_path = os.path.dirname(
+                agent.get_predictor().get_perf_log_file_path())
+            pd.DataFrame.from_dict(status_dic, orient="index", columns=[bot_name]).to_csv(
+                f'{log_path}/{bot_name}_pnl_stat.csv')
 
     def train(self, num_check_points):
         if self._agent_type == "Greek":
@@ -144,24 +169,34 @@ class Preset:
             return
         else:
             self._agent.set_pred_only(False)
-            
+
             # Try running the environment loop. We have no assertions here because all
             # we care about is that the agent runs without raising any errors.
 
-            num_prediction_episodes = self._market.get_validation_episodes()
+            # num_prediction_episodes = self._market.get_validation_episodes()
+            num_prediction_episodes = 0
             num_train_episodes = self._market.get_train_episodes()
-            num_episodes =  num_train_episodes + num_prediction_episodes
+            num_episodes = num_train_episodes + num_prediction_episodes
             if num_episodes > 0:
                 for i in range(num_check_points):
                     print(f"Check Point {i}")
                     # train
-                    self._market.set_mode("training",continue_counter=True)
+                    self._market.set_mode("training", continue_counter=True)
                     self._loop.run(num_episodes=num_train_episodes)
                     # prediction
-                    self._market.set_mode("validation")
-                    self._loop.run(num_episodes=num_prediction_episodes)
-                    if self._agent.get_predictor().is_best_perf():
-                        self._agent.checkpoint_save()    
+                    # self._market.set_mode("validation")
+                    # self._loop.run(num_episodes=num_prediction_episodes)
+                    # if self._agent.get_predictor().is_best_perf():
+                    loop_log = pd.read_csv(self._environment_log_file)
+                    last_set = loop_log.episode_return.values[(-num_train_episodes):]                      
+                    last_mean = np.mean(last_set)
+                    last_std = np.std(last_set)
+                    last_reward = self._reward_func([last_mean, last_std])
+                    print("Checkpoint target function value is: ", last_reward)
+                    if (self._best_reward is None) or (last_reward > self._best_reward):
+                        print("Best target function value, saving model...")
+                        self._best_reward = last_reward
+                        self._agent.checkpoint_save()
 
     def validation(self):
         self._market.set_mode("validation")
@@ -173,26 +208,34 @@ class Preset:
         self.dist_stat_save()
 
         for agent in self._market._agents.values():
-            hedge_perf = pd.read_csv(agent.get_predictor().get_perf_log_file_path())
-            hedge_pnl_list = hedge_perf[hedge_perf.type=='pnl'].drop(['path_num','type'], axis=1).sum(axis=1).values
-            log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
-            np.save(f'{log_path}/{agent.get_name()}hedge_pnl_measures.npy', hedge_pnl_list)
+            hedge_perf = pd.read_csv(
+                agent.get_predictor().get_perf_log_file_path())
+            hedge_pnl_list = hedge_perf[hedge_perf.type == 'pnl'].drop(
+                ['path_num', 'type'], axis=1).sum(axis=1).values
+            log_path = os.path.dirname(
+                agent.get_predictor().get_perf_log_file_path())
+            np.save(
+                f'{log_path}/{agent.get_name()}hedge_pnl_measures.npy', hedge_pnl_list)
 
-    def plot_progress(self, start_episode = 0):
-        train_progress = pd.read_csv(self._loop._logger._to._to._to[1]._file_path)
-        plt.plot(train_progress.episodes[start_episode:], train_progress.episode_return[start_episode:])
+    def plot_progress(self, start_episode=0):
+        train_progress = pd.read_csv(
+            self._loop._logger._to._to._to[1]._file_path)
+        plt.plot(train_progress.episodes[start_episode:],
+                 train_progress.episode_return[start_episode:])
 
     def plot_pnl_distribution(self):
         for agent in self._market._agents.values():
-            log_path = os.path.dirname(agent.get_predictor().get_perf_log_file_path())
+            log_path = os.path.dirname(
+                agent.get_predictor().get_perf_log_file_path())
             pnl_path = f'{log_path}/{agent.get_name()}hedge_pnl_measures.npy'
             hedge_pnl_list = np.load(pnl_path)
-            plt.hist(hedge_pnl_list, bins=50, alpha=0.5, label=agent.get_name(), density=True)
+            plt.hist(hedge_pnl_list, bins=50, alpha=0.5,
+                     label=agent.get_name(), density=True)
         plt.legend(loc='upper left')
         plt.show()
-    
+
     # def plot_path(self, pnl, action, cum_holding,
-    #           hedging_inst, hedging_price, liability_inst, derivative_price, 
+    #           hedging_inst, hedging_price, liability_inst, derivative_price,
     #           figure_name):
     #     logs_file = {
     #         "d4pg hedging": 'logs/d4pg_predictor/performance/logs.csv',
@@ -205,8 +248,8 @@ class Preset:
     #     perfs = {}
     #     for n, f in logs_file.items():
     #         perfs[n] = pd.read_csv(model_path + f)
-    #     hedging_strategy = "d4pg hedging" 
-    #     price_from = "d4pg hedging" 
+    #     hedging_strategy = "d4pg hedging"
+    #     price_from = "d4pg hedging"
     #     all_pnl_list = {}
     #     for n, perf in perfs.items():
     #         all_pnl_list[n] = perf[perf.type=='pnl'].drop(['path_num','type'], axis=1).sum(axis=1)
@@ -226,21 +269,21 @@ class Preset:
     #         holding_list[n + " holding"] = perf[(perf.path_num==path_num)&(perf.type.str.contains("holding"))].drop(['path_num','type'], axis=1)
     #         pnl_list[n + " acc. pnl"] = perf[(perf.path_num==path_num)&(perf.type=='pnl')].drop(['path_num','type'], axis=1)
 
-    #     hedging_price.columns = hedging_price.columns.astype(int) 
+    #     hedging_price.columns = hedging_price.columns.astype(int)
     #     hedging_price = hedging_price.reindex(sorted(hedging_price.columns), axis=1).values
-    #     derivative_price.columns = derivative_price.columns.astype(int) 
+    #     derivative_price.columns = derivative_price.columns.astype(int)
     #     derivative_price = derivative_price.reindex(sorted(derivative_price.columns), axis=1).values
     #     for k in pnl_list.keys():
     #         pnl_list[k].columns = pnl_list[k].columns.astype(int)
     #         pnl_list[k] = pnl_list[k].reindex(sorted(pnl_list[k].columns), axis=1).values[0]
     #     for k in action_list.keys():
-    #         action_list[k].columns = action_list[k].columns.astype(int) 
+    #         action_list[k].columns = action_list[k].columns.astype(int)
     #         action_list[k] = action_list[k].reindex(sorted(action_list[k].columns), axis=1).values
     #     for k in holding_list.keys():
-    #         holding_list[k].columns = holding_list[k].columns.astype(int) 
+    #         holding_list[k].columns = holding_list[k].columns.astype(int)
     #         holding_list[k] = holding_list[k].reindex(sorted(holding_list[k].columns), axis=1).values
     #     path_plot(pnl_list, action_list, holding_list,
-    #             hedging_inst, hedging_price, liability_inst, derivative_price, 
+    #             hedging_inst, hedging_price, liability_inst, derivative_price,
     #             f"{hedging_strategy} Path{pnl_order}")
     #     hedging_dim = hedging_price.shape[0]
     #     derivative_dim = derivative_price.shape[0]
@@ -261,8 +304,8 @@ class Preset:
     #     axs[0].grid(True)
     #     axs[0].set_ylabel('Hedging Price')
     #     ax2 = axs[0].twinx()  # instantiate a second axes that shares the same x-axis
-    #     ax2.set_ylabel('Liability Prices') 
-    #     for i in range(derivative_dim): 
+    #     ax2.set_ylabel('Liability Prices')
+    #     for i in range(derivative_dim):
     #         ax2.plot(derivative_price[i,:], label=f'{liability_inst[i]}', color='blue')
     #     # ax2.plot(derivative_price[0,:], label='European Option Price', color='blue')
     #     axs[0].legend(loc='upper left')

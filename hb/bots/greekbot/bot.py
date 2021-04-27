@@ -19,7 +19,7 @@ class GreekHedgeBot(bot.Bot):
                  hedging_strategies = [EuroDeltaHedgingStrategy, VarianceSwapReplicatingStrategy],
                  pred_dir: str = '~/acme/',
                  label: str = "greek_hedging",
-                 pred_episode: int = 1_000 
+                 validation_episodes: int = 1_000 
                  ):
         """Initialize the delta hedging bot
 
@@ -39,7 +39,8 @@ class GreekHedgeBot(bot.Bot):
             predictor=predictor,
             min_observations=100,
             observations_per_step=1e9,
-            pred_episods=pred_episode,
+            pred_episods=0,
+            validation_episodes=validation_episodes,
             observations_per_pred=1,
             portfolio=portfolio,
             pred_only=True)

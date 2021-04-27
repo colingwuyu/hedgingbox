@@ -18,7 +18,7 @@ class Bot(agent.Agent):
 
     def __init__(self, name: str, actor: core.Actor, learner: core.Learner, predictor: Predictor,
                  min_observations: int, observations_per_step: float,
-                 pred_episods: int, observations_per_pred: int,
+                 pred_episods: int, validation_episodes: int, observations_per_pred: int,
                  portfolio: Portfolio,
                  pred_only: bool = False):
         self._name = name
@@ -27,6 +27,7 @@ class Bot(agent.Agent):
         self._predictor.set_portfolio(portfolio)
         self._observations_per_pred = observations_per_pred
         self._pred_episods = pred_episods
+        self._validation_episodes = validation_episodes 
         self._cur_episods = -self._observations_per_pred
         self._pred = False
         self._pred_only = pred_only
@@ -64,10 +65,12 @@ class Bot(agent.Agent):
                 if self._pred and (not self._pred_only):
                     self._predictor.log_progress()
                 if self._pred_only:
-                    self._cur_episods = -self._pred_episods
-                else:
+                    self._cur_episods = -self._validation_episodes
+                elif self._pred_episods > 0:
                     self._pred = not self._pred
                     self._cur_episods = -self._pred_episods if self._pred else -self._observations_per_pred
+                else:    
+                    self._cur_episods = -self._observations_per_pred
 
     def update(self):
         if not (self._pred or self._pred_only):
@@ -84,7 +87,7 @@ class Bot(agent.Agent):
         self._pred_only = pred_only
         if self._pred_only:
             self._pred = True
-            self._cur_episods = -self._pred_episods
+            self._cur_episods = -self._validation_episodes
             self._predictor.start_log_perf()
         else:
             self._pred = False

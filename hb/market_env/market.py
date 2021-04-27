@@ -647,7 +647,7 @@ class Market(dm_env.Environment):
             if agent_name != self._trainable_agent:
                 self._agents[agent_name].observe(agent_action, next_timestep=ret_step)
                 observation=np.append(agent_market._observation(),step_pnl)
-                self._agent_actions[agent_name] = self._agents[agent_name].select_action(observation)
+                self._agent_actions[agent_name] = self._agents[agent_name].select_action(np.float32(observation))
             else:
                 trainable_step = ret_step
         return trainable_step

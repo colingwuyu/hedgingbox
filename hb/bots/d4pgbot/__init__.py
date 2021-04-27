@@ -1,6 +1,7 @@
 from .bot import *
 import json
 from acme.tf import networks as tf2_networks
+import tensorflow as tf
 from acme import specs
 from typing import Mapping, Sequence
 from hb.market_env.portfolio import Portfolio
@@ -8,6 +9,7 @@ import os
 
 
 def make_networks(
+    bot_name: str,
     action_spec: specs.BoundedArray,
     policy_layer_sizes: Sequence[int] = (256, 256, 256),
     critic_layer_sizes: Sequence[int] = (512, 512, 256),
@@ -23,20 +25,21 @@ def make_networks(
     # Create the shared observation network; here simply a state-less operation.
     observation_network = tf2_utils.batch_concat
 
-    # Create the policy network.
-    policy_network = snt.Sequential([
-        tf2_networks.LayerNormMLP(policy_layer_sizes, activate_final=True),
-        tf2_networks.NearZeroInitializedLinear(num_dimensions),
-        tf2_networks.TanhToSpec(action_spec),
-    ])
+    with tf.name_scope(bot_name):
+        # Create the policy network.
+        policy_network = snt.Sequential([
+            tf2_networks.LayerNormMLP(policy_layer_sizes, activate_final=True),
+            tf2_networks.NearZeroInitializedLinear(num_dimensions),
+            tf2_networks.TanhToSpec(action_spec),
+        ])
 
-    # Create the critic network.
-    critic_network = snt.Sequential([
-        # The multiplexer concatenates the observations/actions.
-        tf2_networks.CriticMultiplexer(),
-        tf2_networks.LayerNormMLP(critic_layer_sizes, activate_final=True),
-        tf2_networks.DiscreteValuedHead(vmin, vmax, num_atoms),
-    ])
+        # Create the critic network.
+        critic_network = snt.Sequential([
+            # The multiplexer concatenates the observations/actions.
+            tf2_networks.CriticMultiplexer(),
+            tf2_networks.LayerNormMLP(critic_layer_sizes, activate_final=True),
+            tf2_networks.DiscreteValuedHead(vmin, vmax, num_atoms),
+        ])
 
     return {
         'policy': policy_network,
@@ -99,9 +102,6 @@ def load_json(json_: Union[dict, str], market, log_dir, trainable=True):
         dict_json = json_
     if not os.path.exists(dict_json["model_path"]):
         os.makedirs(dict_json["model_path"])
-    model_chkpt = dict_json["model_path"] + "checkpoint"
-    if not os.path.exists(model_chkpt):
-        os.makedirs(model_chkpt)
     portfolio = Portfolio.load_json(dict_json["portfolio"])
     for position in portfolio.get_portfolio_positions():
         position.set_instrument(
@@ -111,14 +111,15 @@ def load_json(json_: Union[dict, str], market, log_dir, trainable=True):
     market.add_portfolio(portfolio, dict_json["name"])
     agent_market = market.get_agent_market(agent_name)
     spec = specs.make_environment_spec(agent_market)
-    d4pg_networks = make_networks(spec.actions,
+    d4pg_networks = make_networks(agent_name,
+                                  spec.actions,
                                   dict_json["networks"]["policy_layer_sizes"],
                                   dict_json["networks"]["critic_layer_sizes"],
                                   dict_json["networks"]["vmin"],
                                   dict_json["networks"]["vmax"],
                                   dict_json["networks"]["num_atoms"]
                                   )
-    num_prediction_episodes = market.get_validation_episodes()
+    num_validation_episodes = market.get_validation_episodes()
     observation_per_pred = market.get_train_episodes()
     d4pg_bot = D4PGBot(
         name=agent_name,
@@ -129,12 +130,13 @@ def load_json(json_: Union[dict, str], market, log_dir, trainable=True):
         # critic_optimizer=tf.keras.optimizers.Adam(learning_rate),
         risk_obj_func=dict_json["parameters"]["risk_obj_func"],
         risk_obj_c=dict_json["parameters"]["risk_obj_c"],
-        exp_mu=dict_json["parameters"]["exp_mu"],
+        mu_lambda=dict_json["parameters"]["mu_lambda"],
         batch_size=dict_json["parameters"]["batch_size"],
         n_step=dict_json["parameters"]["n_step"],
         sigma=dict_json["parameters"]["sigma"],
         samples_per_insert=dict_json["parameters"]["samples_per_insert"],
-        pred_episode=num_prediction_episodes,
+        pred_episode=0,
+        validation_episodes=num_validation_episodes,
         observation_per_pred=observation_per_pred,
         pred_dir=log_dir,
         checkpoint_subpath=dict_json["model_path"],
