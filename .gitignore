@@ -21,3 +21,4 @@ nn_model/
 *.npy
 Markets/presets/*
 ~/Desktop/MachineLearning/HedgingBox/Markets/presets/bsagent/Greek-Delta1hedge_pnl_measures.npy
+workspace.code-workspace

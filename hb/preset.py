@@ -109,7 +109,7 @@ class Preset:
                 preset._agent = market.get_agent(dict_json["trainable_agent"])
                 preset._agent_type = agent["agent_type"]
         preset._market = market
-        preset._environment_log_file = preset._log_path+"logs/environment_loop/logs.csv"
+        preset._environment_log_file = os.path.join(preset._log_path,"logs/environment_loop/logs.csv")
         counter = counting.Counter()
         preset._best_reward = None
         if preset._agent_type == 'D4PG':
