@@ -93,7 +93,7 @@ class D4PGLearner(acme.Learner):
 
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()
-    self._logger = logger or loggers.make_default_logger('learner')
+    # self._logger = logger or loggers.make_default_logger('learner')
 
     # Other learner parameters.
     self._discount = discount
@@ -261,7 +261,7 @@ class D4PGLearner(acme.Learner):
     # Checkpoint and attempt to write the logs.
     if self._snapshotter is not None:
       self._snapshotter.save()
-    self._logger.write(fetches)
+    # self._logger.write(fetches)
 
   def get_variables(self, names: List[str]) -> List[List[np.ndarray]]:
     return [tf2_utils.to_numpy(self._variables[name]) for name in names]

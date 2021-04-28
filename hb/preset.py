@@ -95,7 +95,8 @@ class Preset:
                 if agent["name"] == dict_json["trainable_agent"]:
                     agent_obj = d4pg.load_json(
                         agent, market, preset._log_path, True)
-                    preset._reward_func = lambda stats: agent["parameters"]["mu_lambda"]*stats[0] - agent["parameters"]["risk_obj_c"]*stats[1] 
+                    preset._reward_func = lambda stats: agent["parameters"]["mu_lambda"] * \
+                        stats[0] - agent["parameters"]["risk_obj_c"]*stats[1]
                 else:
                     agent_obj = d4pg.load_json(
                         agent, market, preset._log_path, False)
@@ -109,16 +110,19 @@ class Preset:
                 preset._agent = market.get_agent(dict_json["trainable_agent"])
                 preset._agent_type = agent["agent_type"]
         preset._market = market
-        preset._environment_log_file = os.path.join(preset._log_path,"logs/environment_loop/logs.csv")
+        preset._environment_log_file = os.path.join(
+            preset._log_path, "logs/environment_loop/logs.csv")
         counter = counting.Counter()
         preset._best_reward = None
         if preset._agent_type == 'D4PG':
             if os.path.exists(preset._environment_log_file):
                 loop_log = pd.read_csv(preset._environment_log_file)
-                counter.increment(episodes=loop_log.episodes.values[-1],steps=loop_log.steps.values[-1])
+                counter.increment(
+                    episodes=loop_log.episodes.values[-1], steps=loop_log.steps.values[-1])
                 num_train_episodes = market.get_train_episodes()
                 for i in range(int(len(loop_log)/num_train_episodes)):
-                    last_set = loop_log.episode_return.values[(num_train_episodes*i):(num_train_episodes*(i+1))]                      
+                    last_set = loop_log.episode_return.values[(
+                        num_train_episodes*i):(num_train_episodes*(i+1))]
                     last_mean = np.mean(last_set)
                     last_std = np.std(last_set)
                     last_reward = preset._reward_func([last_mean, last_std])
@@ -131,6 +135,11 @@ class Preset:
                                                 label="environment_loop",
                                                 time_delta=0.0),
                                             counter=counter)
+        preset._validation_loop = acme.EnvironmentLoop(preset._market, preset._agent,
+                                                       logger=make_default_logger(
+                                                           directory=preset._log_path,
+                                                           label="validation_loop",
+                                                           time_delta=0.0))
 
         return preset
 
@@ -188,7 +197,8 @@ class Preset:
                     # self._loop.run(num_episodes=num_prediction_episodes)
                     # if self._agent.get_predictor().is_best_perf():
                     loop_log = pd.read_csv(self._environment_log_file)
-                    last_set = loop_log.episode_return.values[(-num_train_episodes):]                      
+                    last_set = loop_log.episode_return.values[(
+                        -num_train_episodes):]
                     last_mean = np.mean(last_set)
                     last_std = np.std(last_set)
                     last_reward = self._reward_func([last_mean, last_std])
@@ -202,9 +212,7 @@ class Preset:
         self._market.set_mode("validation")
         for agent in self._market._agents.values():
             agent.set_pred_only(True)
-        loop = acme.EnvironmentLoop(self._market, self._agent)
-        loop.run(num_episodes=self._market.get_validation_episodes())
-
+        self._validation_loop.run(num_episodes=self._market.get_validation_episodes())
         self.dist_stat_save()
 
         for agent in self._market._agents.values():
