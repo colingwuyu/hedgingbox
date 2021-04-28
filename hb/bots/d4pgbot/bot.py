@@ -210,7 +210,7 @@ class D4PGBot(bot.Bot):
 
     def update(self):
         super().update()
-        if (self._checkpointer is not None) and self._predictor.is_best_perf():
+        if (self._checkpointer is not None) and False:
             self._checkpointer.save(force=True)
 
     def checkpoint_restore(self):

@@ -84,12 +84,12 @@ class Predictor(core.Actor):
         self._last_episode_hedging_holding = self._episode_hedging_holding
         self._last_episode_action = self._episode_action
         self._num_train_per_pred = num_train_per_pred
-        self._progress_logger = hb_loggers.CSVLogger(logger_dir, label + '/progress')
-        self._performance_logger = hb_loggers.CSVLogger(logger_dir, label + '/performance')
+        # self._progress_logger = hb_loggers.CSVLogger(logger_dir, label + '/progress')
+        self._performance_logger = hb_loggers.CSVLogger(logger_dir, label)
         self._log_perf = log_perf
         self._perf_path_cnt = 0
         self._best_reward = None
-        self._is_best_perf = False
+        # self._is_best_perf = False
         self._risk_obj_c = risk_obj_c
         self._mu_lambda = mu_lambda
         self._num_hedgings = None
@@ -98,23 +98,23 @@ class Predictor(core.Actor):
         if self._log_perf:
             self._performance_logger.clear()
         self._progress_measures = dict()
-        if os.path.exists(self._progress_logger.file_path):
-            self._counter = pd.read_csv(self._progress_logger.file_path,
-                                    header=0, 
-                                    usecols=["train_episodes"]).max().values[0]
-            stat = pd.read_csv(self._progress_logger.file_path,
-                                    header=0, 
-                                    usecols=["pnl_std", "pnl_mean"])
-            self._best_reward = (self._mu_lambda*stat.pnl_mean-self._risk_obj_c*stat.pnl_std).max()
-        else:
-            self._counter = 0
+        # if os.path.exists(self._progress_logger.file_path):
+        #     self._counter = pd.read_csv(self._progress_logger.file_path,
+        #                             header=0, 
+        #                             usecols=["train_episodes"]).max().values[0]
+        #     stat = pd.read_csv(self._progress_logger.file_path,
+        #                             header=0, 
+        #                             usecols=["pnl_std", "pnl_mean"])
+        #     self._best_reward = (self._mu_lambda*stat.pnl_mean-self._risk_obj_c*stat.pnl_std).max()
+        # else:
+        #     self._counter = 0
     
-    def is_best_perf(self):
-        if self._is_best_perf:
-            self._is_best_perf = False
-            return True
-        else:
-            return False
+    # def is_best_perf(self):
+    #     if self._is_best_perf:
+    #         self._is_best_perf = False
+    #         return True
+    #     else:
+    #         return False
 
     def start_log_perf(self):
         self._log_perf = True
@@ -261,53 +261,29 @@ class Predictor(core.Actor):
         measures['pnl_99CVaR'] = sorted_pnl[:int(round(len(sorted_pnl)*0.01))].mean()
         measures['pnl_mean'] = sorted_pnl.mean()
         measures['pnl_std'] = sorted_pnl.std()
-        measures['mean-var'] = measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
+        measures['objective value'] = self._mu_lambda * measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
         # reward
-        measures['reward_mean'] = self._pred_rewards.mean()
-        # # action
-        # action_count = len(self._pred_actions)
-        # measures['sell-5'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == -5) / action_count
-        # measures['sell-4'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == -4) / action_count
-        # measures['sell-3'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == -3) / action_count
-        # measures['sell-2'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == -2) / action_count
-        # measures['sell-1'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == -1) / action_count
-        # measures['hold'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == 0) / action_count
-        # measures['buy-1'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == 1) / action_count
-        # measures['buy-2'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == 2) / action_count
-        # measures['buy-3'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == 3) / action_count
-        # measures['buy-4'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == 4) / action_count
-        # measures['buy-5'] = np.count_nonzero(
-        #     np.rint(self._pred_actions) == 5) / action_count
-        self._counter += self._num_train_per_pred
-        measures['train_episodes'] = self._counter
+        # measures['reward_mean'] = self._pred_rewards.mean()
+        # self._counter += self._num_train_per_pred
+        # measures['train_episodes'] = self._counter
         self._progress_measures.update(measures)
-        reward_value = self._mu_lambda*measures['pnl_mean']-self._risk_obj_c*measures['pnl_std']
-        if (self._best_reward is None) or (self._best_reward < reward_value):
-            self._best_reward = reward_value 
-            self._is_best_perf = True
+        # reward_value = self._mu_lambda*measures['pnl_mean']-self._risk_obj_c*measures['pnl_std']
+        # if (self._best_reward is None) or (self._best_reward < reward_value):
+        #     self._best_reward = reward_value 
+        #     self._is_best_perf = True
 
-    def _write_progress_figures(self):
-        self._progress_logger.write(self._progress_measures)
-        self._last_pred_pnls = self._pred_pnls
-        self._last_pred_rewards = self._pred_rewards
-        self._last_pred_actions = self._pred_actions
-        self._pred_pnls = np.array([])
-        self._pred_rewards = np.array([])
-        self._pred_actions = np.array([])
+    # def _write_progress_figures(self):
+    #     self._progress_logger.write(self._progress_measures)
+    #     self._last_pred_pnls = self._pred_pnls
+    #     self._last_pred_rewards = self._pred_rewards
+    #     self._last_pred_actions = self._pred_actions
+    #     self._pred_pnls = np.array([])
+    #     self._pred_rewards = np.array([])
+    #     self._pred_actions = np.array([])
 
-    def log_progress(self):
-        self._update_progress_figures()
-        self._write_progress_figures()
+    # def log_progress(self):
+    #     self._update_progress_figures()
+    #     self._write_progress_figures()
 
     def update(self):
         pass
@@ -315,5 +291,5 @@ class Predictor(core.Actor):
     def get_perf_log_file_path(self):
         return self._performance_logger._file_path
 
-    def get_prog_log_file_path(self):
-        return self._progress_logger._file_path
+    # def get_prog_log_file_path(self):
+    #     return self._progress_logger._file_path

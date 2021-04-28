@@ -110,12 +110,17 @@ class Preset:
                 market.set_trainable_agent(agent["name"])
                 preset._agent = market.get_agent(dict_json["trainable_agent"])
                 preset._agent_type = agent["agent_type"]
+        
         preset._market = market
         preset._environment_log_file = os.path.join(
             preset._log_path, "logs/train_loop/logs.csv")
         counter = counting.Counter()
         preset._best_reward = None
         if preset._agent_type == 'D4PG':
+            for agent_obj in preset._market._agents.values():
+                if agent_obj.get_name() != dict_json["trainable_agent"]:
+                    agent_obj.get_predictor()._mu_lambda = preset._agent.get_predictor()._mu_lambda
+                    agent_obj.get_predictor()._risk_obj_c = preset._agent.get_predictor()._risk_obj_c
             if os.path.exists(preset._environment_log_file):
                 loop_log = pd.read_csv(preset._environment_log_file)
                 counter.increment(
@@ -160,7 +165,7 @@ class Preset:
             bot_name = agent.get_name()
             predictor._update_progress_figures()
             status = predictor._progress_measures
-            print(f"{bot_name} Bot PnL mean-var %s" % str(status['mean-var']))
+            print(f"{bot_name} Bot objective value %s" % str(status['objective value']))
             print(f"{bot_name} Bot PnL mean %s" % str(status['pnl_mean']))
             print(f"{bot_name} Bot PnL std %s" % str(status['pnl_std']))
             print(f"{bot_name} Bot 95VaR %s" % status['pnl_95VaR'])
@@ -227,7 +232,7 @@ class Preset:
             log_path = os.path.dirname(
                 agent.get_predictor().get_perf_log_file_path())
             np.save(
-                f'{log_path}/{agent.get_name()}hedge_pnl_measures.npy', hedge_pnl_list)
+                f'{log_path}/{agent.get_name()}_hedge_pnl_measures.npy', hedge_pnl_list)
 
     def plot_progress(self, start_episode=0):
         train_progress = pd.read_csv(
