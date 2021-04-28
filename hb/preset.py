@@ -9,6 +9,7 @@ from acme.utils import counting
 import pandas as pd
 import numpy as np
 import os
+import shutil
 import matplotlib.pyplot as plt
 
 
@@ -111,7 +112,7 @@ class Preset:
                 preset._agent_type = agent["agent_type"]
         preset._market = market
         preset._environment_log_file = os.path.join(
-            preset._log_path, "logs/environment_loop/logs.csv")
+            preset._log_path, "logs/train_loop/logs.csv")
         counter = counting.Counter()
         preset._best_reward = None
         if preset._agent_type == 'D4PG':
@@ -132,9 +133,12 @@ class Preset:
         preset._loop = acme.EnvironmentLoop(preset._market, preset._agent,
                                             logger=make_default_logger(
                                                 directory=preset._log_path,
-                                                label="environment_loop",
+                                                label="train_loop",
                                                 time_delta=0.0),
                                             counter=counter)
+        validation_log_path = os.path.join(preset._log_path, "logs/validation_loop")                                   
+        if os.path.exists(validation_log_path):
+            shutil.rmtree(validation_log_path)
         preset._validation_loop = acme.EnvironmentLoop(preset._market, preset._agent,
                                                        logger=make_default_logger(
                                                            directory=preset._log_path,
