@@ -2,6 +2,12 @@ from .bot import *
 import json
 from typing import Union
 import os
+from hb.utils.container_util import get_value
+
+DEFAULT_JSON = {
+    "hedging_strategies": ["EuroDeltaHedgingStrategy"]
+}
+
 
 def load_json(json_: Union[dict, str], market, log_dir):
     """
@@ -46,7 +52,7 @@ def load_json(json_: Union[dict, str], market, log_dir):
     agent_market = market.get_agent_market(agent_name)
     spec = specs.make_environment_spec(agent_market)
     strategies = []
-    for strategy_str in dict_json["hedging_strategies"]:
+    for strategy_str in get_value(dict_json, DEFAULT_JSON, "hedging_strategies"):
         if strategy_str == "EuroDeltaHedgingStrategy":
             strategies.append(EuroDeltaHedgingStrategy)
         elif strategy_str == "EuroGammaHedgingStrategy":
@@ -58,7 +64,7 @@ def load_json(json_: Union[dict, str], market, log_dir):
         portfolio=portfolio,
         name=dict_json["name"],
         environment_spec=spec,
-        pred_dir = log_dir,
+        pred_dir=log_dir,
         label=dict_json["name"],
         hedging_strategies=strategies
     )

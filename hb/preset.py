@@ -110,7 +110,7 @@ class Preset:
                 market.set_trainable_agent(agent["name"])
                 preset._agent = market.get_agent(dict_json["trainable_agent"])
                 preset._agent_type = agent["agent_type"]
-        
+
         preset._market = market
         preset._environment_log_file = os.path.join(
             preset._log_path, "logs/train_loop/logs.csv")
@@ -141,7 +141,8 @@ class Preset:
                                                 label="train_loop",
                                                 time_delta=0.0),
                                             counter=counter)
-        validation_log_path = os.path.join(preset._log_path, "logs/validation_loop")                                   
+        validation_log_path = os.path.join(
+            preset._log_path, "logs/validation_loop")
         if os.path.exists(validation_log_path):
             shutil.rmtree(validation_log_path)
         preset._validation_loop = acme.EnvironmentLoop(preset._market, preset._agent,
@@ -165,7 +166,8 @@ class Preset:
             bot_name = agent.get_name()
             predictor._update_progress_figures()
             status = predictor._progress_measures
-            print(f"{bot_name} Bot objective value %s" % str(status['objective value']))
+            print(f"{bot_name} Bot objective value %s" %
+                  str(status['objective value']))
             print(f"{bot_name} Bot PnL mean %s" % str(status['pnl_mean']))
             print(f"{bot_name} Bot PnL std %s" % str(status['pnl_std']))
             print(f"{bot_name} Bot 95VaR %s" % status['pnl_95VaR'])
@@ -221,7 +223,8 @@ class Preset:
         self._market.set_mode("validation")
         for agent in self._market._agents.values():
             agent.set_pred_only(True)
-        self._validation_loop.run(num_episodes=self._market.get_validation_episodes())
+        self._validation_loop.run(
+            num_episodes=self._market.get_validation_episodes())
         self.dist_stat_save()
 
         for agent in self._market._agents.values():

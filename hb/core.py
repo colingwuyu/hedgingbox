@@ -100,15 +100,15 @@ class Predictor(core.Actor):
         self._progress_measures = dict()
         # if os.path.exists(self._progress_logger.file_path):
         #     self._counter = pd.read_csv(self._progress_logger.file_path,
-        #                             header=0, 
+        #                             header=0,
         #                             usecols=["train_episodes"]).max().values[0]
         #     stat = pd.read_csv(self._progress_logger.file_path,
-        #                             header=0, 
+        #                             header=0,
         #                             usecols=["pnl_std", "pnl_mean"])
         #     self._best_reward = (self._mu_lambda*stat.pnl_mean-self._risk_obj_c*stat.pnl_std).max()
         # else:
         #     self._counter = 0
-    
+
     # def is_best_perf(self):
     #     if self._is_best_perf:
     #         self._is_best_perf = False
@@ -120,7 +120,7 @@ class Predictor(core.Actor):
         self._log_perf = True
         self._perf_path_cnt = 0
         self._performance_logger.clear()
-    
+
     def end_log_perf(self):
         self._log_perf = False
 
@@ -168,31 +168,34 @@ class Predictor(core.Actor):
             num_obs = next_timestep.observation.shape[0]
             self._num_derivatives = int((num_obs - 2*self._num_hedgings - 1)/2)
             self._episode_hedging_price = np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2],
-                                                     (self._num_hedgings,1))
+                                                     (self._num_hedgings, 1))
             self._episode_hedging_holding = np.reshape(next_timestep.observation[1:(2*self._num_hedgings+1):2],
-                                                     (self._num_hedgings,1))
+                                                       (self._num_hedgings, 1))
             self._episode_derivative_price = np.reshape(next_timestep.observation[(2*self._num_hedgings):(2*(self._num_hedgings+self._num_derivatives)):2],
-                                                        (self._num_derivatives,1))
-            self._episode_action = np.reshape(action, (len(action),1))
+                                                        (self._num_derivatives, 1))
+            self._episode_action = np.reshape(action, (len(action), 1))
         else:
             self._episode_hedging_price = np.append(
-                self._episode_hedging_price, 
-                np.reshape(next_timestep.observation[0:(2*self._num_hedgings):2], (self._num_hedgings,1)),
+                self._episode_hedging_price,
+                np.reshape(next_timestep.observation[0:(
+                    2*self._num_hedgings):2], (self._num_hedgings, 1)),
                 axis=1
             )
             self._episode_hedging_holding = np.append(
-                self._episode_hedging_holding, 
-                np.reshape(next_timestep.observation[1:(2*self._num_hedgings+1):2], (self._num_hedgings,1)),
+                self._episode_hedging_holding,
+                np.reshape(next_timestep.observation[1:(
+                    2*self._num_hedgings+1):2], (self._num_hedgings, 1)),
                 axis=1
             )
             self._episode_derivative_price = np.append(
-                self._episode_derivative_price, 
-                np.reshape(next_timestep.observation[(2*self._num_hedgings):(2*(self._num_hedgings+self._num_derivatives)):2], (self._num_derivatives,1)),
+                self._episode_derivative_price,
+                np.reshape(next_timestep.observation[(2*self._num_hedgings):(
+                    2*(self._num_hedgings+self._num_derivatives)):2], (self._num_derivatives, 1)),
                 axis=1
             )
             self._episode_action = np.append(
-                self._episode_action, 
-                np.reshape(action, (len(action),1)),
+                self._episode_action,
+                np.reshape(action, (len(action), 1)),
                 axis=1
             )
         self._episode_pnl_path = np.append(
@@ -205,29 +208,30 @@ class Predictor(core.Actor):
         if next_timestep.last():
             # print("Episode PnL", self._episode_pnl)
             self._pred_pnls = np.append(self._pred_pnls, self._episode_pnl)
-            self._pred_rewards = np.append(self._pred_rewards, self._episode_reward)
+            self._pred_rewards = np.append(
+                self._pred_rewards, self._episode_reward)
             self._episode_pnl = 0.
             self._episode_reward = 0.
             if self._log_perf:
                 perf_log_measures = {'pnl': self._episode_pnl_path,
-                                    'reward': self._episode_reward_path,
-                                    'hedging_price': self._episode_hedging_price,
-                                    'hedging_holding': self._episode_hedging_holding,
-                                    'derivative_price': self._episode_derivative_price,
-                                    'action': self._episode_action}
+                                     'reward': self._episode_reward_path,
+                                     'hedging_price': self._episode_hedging_price,
+                                     'hedging_holding': self._episode_hedging_holding,
+                                     'derivative_price': self._episode_derivative_price,
+                                     'action': self._episode_action}
                 for measure_name, measure in perf_log_measures.items():
                     if len(measure.shape) == 1:
                         perf_path = {'path_num': self._perf_path_cnt,
-                                    'type': measure_name}
+                                     'type': measure_name}
                         for col_i, step_measure in enumerate(measure):
-                            perf_path[str(col_i)] = step_measure 
+                            perf_path[str(col_i)] = step_measure
                         self._performance_logger.write(perf_path)
                     else:
                         for row_i in range(measure.shape[0]):
                             perf_path = {'path_num': self._perf_path_cnt,
-                                        'type': measure_name + str(row_i)}
+                                         'type': measure_name + str(row_i)}
                             for col_i, step_measure in enumerate(measure[row_i]):
-                                perf_path[str(col_i)] = step_measure 
+                                perf_path[str(col_i)] = step_measure
                             self._performance_logger.write(perf_path)
                 self._perf_path_cnt += 1
             self._num_hedgings = None
@@ -256,12 +260,15 @@ class Predictor(core.Actor):
         measures['pnl_quantile_95'] = np.quantile(sorted_pnl, 0.95)
         measures['pnl_quantile_99'] = np.quantile(sorted_pnl, 0.99)
         measures['pnl_95VaR'] = sorted_pnl[int(round(len(sorted_pnl)*0.05))-1]
-        measures['pnl_95CVaR'] = sorted_pnl[:int(round(len(sorted_pnl)*0.05))].mean()
+        measures['pnl_95CVaR'] = sorted_pnl[:int(
+            round(len(sorted_pnl)*0.05))].mean()
         measures['pnl_99VaR'] = sorted_pnl[int(round(len(sorted_pnl)*0.01))-1]
-        measures['pnl_99CVaR'] = sorted_pnl[:int(round(len(sorted_pnl)*0.01))].mean()
+        measures['pnl_99CVaR'] = sorted_pnl[:int(
+            round(len(sorted_pnl)*0.01))].mean()
         measures['pnl_mean'] = sorted_pnl.mean()
         measures['pnl_std'] = sorted_pnl.std()
-        measures['objective value'] = self._mu_lambda * measures['pnl_mean'] - self._risk_obj_c * measures['pnl_std']
+        measures['objective value'] = self._mu_lambda * measures['pnl_mean'] - \
+            self._risk_obj_c * measures['pnl_std']
         # reward
         # measures['reward_mean'] = self._pred_rewards.mean()
         # self._counter += self._num_train_per_pred
@@ -269,7 +276,7 @@ class Predictor(core.Actor):
         self._progress_measures.update(measures)
         # reward_value = self._mu_lambda*measures['pnl_mean']-self._risk_obj_c*measures['pnl_std']
         # if (self._best_reward is None) or (self._best_reward < reward_value):
-        #     self._best_reward = reward_value 
+        #     self._best_reward = reward_value
         #     self._is_best_perf = True
 
     # def _write_progress_figures(self):
