@@ -1,4 +1,5 @@
 dm-acme
 dm-acme[reverb]
 dm-acme[tf]
-dm-acme[envs]
+QuantLib-Python
+tf_quant_finance
